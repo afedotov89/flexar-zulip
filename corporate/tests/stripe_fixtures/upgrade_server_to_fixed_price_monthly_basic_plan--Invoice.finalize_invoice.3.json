@@ -10,7 +10,7 @@
   "application": null,
   "attempt_count": 0,
   "attempted": false,
-  "auto_advance": false,
+  "auto_advance": true,
   "automatic_tax": {
     "disabled_reason": null,
     "enabled": false,
@@ -43,7 +43,7 @@
   "footer": null,
   "from_invoice": null,
   "hosted_invoice_url": "https://invoice.stripe.com/i/acct_NORMALIZED/test_NORMALIZED?s=ap",
-  "id": "upgrade_server_to_fixed_price_monthly_basic_plan--Event.list.2.json",
+  "id": "upgrade_server_to_fixed_price_monthly_basic_plan--Invoice.create.3.json",
   "invoice_pdf": "https://pay.stripe.com/invoice/acct_NORMALIZED/test_NORMALIZED/pdf?s=ap",
   "issuer": {
     "type": "self"
@@ -55,12 +55,12 @@
       {
         "amount": 10000,
         "currency": "usd",
-        "description": "Zulip Basic",
+        "description": "Zulip Basic - renewal",
         "discount_amounts": [],
         "discountable": false,
         "discounts": [],
-        "id": "upgrade_server_to_fixed_price_monthly_basic_plan--Event.list.2.json",
-        "invoice": "upgrade_server_to_fixed_price_monthly_basic_plan--Event.list.2.json",
+        "id": "upgrade_server_to_fixed_price_monthly_basic_plan--Invoice.finalize_invoice.3.json",
+        "invoice": "upgrade_server_to_fixed_price_monthly_basic_plan--Invoice.create.3.json",
         "livemode": false,
         "metadata": {},
         "object": "line_item",
@@ -77,8 +77,8 @@
           "type": "invoice_item_details"
         },
         "period": {
-          "end": 1357095845,
-          "start": 1325473445
+          "end": 1333335845,
+          "start": 1330657445
         },
         "pretax_credit_amounts": [],
         "pricing": {
@@ -96,18 +96,11 @@
     "has_more": false,
     "object": "list",
     "total_count": 1,
-    "url": "/v1/invoices/upgrade_server_to_fixed_price_monthly_basic_plan--Event.list.2.json/lines"
+    "url": "/v1/invoices/upgrade_server_to_fixed_price_monthly_basic_plan--Invoice.create.3.json/lines"
   },
   "livemode": false,
-  "metadata": {
-    "billing_schedule": "2",
-    "current_plan_id": "None",
-    "license_management": "automatic",
-    "licenses": "18",
-    "on_free_trial": "False",
-    "plan_tier": "103"
-  },
-  "next_payment_attempt": null,
+  "metadata": {},
+  "next_payment_attempt": 1000000000,
   "number": "NORMALIZED",
   "object": "invoice",
   "on_behalf_of": null,
@@ -149,5 +142,5 @@
   "total_excluding_tax": 10000,
   "total_pretax_credit_amounts": [],
   "total_taxes": [],
-  "webhooks_delivered_at": null
+  "webhooks_delivered_at": 1000000000
 }
