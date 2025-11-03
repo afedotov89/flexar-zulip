@@ -14,7 +14,7 @@
           "description": "zulip (Zulip Dev)",
           "discount": null,
           "email": "hamlet@zulip.com",
-          "id": "invoice_plan--Customer.create.1.json",
+          "id": "invoice_plan_bundle_additional_licenses--Customer.create.1.json",
           "invoice_prefix": "NORMALIZED",
           "invoice_settings": {
             "custom_fields": null,
@@ -42,12 +42,12 @@
           }
         }
       },
-      "id": "invoice_plan--Event.list.1.json",
+      "id": "invoice_plan_bundle_additional_licenses--Event.list.1.json",
       "livemode": false,
       "object": "event",
       "pending_webhooks": 0,
       "request": {
-        "id": "invoice_plan--Event.list.1.json",
+        "id": "invoice_plan_bundle_additional_licenses--Event.list.1.json",
         "idempotency_key": "00000000-0000-0000-0000-000000000000"
       },
       "type": "customer.updated"

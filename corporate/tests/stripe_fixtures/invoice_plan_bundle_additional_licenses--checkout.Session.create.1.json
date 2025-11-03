@@ -63,7 +63,7 @@
   "customer_email": null,
   "discounts": null,
   "expires_at": 1000000000,
-  "id": "invoice_plan--checkout.Session.create.1.json",
+  "id": "invoice_plan_bundle_additional_licenses--checkout.Session.create.1.json",
   "invoice": null,
   "invoice_creation": null,
   "livemode": false,

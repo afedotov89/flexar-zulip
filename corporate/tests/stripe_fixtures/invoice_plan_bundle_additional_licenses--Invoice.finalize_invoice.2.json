@@ -2,10 +2,10 @@
   "account_country": "US",
   "account_name": "NORMALIZED",
   "account_tax_ids": null,
-  "amount_due": 80697,
+  "amount_due": 2285250,
   "amount_overpaid": 0,
   "amount_paid": 0,
-  "amount_remaining": 80697,
+  "amount_remaining": 2285250,
   "amount_shipping": 0,
   "application": null,
   "attempt_count": 0,
@@ -43,7 +43,7 @@
   "footer": null,
   "from_invoice": null,
   "hosted_invoice_url": "https://invoice.stripe.com/i/acct_NORMALIZED/test_NORMALIZED?s=ap",
-  "id": "invoice_plan--Invoice.create.2.json",
+  "id": "invoice_plan_bundle_additional_licenses--Invoice.create.2.json",
   "invoice_pdf": "https://pay.stripe.com/invoice/acct_NORMALIZED/test_NORMALIZED/pdf?s=ap",
   "issuer": {
     "type": "self"
@@ -53,54 +53,14 @@
   "lines": {
     "data": [
       {
-        "amount": 7255,
+        "amount": 372700,
         "currency": "usd",
-        "description": "Additional license (Feb 5, 2013 - Jan 2, 2014)",
+        "description": "Additional license (Jan 27, 2012 - Jan 2, 2013)",
         "discount_amounts": [],
         "discountable": false,
         "discounts": [],
-        "id": "invoice_plan--Invoice.finalize_invoice.2.json",
-        "invoice": "invoice_plan--Invoice.create.2.json",
-        "livemode": false,
-        "metadata": {},
-        "object": "line_item",
-        "parent": {
-          "invoice_item_details": {
-            "invoice_item": "ii_NORMALIZED",
-            "proration": false,
-            "proration_details": {
-              "credited_items": null
-            },
-            "subscription": null
-          },
-          "subscription_item_details": null,
-          "type": "invoice_item_details"
-        },
-        "period": {
-          "end": 1388631845,
-          "start": 1360033445
-        },
-        "pretax_credit_amounts": [],
-        "pricing": {
-          "price_details": {
-            "price": "price_NORMALIZED",
-            "product": "prod_NORMALIZED"
-          },
-          "type": "price_details",
-          "unit_amount_decimal": "7255"
-        },
-        "quantity": 1,
-        "taxes": []
-      },
-      {
-        "amount": 17442,
-        "currency": "usd",
-        "description": "Additional license (Apr 11, 2012 - Jan 2, 2013)",
-        "discount_amounts": [],
-        "discountable": false,
-        "discounts": [],
-        "id": "invoice_plan--Invoice.finalize_invoice.2.json",
-        "invoice": "invoice_plan--Invoice.create.2.json",
+        "id": "invoice_plan_bundle_additional_licenses--Invoice.finalize_invoice.2.json",
+        "invoice": "invoice_plan_bundle_additional_licenses--Invoice.create.2.json",
         "livemode": false,
         "metadata": {},
         "object": "line_item",
@@ -118,7 +78,7 @@
         },
         "period": {
           "end": 1357095845,
-          "start": 1334113445
+          "start": 1327633465
         },
         "pretax_credit_amounts": [],
         "pricing": {
@@ -127,20 +87,20 @@
             "product": "prod_NORMALIZED"
           },
           "type": "price_details",
-          "unit_amount_decimal": "5814"
+          "unit_amount_decimal": "7454"
         },
-        "quantity": 3,
+        "quantity": 50,
         "taxes": []
       },
       {
-        "amount": 56000,
+        "amount": 756300,
         "currency": "usd",
-        "description": "Zulip Cloud Standard - renewal",
+        "description": "Additional license (Jan 22, 2012 - Jan 2, 2013)",
         "discount_amounts": [],
         "discountable": false,
         "discounts": [],
-        "id": "invoice_plan--Invoice.finalize_invoice.2.json",
-        "invoice": "invoice_plan--Invoice.create.2.json",
+        "id": "invoice_plan_bundle_additional_licenses--Invoice.finalize_invoice.2.json",
+        "invoice": "invoice_plan_bundle_additional_licenses--Invoice.create.2.json",
         "livemode": false,
         "metadata": {},
         "object": "line_item",
@@ -157,8 +117,8 @@
           "type": "invoice_item_details"
         },
         "period": {
-          "end": 1388631845,
-          "start": 1357095845
+          "end": 1357095845,
+          "start": 1327201445
         },
         "pretax_credit_amounts": [],
         "pricing": {
@@ -167,16 +127,96 @@
             "product": "prod_NORMALIZED"
           },
           "type": "price_details",
-          "unit_amount_decimal": "8000"
+          "unit_amount_decimal": "7563"
         },
-        "quantity": 7,
+        "quantity": 100,
+        "taxes": []
+      },
+      {
+        "amount": 767200,
+        "currency": "usd",
+        "description": "Additional license (Jan 17, 2012 - Jan 2, 2013)",
+        "discount_amounts": [],
+        "discountable": false,
+        "discounts": [],
+        "id": "invoice_plan_bundle_additional_licenses--Invoice.finalize_invoice.2.json",
+        "invoice": "invoice_plan_bundle_additional_licenses--Invoice.create.2.json",
+        "livemode": false,
+        "metadata": {},
+        "object": "line_item",
+        "parent": {
+          "invoice_item_details": {
+            "invoice_item": "ii_NORMALIZED",
+            "proration": false,
+            "proration_details": {
+              "credited_items": null
+            },
+            "subscription": null
+          },
+          "subscription_item_details": null,
+          "type": "invoice_item_details"
+        },
+        "period": {
+          "end": 1357095845,
+          "start": 1326769445
+        },
+        "pretax_credit_amounts": [],
+        "pricing": {
+          "price_details": {
+            "price": "price_NORMALIZED",
+            "product": "prod_NORMALIZED"
+          },
+          "type": "price_details",
+          "unit_amount_decimal": "7672"
+        },
+        "quantity": 100,
+        "taxes": []
+      },
+      {
+        "amount": 389050,
+        "currency": "usd",
+        "description": "Additional license (Jan 12, 2012 - Jan 2, 2013)",
+        "discount_amounts": [],
+        "discountable": false,
+        "discounts": [],
+        "id": "invoice_plan_bundle_additional_licenses--Invoice.finalize_invoice.2.json",
+        "invoice": "invoice_plan_bundle_additional_licenses--Invoice.create.2.json",
+        "livemode": false,
+        "metadata": {},
+        "object": "line_item",
+        "parent": {
+          "invoice_item_details": {
+            "invoice_item": "ii_NORMALIZED",
+            "proration": false,
+            "proration_details": {
+              "credited_items": null
+            },
+            "subscription": null
+          },
+          "subscription_item_details": null,
+          "type": "invoice_item_details"
+        },
+        "period": {
+          "end": 1357095845,
+          "start": 1326337445
+        },
+        "pretax_credit_amounts": [],
+        "pricing": {
+          "price_details": {
+            "price": "price_NORMALIZED",
+            "product": "prod_NORMALIZED"
+          },
+          "type": "price_details",
+          "unit_amount_decimal": "7781"
+        },
+        "quantity": 50,
         "taxes": []
       }
     ],
     "has_more": false,
     "object": "list",
-    "total_count": 3,
-    "url": "/v1/invoices/invoice_plan--Invoice.create.2.json/lines"
+    "total_count": 4,
+    "url": "/v1/invoices/invoice_plan_bundle_additional_licenses--Invoice.create.2.json/lines"
   },
   "livemode": false,
   "metadata": {},
@@ -214,12 +254,12 @@
     "paid_at": null,
     "voided_at": null
   },
-  "subtotal": 80697,
-  "subtotal_excluding_tax": 80697,
+  "subtotal": 2285250,
+  "subtotal_excluding_tax": 2285250,
   "test_clock": null,
-  "total": 80697,
+  "total": 2285250,
   "total_discount_amounts": [],
-  "total_excluding_tax": 80697,
+  "total_excluding_tax": 2285250,
   "total_pretax_credit_amounts": [],
   "total_taxes": [],
   "webhooks_delivered_at": 1000000000

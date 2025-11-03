@@ -4,12 +4,12 @@
   "account_tax_ids": null,
   "amount_due": 48000,
   "amount_overpaid": 0,
-  "amount_paid": 0,
-  "amount_remaining": 48000,
+  "amount_paid": 48000,
+  "amount_remaining": 0,
   "amount_shipping": 0,
   "application": null,
-  "attempt_count": 0,
-  "attempted": false,
+  "attempt_count": 1,
+  "attempted": true,
   "auto_advance": false,
   "automatic_tax": {
     "disabled_reason": null,
@@ -43,7 +43,7 @@
   "footer": null,
   "from_invoice": null,
   "hosted_invoice_url": "https://invoice.stripe.com/i/acct_NORMALIZED/test_NORMALIZED?s=ap",
-  "id": "invoice_plan--Event.list.2.json",
+  "id": "invoice_plan_bundle_additional_licenses--Event.list.2.json",
   "invoice_pdf": "https://pay.stripe.com/invoice/acct_NORMALIZED/test_NORMALIZED/pdf?s=ap",
   "issuer": {
     "type": "self"
@@ -59,8 +59,8 @@
         "discount_amounts": [],
         "discountable": false,
         "discounts": [],
-        "id": "invoice_plan--Event.list.2.json",
-        "invoice": "invoice_plan--Event.list.2.json",
+        "id": "invoice_plan_bundle_additional_licenses--Event.list.2.json",
+        "invoice": "invoice_plan_bundle_additional_licenses--Event.list.2.json",
         "livemode": false,
         "metadata": {},
         "object": "line_item",
@@ -96,7 +96,7 @@
     "has_more": false,
     "object": "list",
     "total_count": 1,
-    "url": "/v1/invoices/invoice_plan--Event.list.2.json/lines"
+    "url": "/v1/invoices/invoice_plan_bundle_additional_licenses--Event.list.2.json/lines"
   },
   "livemode": false,
   "metadata": {
@@ -135,11 +135,11 @@
   "shipping_details": null,
   "starting_balance": 0,
   "statement_descriptor": "Zulip Cloud Standard",
-  "status": "open",
+  "status": "paid",
   "status_transitions": {
     "finalized_at": 1000000000,
     "marked_uncollectible_at": null,
-    "paid_at": null,
+    "paid_at": 1000000000,
     "voided_at": null
   },
   "subtotal": 48000,
