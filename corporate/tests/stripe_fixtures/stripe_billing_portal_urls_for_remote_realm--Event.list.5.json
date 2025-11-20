@@ -5,11 +5,11 @@
       "created": 1000000000,
       "data": {
         "object": {
-          "amount_paid": 51600,
-          "amount_requested": 51600,
+          "amount_paid": 22200,
+          "amount_requested": 22200,
           "created": 1000000000,
           "currency": "usd",
-          "id": "upgrade_server_user_to_monthly_basic_plan--Event.list.1.json",
+          "id": "stripe_billing_portal_urls_for_remote_realm--Event.list.5.json",
           "invoice": "in_NORMALIZED",
           "is_default": true,
           "livemode": false,
@@ -25,7 +25,7 @@
           }
         }
       },
-      "id": "upgrade_server_user_to_monthly_basic_plan--Event.list.1.json",
+      "id": "stripe_billing_portal_urls_for_remote_realm--Event.list.5.json",
       "livemode": false,
       "object": "event",
       "pending_webhooks": 0,
@@ -36,7 +36,7 @@
       "type": "invoice_payment.paid"
     }
   ],
-  "has_more": true,
+  "has_more": false,
   "object": "list",
   "url": "/v1/events"
 }
