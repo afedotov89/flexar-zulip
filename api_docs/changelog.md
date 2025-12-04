@@ -20,6 +20,11 @@ format used by the Zulip server that they are interacting with.
 
 ## Changes in Zulip 12.0
 
+**Feature level 463**
+
+* [`GET /bots/{bot_id}/api_key`](/api/get-bot-api-key): Added
+  new endpoint to get a bot's API key.
+
 **Feature level 462**
 
 * [`GET /events`](/api/get-events): Added `rendered_description` field to the
