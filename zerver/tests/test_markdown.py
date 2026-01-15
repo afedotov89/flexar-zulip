@@ -1889,7 +1889,11 @@ class MarkdownLinkifierTest(ZulipTestCase):
             self.assertEqual(linkifiers_for_realm(realm.id), [])
 
         linkifier = RealmFilter(
-            realm=realm, pattern=r"whatever", url_template="whatever", example_input="whatever"
+            realm=realm,
+            pattern=r"whatever",
+            url_template="whatever",
+            example_input="whatever",
+            reverse_template="whatever",
         )
         linkifier.save()
 
@@ -1902,6 +1906,7 @@ class MarkdownLinkifierTest(ZulipTestCase):
                     "pattern": "whatever",
                     "url_template": "whatever",
                     "example_input": "whatever",
+                    "reverse_template": "whatever",
                 }
             ],
         )
@@ -1919,6 +1924,7 @@ class MarkdownLinkifierTest(ZulipTestCase):
                         "pattern": "whatever",
                         "url_template": "whatever",
                         "example_input": "whatever",
+                        "reverse_template": "whatever",
                     }
                 ],
             )
