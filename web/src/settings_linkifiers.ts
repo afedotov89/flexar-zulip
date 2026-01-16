@@ -12,6 +12,7 @@ import * as dialog_widget from "./dialog_widget.ts";
 import {$t_html} from "./i18n.ts";
 import * as linkifiers from "./linkifiers.ts";
 import * as ListWidget from "./list_widget.ts";
+import * as markdown from "./markdown.ts";
 import * as scroll_util from "./scroll_util.ts";
 import * as settings_ui from "./settings_ui.ts";
 import {current_user, realm} from "./state_data.ts";
@@ -200,10 +201,16 @@ export function populate_linkifiers(linkifiers_data: RealmLinkifiers): void {
         name: "linkifiers_list",
         get_item: ListWidget.default_get_item,
         modifier_html(linkifier, filter_value) {
+            const rendered_example_input_html = linkifier.example_input
+                ? markdown.parse_non_message(linkifier.example_input)
+                : "";
+
             return render_admin_linkifier_list({
                 linkifier: {
+                    rendered_example_input_html,
                     pattern: linkifier.pattern,
                     url_template: linkifier.url_template,
+                    reverse_template: linkifier.reverse_template ?? "",
                     id: linkifier.id,
                 },
                 can_modify: current_user.is_admin,
@@ -217,7 +224,9 @@ export function populate_linkifiers(linkifiers_data: RealmLinkifiers): void {
             predicate(item, value) {
                 return (
                     item.pattern.toLowerCase().includes(value) ||
-                    item.url_template.toLowerCase().includes(value)
+                    item.url_template.toLowerCase().includes(value) ||
+                    (item.example_input ?? "").toLowerCase().includes(value) ||
+                    (item.reverse_template ?? "").toLowerCase().includes(value)
                 );
             },
             onupdate() {
