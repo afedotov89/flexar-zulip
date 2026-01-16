@@ -16,7 +16,13 @@
             {{t "Pattern" }}: <span class="rendered_markdown"><code>#(?P&lt;id&gt;[0-9]+)</code></span>
         </li>
         <li>
+            {{t "Example text to linkify" }}: <span class="rendered_markdown"><code>#2468</code></span>
+        </li>
+        <li>
             {{t "URL template" }}: <span class="rendered_markdown"><code>https://github.com/zulip/zulip/issues/{id}</code></span>
+        </li>
+        <li>
+            {{t "Auto-convert pasted URLs matching the template to" }}: <span class="rendered_markdown"><code>#{id}</code></span>
         </li>
     </ul>
     <p>
@@ -42,9 +48,19 @@
                     <div class="alert" id="admin-linkifier-pattern-status"></div>
                 </div>
                 <div class="input-group">
+                    <label for="linkifier_example_input">{{t "Example text to linkify" }}</label>
+                    <input type="text" id="linkifier_example_input" class="settings_text_input" name="example_input" placeholder="#D1234" />
+                    <div class="alert" id="admin-linkifier-example-status"></div>
+                </div>
+                <div class="input-group">
                     <label for="linkifier_template">{{t "URL template" }}</label>
                     <input type="text" id="linkifier_template" class="settings_text_input" name="url_template" placeholder="https://github.com/zulip/zulip/issues/{id}" />
                     <div class="alert" id="admin-linkifier-template-status"></div>
+                </div>
+                <div class="input-group">
+                    <label for="linkifier_reverse_template">{{t "Auto-convert pasted URLs matching the template to" }}</label>
+                    <input type="text" id="linkifier_reverse_template" class="settings_text_input" name="reverse_template" placeholder="#D{id}" />
+                    <div class="alert" id="admin-linkifier-reverse-status"></div>
                 </div>
                 {{> ../components/action_button
                   label=(t 'Add linkifier')
