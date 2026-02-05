@@ -5496,8 +5496,8 @@ class RequiresBillingAccessTest(StripeTestCase):
         )
 
         check_users_cant_access(
-            [guest],
-            "Must be an organization member",
+            [guest, member],
+            "Insufficient permission",
             "/json/billing/sponsorship",
             "POST",
             {},
