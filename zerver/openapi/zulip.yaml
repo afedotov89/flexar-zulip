@@ -5240,6 +5240,22 @@ paths:
                                       type: string
                                       description: |
                                         The URL of the organization's [profile icon](/help/create-your-organization-profile).
+                                    media_preview_size:
+                                      type: integer
+                                      enum:
+                                        - 100
+                                        - 150
+                                        - 200
+                                      description: |
+                                        The organization's policy for the size of image and video
+                                        thumbnails in messages, expressed as a percentage of the
+                                        default height. Currently, only certain values are permitted.
+
+                                        - `100`: 100% height (the default).
+                                        - `150`: 150% height.
+                                        - `200`: 200% height.
+
+                                        **Changes**: New in Zulip 12.0 (feature level 469).
                                     inline_image_preview:
                                       type: boolean
                                       description: |
@@ -19202,6 +19218,24 @@ paths:
                               to be of type integer and did not accept anonymous user groups.
 
                               New in Zulip 8.0 (feature level 209).
+                      realm_media_preview_size:
+                        type: integer
+                        enum:
+                          - 100
+                          - 150
+                          - 200
+                        description: |
+                          Present if `realm` is present in `fetch_event_types`.
+
+                          The organization's policy for the size of image and video
+                          thumbnails in messages, expressed as a percentage of the
+                          default height. Currently, only certain values are permitted.
+
+                          - `100`: 100% height (the default).
+                          - `150`: 150% height.
+                          - `200`: 200% height.
+
+                          **Changes**: New in Zulip 12.0 (feature level 469).
                       realm_inline_image_preview:
                         type: boolean
                         description: |

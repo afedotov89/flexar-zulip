@@ -1247,6 +1247,7 @@ class RealmTest(ZulipTestCase):
             gif_rating_policy=10,
             waiting_period_threshold=-10,
             digest_weekday=10,
+            media_preview_size=10,
             message_content_delete_limit_seconds=-10,
             message_edit_history_visibility_policy=10,
             message_content_edit_limit_seconds=0,
@@ -2374,6 +2375,7 @@ class RealmAPITest(ZulipTestCase):
             move_messages_within_stream_limit_seconds=[1000, 1100, 1200],
             move_messages_between_streams_limit_seconds=[1000, 1100, 1200],
             topics_policy=Realm.REALM_TOPICS_POLICY_TYPES,
+            media_preview_size=[100, 150, 200],
             default_avatar_source=["G", "J"],
         )
 
