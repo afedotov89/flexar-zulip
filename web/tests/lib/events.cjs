@@ -413,6 +413,13 @@ exports.fixtures = {
         value: false,
     },
 
+    realm__update__media_preview_size: {
+        type: "realm",
+        op: "update",
+        property: "media_preview_size",
+        value: 150,
+    },
+
     realm__update__moderation_request_channel_id: {
         type: "realm",
         op: "update",
