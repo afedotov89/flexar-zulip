@@ -20,6 +20,12 @@ format used by the Zulip server that they are interacting with.
 
 ## Changes in Zulip 12.0
 
+**Feature level 464**
+
+* [`GET /events`](/api/get-events): The server now sends a
+  `realm/update_dict` event instead of `realm/update` event when a
+  Realm's `description` property is changed.
+
 **Feature level 463**
 
 * [`GET /bots/{bot_id}/api_key`](/api/get-bot-api-key): Added
@@ -27,8 +33,10 @@ format used by the Zulip server that they are interacting with.
 
 **Feature level 462**
 
-* [`GET /events`](/api/get-events): Added `rendered_description` field to the
-  realm update event when the `description` property is changed.
+* [`GET /events`](/api/get-events): Added `rendered_description` field
+  to the realm update event when the `description` property is
+  changed. Note that this new field was removed and replaced with the
+  standard `update_dict` mechanism in feature level 464.
 
 **Feature level 461**
 
