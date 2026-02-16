@@ -596,7 +596,19 @@ export function setup_topic_search_typeahead(): void {
             const pills = topic_filter_pill_widget!.items();
             const current_syntaxes = new Set(pills.map((pill) => pill.syntax));
             const query = $("#topic_filter_query").text().trim();
+            const has_locally_available_resolved_topics =
+                stream_topic_history.stream_has_locally_available_resolved_topics(stream_id);
             return topic_filter_pill.filter_options.filter((option) => {
+                if (!has_locally_available_resolved_topics && option.syntax.endsWith("resolved")) {
+                    // Technically, it could still be useful to show
+                    // the is:resolved option, as local data is not
+                    // complete. But because zooming the topic list
+                    // does the topic history fetch, it's reasonable to
+                    // ignore that possibility and just only show the
+                    // resolved topic options if we can confirm
+                    // they're relevant.
+                    return false;
+                }
                 if (current_syntaxes.has(option.syntax)) {
                     return false;
                 }
