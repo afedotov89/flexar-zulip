@@ -536,6 +536,16 @@ h4.user_group_setting_subsection_title {
             .large-icon {
                 display: inline-block;
                 margin-left: 5px;
+                /* Square off the icon box for better alignment
+                   with adjacent text. */
+                line-height: 1;
+                /* Middle alignment looks good for all but the lock icon. */
+                vertical-align: middle;
+
+                &:has(.zulip-icon-lock) {
+                    /* Keep the default baseline alignment for the lock icon. */
+                    vertical-align: baseline;
+                }
 
                 .zulip-icon {
                     font-size: 0.75em; /* 18px at 24px/em */
