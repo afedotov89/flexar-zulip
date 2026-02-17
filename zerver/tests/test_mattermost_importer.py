@@ -99,7 +99,7 @@ class MatterMostImporter(ZulipTestCase):
 
         team_name = "gryffindor"
         user = process_user(harry_dict, realm_id, team_name, user_id_mapper)
-        self.assertEqual(user["avatar_source"], "G")
+        self.assertEqual(user["avatar_source"], "J")
         self.assertEqual(user["delivery_email"], "harry@zulip.com")
         self.assertEqual(user["email"], "harry@zulip.com")
         self.assertEqual(user["full_name"], "Harry Potter")
@@ -121,7 +121,7 @@ class MatterMostImporter(ZulipTestCase):
         snape_dict = username_to_user["snape"]
         snape_dict["is_mirror_dummy"] = True
         user = process_user(snape_dict, realm_id, team_name, user_id_mapper)
-        self.assertEqual(user["avatar_source"], "G")
+        self.assertEqual(user["avatar_source"], "J")
         self.assertEqual(user["delivery_email"], "snape@zulip.com")
         self.assertEqual(user["email"], "snape@zulip.com")
         self.assertEqual(user["full_name"], "Severus Snape")
@@ -148,7 +148,7 @@ class MatterMostImporter(ZulipTestCase):
 
         team_name = "slytherin"
         user = process_user(sirius_dict, realm_id, team_name, user_id_mapper)
-        self.assertEqual(user["avatar_source"], "G")
+        self.assertEqual(user["avatar_source"], "J")
         self.assertEqual(user["delivery_email"], "sirius@zulip.com")
         self.assertEqual(user["email"], "sirius@zulip.com")
         self.assertEqual(user["full_name"], "Sirius Black")

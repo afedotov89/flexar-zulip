@@ -727,7 +727,7 @@ class Realm(models.Model):
         (AVATAR_FROM_JDENTICON, "Generated using Jdenticon"),
     )
     default_avatar_source = models.CharField(
-        default=AVATAR_FROM_GRAVATAR, choices=AVATAR_SOURCES, max_length=1
+        default=AVATAR_FROM_JDENTICON, choices=AVATAR_SOURCES, max_length=1
     )
 
     # Define the types of the various automatically managed properties

@@ -1306,7 +1306,7 @@ class NormalActionsTest(BaseAction):
         message_obj = events[0]["message"]
         self.assertEqual(message_obj["sender_full_name"], iago.full_name)
         self.assertEqual(message_obj["sender_email"], iago.delivery_email)
-        self.assertIsNone(message_obj["avatar_url"])
+        self.assertIsNotNone(message_obj["avatar_url"])
 
     def test_add_reaction(self) -> None:
         message_id = self.send_stream_message(self.example_user("hamlet"), "Verona", "hello")
