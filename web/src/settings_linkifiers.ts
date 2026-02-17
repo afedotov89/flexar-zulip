@@ -99,7 +99,8 @@ function open_linkifier_edit_form(linkifier_id: number): void {
     }
 
     const dialog_widget_id = dialog_widget.launch({
-        modal_title_html: $t_html({defaultMessage: "Edit linkfiers"}),
+        modal_title_html: $t_html({defaultMessage: "Edit linkifier"}),
+        help_link: "/help/add-a-custom-linkifier",
         modal_content_html,
         on_click() {
             submit_linkifier_form(dialog_widget_id);
