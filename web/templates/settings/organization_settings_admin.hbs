@@ -77,7 +77,6 @@
                 {{> settings_save_discard_widget section_name="onboarding" show_save_discard_buttons=true }}
             </div>
             <div class="organization-settings-parent">
-                {{#if development}}
                 <div class="input-group">
                     <label class="settings-field-label">
                         {{admin_settings_label.realm_default_avatar_source}}
@@ -107,7 +106,6 @@
                         {{/each}}
                     </div>
                 </div>
-                {{/if}}
 
                 {{> settings_checkbox
                   setting_name="realm_enable_welcome_message_custom_text"
