@@ -1,24 +1,5 @@
 <div id="edit-linkifier-form">
     <form class="linkifier-edit-form modal-form">
-        <div class="input-group name_change_container">
-            <label for="edit-linkifier-pattern" class="modal-field-label">{{t "Pattern" }}</label>
-            <input type="text" autocomplete="off" id="edit-linkifier-pattern" class="modal_text_input" name="pattern" placeholder="#(?P<id>[0-9]+)" value="{{ pattern }}" />
-            <div class="alert" id="edit-linkifier-pattern-status"></div>
-        </div>
-        <div class="input-group name_change_container">
-            <label for="edit-linkifier-example-input" class="modal-field-label">{{t "Example text to linkify" }}</label>
-            <input type="text" autocomplete="off" id="edit-linkifier-example-input" class="modal_text_input" name="example_input" placeholder="#D1234" value="{{ example_input }}" />
-            <div class="alert" id="edit-linkifier-example-input-status"></div>
-        </div>
-        <div class="input-group name_change_container">
-            <label for="edit-linkifier-url-template" class="modal-field-label">{{t "URL template" }}</label>
-            <input type="text" autocomplete="off" id="edit-linkifier-url-template" class="modal_text_input" name="url_template" placeholder="https://github.com/zulip/zulip/issues/{id}" value="{{ url_template }}" />
-            <div class="alert" id="edit-linkifier-template-status"></div>
-        </div>
-        <div class="input-group name_change_container">
-            <label for="edit-linkifier-reverse-template" class="modal-field-label">{{t "Auto-convert pasted URLs matching the template to" }}</label>
-            <input type="text" autocomplete="off" id="edit-linkifier-reverse-template" class="modal_text_input" name="reverse_template" placeholder="#D{id}" value="{{ reverse_template }}" />
-            <div class="alert" id="edit-linkifier-reverse-template-status"></div>
-        </div>
+        {{> linkifier_form_fields . }}
     </form>
 </div>

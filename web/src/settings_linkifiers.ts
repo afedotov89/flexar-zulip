@@ -3,13 +3,14 @@ import assert from "minimalistic-assert";
 import SortableJS from "sortablejs";
 import * as z from "zod/mini";
 
+import render_admin_linkifier_add_form from "../templates/settings/admin_linkifier_add_form.hbs";
 import render_admin_linkifier_edit_form from "../templates/settings/admin_linkifier_edit_form.hbs";
 import render_admin_linkifier_list from "../templates/settings/admin_linkifier_list.hbs";
 
 import * as channel from "./channel.ts";
 import * as confirm_dialog from "./confirm_dialog.ts";
 import * as dialog_widget from "./dialog_widget.ts";
-import {$t_html} from "./i18n.ts";
+import {$t, $t_html} from "./i18n.ts";
 import * as linkifiers from "./linkifiers.ts";
 import * as ListWidget from "./list_widget.ts";
 import * as markdown from "./markdown.ts";
@@ -54,28 +55,24 @@ function open_linkifier_edit_form(linkifier_id: number): void {
         $change_linkifier_button.prop("disabled", true);
 
         const url = "/json/realm/filters/" + encodeURIComponent(linkifier_id);
-        const pattern = $modal.find<HTMLInputElement>("input#edit-linkifier-pattern").val()!.trim();
+        const pattern = $modal.find<HTMLInputElement>("input#linkifier-pattern").val()!.trim();
         const url_template = $modal
-            .find<HTMLInputElement>("input#edit-linkifier-url-template")
+            .find<HTMLInputElement>("input#linkifier-url-template")
             .val()!
             .trim();
         const example_input = $modal
-            .find<HTMLInputElement>("input#edit-linkifier-example-input")
+            .find<HTMLInputElement>("input#linkifier-example-input")
             .val()!
             .trim();
         const reverse_template = $modal
-            .find<HTMLInputElement>("input#edit-linkifier-reverse-template")
+            .find<HTMLInputElement>("input#linkifier-reverse-template")
             .val()!
             .trim();
         const data = {pattern, url_template, example_input, reverse_template};
-        const $pattern_status = $modal.find("#edit-linkifier-pattern-status").expectOne();
-        const $template_status = $modal.find("#edit-linkifier-template-status").expectOne();
-        const $example_input_status = $modal
-            .find("#edit-linkifier-example-input-status")
-            .expectOne();
-        const $reverse_template_status = $modal
-            .find("#edit-linkifier-reverse-template-status")
-            .expectOne();
+        const $pattern_status = $modal.find("#linkifier-pattern-status").expectOne();
+        const $template_status = $modal.find("#linkifier-template-status").expectOne();
+        const $example_input_status = $modal.find("#linkifier-example-status").expectOne();
+        const $reverse_template_status = $modal.find("#linkifier-reverse-status").expectOne();
         const $dialog_error_element = $modal.find("#dialog_error").expectOne();
         const opts = {
             success_continuation() {
@@ -121,11 +118,113 @@ function open_linkifier_edit_form(linkifier_id: number): void {
         modal_title_html: $t_html({defaultMessage: "Edit linkifier"}),
         help_link: "/help/add-a-custom-linkifier",
         modal_content_html,
+        id: "edit-linkifier-modal",
         on_click() {
             submit_linkifier_form(dialog_widget_id);
         },
         on_shown() {
-            ui_util.place_caret_at_end(util.the($("#edit-linkifier-pattern")));
+            const $pattern_input = $(`#${CSS.escape(dialog_widget_id)}`).find<HTMLInputElement>(
+                "input#linkifier-pattern",
+            );
+            ui_util.place_caret_at_end(util.the($pattern_input));
+        },
+    });
+}
+
+function open_linkifier_add_form(): void {
+    const modal_content_html = render_admin_linkifier_add_form({
+        pattern: "",
+        url_template: "",
+        example_input: "",
+        reverse_template: "",
+    });
+
+    function submit_linkifier_form(dialog_widget_id: string): void {
+        const $modal = $(`#${CSS.escape(dialog_widget_id)}`);
+        const $linkifier_status = $modal.find("#add-linkifier-status").expectOne();
+        const $pattern_status = $modal.find("#linkifier-pattern-status").expectOne();
+        const $template_status = $modal.find("#linkifier-template-status").expectOne();
+        const $example_input_status = $modal.find("#linkifier-example-status").expectOne();
+        const $reverse_template_status = $modal.find("#linkifier-reverse-status").expectOne();
+        const $add_linkifier_button = $modal.find(".dialog_submit_button").expectOne();
+        $add_linkifier_button.prop("disabled", true);
+        $linkifier_status.hide();
+        $pattern_status.hide();
+        $template_status.hide();
+        $example_input_status.hide();
+        $reverse_template_status.hide();
+
+        const pattern = $modal.find<HTMLInputElement>("input#linkifier-pattern").val()!.trim();
+        const url_template = $modal
+            .find<HTMLInputElement>("input#linkifier-url-template")
+            .val()!
+            .trim();
+        const example_input = $modal
+            .find<HTMLInputElement>("input#linkifier-example-input")
+            .val()!
+            .trim();
+        const reverse_template = $modal
+            .find<HTMLInputElement>("input#linkifier-reverse-template")
+            .val()!
+            .trim();
+
+        try {
+            linkifiers.python_to_js_linkifier(pattern, url_template);
+        } catch {
+            $add_linkifier_button.prop("disabled", false);
+            ui_report.error(
+                $t_html({defaultMessage: "Failed: Invalid Pattern"}),
+                undefined,
+                $pattern_status,
+            );
+            return;
+        }
+
+        void channel.post({
+            url: "/json/realm/filters",
+            data: {pattern, url_template, example_input, reverse_template},
+            success() {
+                $add_linkifier_button.prop("disabled", false);
+                dialog_widget.close();
+                ui_report.success(
+                    $t_html({defaultMessage: "Custom linkifier added!"}),
+                    $("#linkifier-field-status").expectOne(),
+                );
+            },
+            error(xhr) {
+                $add_linkifier_button.prop("disabled", false);
+                const parsed = z
+                    .object({errors: z.record(z.string(), z.optional(z.array(z.string())))})
+                    .safeParse(xhr.responseJSON);
+                if (parsed.success) {
+                    handle_linkifier_api_error(
+                        parsed.data.errors,
+                        $pattern_status,
+                        $template_status,
+                        $example_input_status,
+                        $reverse_template_status,
+                        $linkifier_status,
+                    );
+                }
+            },
+        });
+    }
+
+    const dialog_widget_id = dialog_widget.launch({
+        modal_title_html: $t_html({defaultMessage: "Add a new linkifier"}),
+        help_link: "/help/add-a-custom-linkifier",
+        modal_content_html,
+        modal_submit_button_text: $t({defaultMessage: "Add linkifier"}),
+        id: "add-linkifier-modal",
+        form_id: "add-linkifier-form-modal",
+        on_click() {
+            submit_linkifier_form(dialog_widget_id);
+        },
+        on_shown() {
+            const $pattern_input = $(`#${CSS.escape(dialog_widget_id)}`).find<HTMLInputElement>(
+                "input#linkifier-pattern",
+            );
+            ui_util.place_caret_at_end(util.the($pattern_input));
         },
     });
 }
@@ -286,69 +385,9 @@ export function build_page(): void {
         open_linkifier_edit_form(linkifier_id);
     });
 
-    $(".organization form.admin-linkifier-form")
-        .off("submit")
-        .on("submit", function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const $linkifier_status = $("#admin-linkifier-status");
-            const $pattern_status = $("#admin-linkifier-pattern-status");
-            const $template_status = $("#admin-linkifier-template-status");
-            const $example_input_status = $("#admin-linkifier-example-status");
-            const $reverse_template_status = $("#admin-linkifier-reverse-status");
-            const $add_linkifier_button = $(".new-linkifier-form button");
-            $add_linkifier_button.prop("disabled", true);
-            $linkifier_status.hide();
-            $pattern_status.hide();
-            $template_status.hide();
-            $example_input_status.hide();
-            $reverse_template_status.hide();
-
-            const pattern = String($("#linkifier_pattern").val()).trim();
-            const url_template = String($("#linkifier_template").val()).trim();
-
-            try {
-                linkifiers.python_to_js_linkifier(pattern, url_template);
-            } catch {
-                $add_linkifier_button.prop("disabled", false);
-                ui_report.error(
-                    $t_html({defaultMessage: "Failed: Invalid Pattern"}),
-                    undefined,
-                    $pattern_status,
-                );
-                return;
-            }
-
-            void channel.post({
-                url: "/json/realm/filters",
-                data: $(this).serialize(),
-                success() {
-                    $("#linkifier_pattern").val("");
-                    $("#linkifier_template").val("");
-                    $("#linkifier_example_input").val("");
-                    $("#linkifier_reverse_template").val("");
-                    $add_linkifier_button.prop("disabled", false);
-                    ui_report.success(
-                        $t_html({defaultMessage: "Custom linkifier added!"}),
-                        $linkifier_status,
-                    );
-                },
-                error(xhr) {
-                    $add_linkifier_button.prop("disabled", false);
-                    const parsed = z
-                        .object({errors: z.record(z.string(), z.optional(z.array(z.string())))})
-                        .safeParse(xhr.responseJSON);
-                    if (parsed.success) {
-                        handle_linkifier_api_error(
-                            parsed.data.errors,
-                            $pattern_status,
-                            $template_status,
-                            $example_input_status,
-                            $reverse_template_status,
-                            $linkifier_status,
-                        );
-                    }
-                },
-            });
-        });
+    $("#linkifier-settings").on("click", "#add-linkifier-button", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        open_linkifier_add_form();
+    });
 }
