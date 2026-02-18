@@ -1842,7 +1842,7 @@ textarea.new_message_textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
+    width: 38px;
     /* Allow to grow but not shrink */
     flex: 1 0 auto;
     height: var(--compose-formatting-buttons-row-height);
@@ -1853,7 +1853,7 @@ textarea.new_message_textarea {
        margin is handled on the vdots icon
        below, so as to make for a maximum
        clickable vdots area. */
-    margin-left: -4px;
+    margin-left: -2px;
     border-radius: 0 4px 4px 0;
     /* Flex items respect z-index values;
        this is needed to keep the vdots
@@ -1887,7 +1887,7 @@ textarea.new_message_textarea {
     }
 
     .zulip-icon {
-        padding: 5px 0 5px 4px;
+        padding: 5px 0 5px 2px;
         /* 17px at 14px/1em */
         font-size: 1.2143em;
         flex-grow: 1;
