@@ -1799,7 +1799,7 @@ paths:
                                 Helps clients to live-update the `devices` dictionary
                                 returned in [`POST /register`](/api/register-queue) response.
 
-                                **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+                                **Changes**: New in Zulip 12.0 (feature level 468).
                               properties:
                                 id:
                                   $ref: "#/components/schemas/EventIdSchema"
@@ -1831,7 +1831,7 @@ paths:
                                 Helps clients to live-update the `devices` dictionary
                                 returned in [`POST /register`](/api/register-queue) response.
 
-                                **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+                                **Changes**: New in Zulip 12.0 (feature level 468).
                               properties:
                                 id:
                                   $ref: "#/components/schemas/EventIdSchema"
@@ -1868,7 +1868,7 @@ paths:
                                 are optional. Only fields whose values needs to be updated are
                                 included in the event.
 
-                                **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+                                **Changes**: New in Zulip 12.0 (feature level 468).
                               properties:
                                 id:
                                   $ref: "#/components/schemas/EventIdSchema"
@@ -12850,7 +12850,7 @@ paths:
                     See [`POST /register_client_device`](/api/register-client-device)
                     for details on device ID.
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+                    **Changes**: New in Zulip 12.0 (feature level 468).
 
                     Previously, `push_account_id` was used.
                   type: integer
@@ -12906,7 +12906,7 @@ paths:
         - **Rotate push key**: Provide only the push key fields.
         - **Rotate token**: Provide only the token fields.
 
-        **Changes**: In Zulip 12.0 (feature level ZF-42fbcd), the endpoint
+        **Changes**: In Zulip 12.0 (feature level 468), the endpoint
         was significantly redesigned to support rotation of `push_key` and
         token provided by FCM/APNs.
 
@@ -13057,7 +13057,7 @@ paths:
                     The `token_id` value provided by the mobile client
                     to [register E2EE push device](/api/register-push-device).
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd),
+                    **Changes**: New in Zulip 12.0 (feature level 468),
                     replacing `push_account_id`.
                   type: string
                   example: "+wKIhyAx/Eg="
@@ -13146,7 +13146,7 @@ paths:
 
         This endpoint is currently not useful for clients other than mobile.
 
-        **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+        **Changes**: New in Zulip 12.0 (feature level 468).
       responses:
         "200":
           description: Success.
@@ -18638,7 +18638,7 @@ paths:
                           Dictionary where each entry describes the user's logged-in devices,
                           registered using [`POST /register_client_device`](/api/register-client-device).
 
-                          **Changes**: New in Zulip 12.0 (feature level ZF-42fbcd).
+                          **Changes**: New in Zulip 12.0 (feature level 468).
                         additionalProperties:
                           description: |
                             `{device_id}`: Dictionary containing the details of
