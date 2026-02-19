@@ -186,7 +186,8 @@
       "svgicons2svgfont": "patches/svgicons2svgfont.patch",
       "textarea-caret@3.1.0": "patches/textarea-caret@3.1.0.patch",
       "tippy.js@6.3.7": "patches/tippy.js@6.3.7.patch",
-      "autosize": "patches/autosize.patch"
+      "autosize": "patches/autosize.patch",
+      "jdenticon": "patches/jdenticon.patch"
     }
   },
   "nyc": {
