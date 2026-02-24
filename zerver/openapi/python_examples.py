@@ -783,6 +783,22 @@ def deactivate_own_user(client: Client, owner_client: Client) -> None:
     owner_client.reactivate_user_by_id(user_id)
 
 
+@openapi_test_function("/users/me/api_key/regenerate:post")
+def regenerate_api_key(client: Client) -> None:
+    # {code_example|start}
+    # Generate a new API key for the current user/bot.
+    result = client.call_endpoint(
+        url="/users/me/api_key/regenerate",
+        method="POST",
+    )
+    # {code_example|end}
+    assert_success_response(result)
+    validate_against_openapi_schema(result, "/users/me/api_key/regenerate", "post", "200")
+
+    # Update the client with the new API key so subsequent tests don't fail.
+    client.api_key = result["api_key"]
+
+
 @openapi_test_function("/get_stream_id:get")
 def get_stream_id(client: Client) -> int:
     name = "python-test"
@@ -2166,6 +2182,7 @@ def test_the_api(client: Client, nonadmin_client: Client, owner_client: Client) 
     test_errors(client)
     test_invitations(client)
     test_welcome_bot_custom_message(client)
+    regenerate_api_key(client)
 
     sys.stdout.flush()
     if REGISTERED_TEST_FUNCTIONS != CALLED_TEST_FUNCTIONS:
