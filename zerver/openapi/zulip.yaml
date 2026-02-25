@@ -13184,6 +13184,36 @@ paths:
                         description: |
                           The ID of the newly registered device.
                     example: {"msg": "", "device_id": 2, "result": "success"}
+  /remove_client_device:
+    post:
+      operationId: remove-client-device
+      summary: Remove a registered device
+      tags: ["mobile"]
+      description: |
+        Mobile devices use this endpoint to remove their device record
+        registered using [`POST /register_client_device`](/api/register-client-device)
+        when the user logs out.
+
+        This endpoint is currently not useful for clients other than mobile.
+
+        **Changes**: New in Zulip 12.0 (feature level 470).
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                device_id:
+                  description: |
+                    The ID of the device to remove.
+                  type: integer
+                  example: 2
+              required:
+                - device_id
+      responses:
+        "200":
+          $ref: "#/components/responses/SimpleSuccess"
   /user_topics:
     post:
       operationId: update-user-topic

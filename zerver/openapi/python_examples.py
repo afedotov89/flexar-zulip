@@ -1737,6 +1737,21 @@ def register_device(client: Client) -> None:
     validate_against_openapi_schema(result, "/register_client_device", "post", "200")
 
 
+@openapi_test_function("/remove_client_device:post")
+def remove_device(client: Client) -> None:
+    # First register a device to get a device_id.
+    result = client.call_endpoint(url="/register_client_device", method="POST")
+    device_id = result["device_id"]
+
+    # {code_example|start}
+    # Remove a registered device.
+    request = {"device_id": device_id}
+    result = client.call_endpoint(url="/remove_client_device", method="POST", request=request)
+    # {code_example|end}
+    assert_success_response(result)
+    validate_against_openapi_schema(result, "/remove_client_device", "post", "200")
+
+
 @openapi_test_function("/typing:post")
 def set_typing_status(client: Client) -> None:
     ensure_users([10, 11], ["hamlet", "iago"])
@@ -2066,6 +2081,7 @@ def test_users(client: Client, owner_client: Client) -> None:
     remove_fcm_token(client)
     register_push_device(client)
     register_device(client)
+    remove_device(client)
 
 
 def test_streams(client: Client, nonadmin_client: Client) -> None:
