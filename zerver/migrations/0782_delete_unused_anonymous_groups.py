@@ -123,7 +123,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("zerver", "0780_delete_pushdevice"),
+        ("zerver", "0781_realm_image_thumbnail_size"),
     ]
 
     operations = [
