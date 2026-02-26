@@ -5488,8 +5488,8 @@ class RequiresBillingAccessTest(StripeTestCase):
                 self.assert_json_error_contains(result, error_message)
 
         check_users_cant_access(
-            [guest],
-            "Must be an organization member",
+            [guest, member],
+            "Insufficient permission",
             "/json/billing/upgrade",
             "POST",
             {},
@@ -5528,8 +5528,8 @@ class RequiresBillingAccessTest(StripeTestCase):
         )
 
         check_users_cant_access(
-            [guest],
-            "Must be an organization member",
+            [guest, member],
+            "Insufficient permission",
             "/json/billing/event/status",
             "GET",
             {},
