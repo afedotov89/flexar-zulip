@@ -4014,7 +4014,7 @@ paths:
                                           An example input string that matches the linkifier's pattern.
                                           This is required for reverse linkifiers.
 
-                                          **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                                          **Changes**: New in Zulip 12.0 (feature level 471).
                                       reverse_template:
                                         type: string
                                         nullable: true
@@ -4025,7 +4025,7 @@ paths:
 
                                           `{{ "{{/}}" }}` can be used for literal `{/}` characters.
 
-                                          **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                                          **Changes**: New in Zulip 12.0 (feature level 471).
                               example:
                                 {
                                   "type": "realm_linkifiers",
@@ -15602,7 +15602,7 @@ paths:
                                 An example input string that matches the linkifier's pattern.
                                 This is required for reverse linkifiers.
 
-                                **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                                **Changes**: New in Zulip 12.0 (feature level 471).
                             reverse_template:
                               type: string
                               nullable: true
@@ -15613,7 +15613,7 @@ paths:
 
                                 `{{ "{{/}}" }}` can be used for literal `{/}` characters.
 
-                                **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                                **Changes**: New in Zulip 12.0 (feature level 471).
                     example:
                       {
                         "msg": "",
@@ -15692,7 +15692,7 @@ paths:
                     An example input string that matches the linkifier's pattern.
                     This is required for reverse linkifiers.
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                    **Changes**: New in Zulip 12.0 (feature level 471).
                 reverse_template:
                   type: string
                   nullable: true
@@ -15708,7 +15708,7 @@ paths:
                     url_pattern when passed to reverse_template returns example_input
                     back to us.
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                    **Changes**: New in Zulip 12.0 (feature level 471).
               required:
                 - pattern
                 - url_template
@@ -15790,7 +15790,7 @@ paths:
                     This is required for reverse linkifiers. Passing an empty string
                     will set this field back to null.
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                    **Changes**: New in Zulip 12.0 (feature level 471).
                 reverse_template:
                   type: string
                   nullable: true
@@ -15807,7 +15807,7 @@ paths:
 
                     `{{ "{{/}}" }}` can be used for literal `{/}` characters.
 
-                    **Changes**: New in Zulip 12.0 (feature level ZF-9993b5).
+                    **Changes**: New in Zulip 12.0 (feature level 471).
               required:
                 - pattern
                 - url_template
