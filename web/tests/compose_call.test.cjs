@@ -183,6 +183,7 @@ test("videos", ({override}) => {
         override(compose_ui, "insert_syntax_and_focus", (syntax) => {
             syntax_to_insert = syntax;
             called = true;
+            success_callback = undefined;
         });
 
         override(realm, "realm_video_chat_provider", realm_available_video_chat_providers.zoom.id);
@@ -196,19 +197,27 @@ test("videos", ({override}) => {
             server_events_dispatch.dispatch_normal_event(events.fixtures.has_zoom_token);
         };
 
+        let success_callback;
+        const xhr_object = {abort() {}};
         channel.post = (payload) => {
             assert.equal(payload.url, "/json/calls/zoom/create");
-            payload.success({
+            success_callback = payload.success;
+            return xhr_object;
+        };
+
+        function call_success_callback() {
+            assert.ok(success_callback !== undefined);
+            success_callback({
                 result: "success",
                 msg: "",
                 url: "example.zoom.com",
             });
-            return {abort() {}};
-        };
+        }
 
         $("textarea#compose-textarea").val("");
         const video_handler = $("body").get_on_handler("click", ".video_link");
         video_handler.call($textarea, ev);
+        call_success_callback();
         const video_link_regex = /\[translated: Join video call\.]\(example\.zoom\.com\)/;
         assert.ok(called);
         assert.match(syntax_to_insert, video_link_regex);
@@ -216,6 +225,7 @@ test("videos", ({override}) => {
         $("textarea#compose-textarea").val("");
         const audio_handler = $("body").get_on_handler("click", ".audio_link");
         audio_handler.call($textarea, ev);
+        call_success_callback();
         const audio_link_regex = /\[translated: Join voice call\.]\(example\.zoom\.com\)/;
         assert.ok(called);
         assert.match(syntax_to_insert, audio_link_regex);
@@ -236,6 +246,7 @@ test("videos", ({override}) => {
         override(compose_ui, "insert_syntax_and_focus", (syntax) => {
             syntax_to_insert = syntax;
             called = true;
+            success_callback = undefined;
         });
 
         override(realm, "realm_video_chat_provider", realm_available_video_chat_providers.webex.id);
@@ -249,19 +260,27 @@ test("videos", ({override}) => {
             server_events_dispatch.dispatch_normal_event(events.fixtures.has_webex_token);
         };
 
+        let success_callback;
+        const xhr_object = {abort() {}};
         channel.post = (payload) => {
             assert.equal(payload.url, "/json/calls/webex/create");
-            payload.success({
+            success_callback = payload.success;
+            return xhr_object;
+        };
+
+        function call_success_callback() {
+            assert.ok(success_callback !== undefined);
+            success_callback({
                 result: "success",
                 msg: "",
                 url: "example.webex.com",
             });
-            return {abort() {}};
-        };
+        }
 
         $("textarea#compose-textarea").val("");
         const video_handler = $("body").get_on_handler("click", ".video_link");
         video_handler.call($textarea, ev);
+        call_success_callback();
         const video_link_regex = /\[translated: Join video call\.]\(example\.webex\.com\)/;
         assert.ok(called);
         assert.match(syntax_to_insert, video_link_regex);
@@ -282,6 +301,8 @@ test("videos", ({override}) => {
         override(compose_ui, "insert_syntax_and_focus", (syntax) => {
             syntax_to_insert = syntax;
             called = true;
+            success_callback = undefined;
+            url = undefined;
         });
 
         $("textarea#compose-textarea").val("");
@@ -294,23 +315,34 @@ test("videos", ({override}) => {
 
         override(compose_closed_ui, "get_recipient_label", () => ({label_text: "a"}));
 
+        let success_callback;
+        const xhr_object = {abort() {}};
+        let url;
         channel.get = (options) => {
             assert.equal(options.url, "/json/calls/bigbluebutton/create");
             assert.equal(options.data.meeting_name, "a meeting");
-            options.success({
+            success_callback = options.success;
+            url =
+                "/calls/bigbluebutton/join?meeting_id=%22zulip-1%22&moderator=%22AAAAAAAAAA%22&lock_settings_disable_cam=" +
+                options.data.voice_only +
+                "&checksum=%2232702220bff2a22a44aee72e96cfdb4c4091752e%22";
+            return xhr_object;
+        };
+
+        function call_success_callback() {
+            assert.ok(success_callback !== undefined);
+            success_callback({
                 result: "success",
                 msg: "",
-                url:
-                    "/calls/bigbluebutton/join?meeting_id=%22zulip-1%22&moderator=%22AAAAAAAAAA%22&lock_settings_disable_cam=" +
-                    options.data.voice_only +
-                    "&checksum=%2232702220bff2a22a44aee72e96cfdb4c4091752e%22",
+                url,
             });
-        };
+        }
 
         $("textarea#compose-textarea").val("");
 
         const video_handler = $("body").get_on_handler("click", ".video_link");
         video_handler.call($textarea, ev);
+        call_success_callback();
         const video_link_regex =
             /\[translated: Join video call\.]\(\/calls\/bigbluebutton\/join\?meeting_id=%22zulip-1%22&moderator=%22AAAAAAAAAA%22&lock_settings_disable_cam=false&checksum=%2232702220bff2a22a44aee72e96cfdb4c4091752e%22\)/;
         assert.ok(called);
@@ -318,6 +350,7 @@ test("videos", ({override}) => {
 
         const audio_handler = $("body").get_on_handler("click", ".audio_link");
         audio_handler.call($textarea, ev);
+        call_success_callback();
         const audio_link_regex =
             /\[translated: Join voice call\.]\(\/calls\/bigbluebutton\/join\?meeting_id=%22zulip-1%22&moderator=%22AAAAAAAAAA%22&lock_settings_disable_cam=true&checksum=%2232702220bff2a22a44aee72e96cfdb4c4091752e%22\)/;
         assert.ok(called);
@@ -339,6 +372,7 @@ test("videos", ({override}) => {
         override(compose_ui, "insert_syntax_and_focus", (syntax) => {
             syntax_to_insert = syntax;
             called = true;
+            success_callback = undefined;
         });
 
         override(
@@ -347,20 +381,26 @@ test("videos", ({override}) => {
             realm_available_video_chat_providers.constructor_groups.id,
         );
 
-        channel.post = (payload) => {
-            assert.equal(payload.url, "/json/calls/constructorgroups/create");
-            assert.deepEqual(payload.data, {}); // Empty data object
-            payload.success({
+        let success_callback;
+        function call_success_callback() {
+            success_callback({
                 result: "success",
                 msg: "",
                 url: "https://example.constructor.app/groups/room/room-123",
             });
+        }
+
+        channel.post = (payload) => {
+            assert.equal(payload.url, "/json/calls/constructorgroups/create");
+            assert.deepEqual(payload.data, {}); // Empty data object
+            success_callback = payload.success;
             return {abort() {}};
         };
 
         $("textarea#compose-textarea").val("");
         const video_handler = $("body").get_on_handler("click", ".video_link");
         video_handler.call($textarea, ev);
+        call_success_callback();
         const video_link_regex =
             /\[translated: Join video call\.]\(https:\/\/example\.constructor\.app\/groups\/room\/room-123\)/;
         assert.ok(called);
@@ -382,6 +422,7 @@ test("videos", ({override}) => {
         override(compose_ui, "insert_syntax_and_focus", (syntax) => {
             syntax_to_insert = syntax;
             called = true;
+            success_callback = undefined;
         });
 
         $("textarea#compose-textarea").val("");
@@ -393,22 +434,29 @@ test("videos", ({override}) => {
         );
 
         override(compose_closed_ui, "get_recipient_label", () => ({label_text: "general"}));
-
-        channel.post = (options) => {
-            assert.equal(options.url, "/json/calls/nextcloud_talk/create");
-            assert.equal(options.data.room_name, "general conversation");
-            options.success({
+        let success_callback;
+        function call_success_callback() {
+            assert.ok(success_callback !== undefined);
+            success_callback({
                 result: "success",
                 msg: "",
                 url: "https://nextcloud.example.com/index.php/call/abc123token",
             });
-            return {abort() {}};
+        }
+
+        const xhr_object = {abort() {}};
+        channel.post = (options) => {
+            assert.equal(options.url, "/json/calls/nextcloud_talk/create");
+            assert.equal(options.data.room_name, "general conversation");
+            success_callback = options.success;
+            return xhr_object;
         };
 
         $("textarea#compose-textarea").val("");
 
         const video_handler = $("body").get_on_handler("click", ".video_link");
         video_handler.call($textarea, ev);
+        call_success_callback();
         const video_link_regex =
             /\[translated: Join video call\.]\(https:\/\/nextcloud\.example\.com\/index\.php\/call\/abc123token\)/;
         assert.ok(called);
