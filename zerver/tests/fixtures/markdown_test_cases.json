@@ -1492,6 +1492,21 @@
       "asanadesktop://task/123456789",
       "<p>%s</p>",
       "asanadesktop://task/123456789"
+    ],
+    [
+      "日本語https://google.com",
+      "<p>日本語<a href=\"https://google.com\">https://google.com</a></p>",
+      "https://google.com"
+    ],
+    [
+      "你好https://google.com",
+      "<p>你好<a href=\"https://google.com\">https://google.com</a></p>",
+      "https://google.com"
+    ],
+    [
+      "Приветhttps://google.com",
+      "<p>Привет<a href=\"https://google.com\">https://google.com</a></p>",
+      "https://google.com"
     ]
   ]
 }
