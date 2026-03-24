@@ -346,7 +346,7 @@ def write_avatar_images(
 ) -> None:
     if backend is None:
         backend = upload_backend
-    backend.upload_single_avatar_image(
+    backend.store_single_avatar_image(
         file_path + ".original",
         user_profile=user_profile,
         image_data=image_data,
@@ -354,7 +354,7 @@ def write_avatar_images(
         future=future,
     )
 
-    backend.upload_single_avatar_image(
+    backend.store_single_avatar_image(
         backend.get_avatar_path(file_path, medium=False),
         user_profile=user_profile,
         image_data=resize_avatar(image_data),
@@ -362,7 +362,7 @@ def write_avatar_images(
         future=future,
     )
 
-    backend.upload_single_avatar_image(
+    backend.store_single_avatar_image(
         backend.get_avatar_path(file_path, medium=True),
         user_profile=user_profile,
         image_data=resize_avatar(image_data, MEDIUM_AVATAR_SIZE),
@@ -383,7 +383,7 @@ def write_jdenticon_avatars(
     if backend is None:
         backend = upload_backend
 
-    backend.upload_single_avatar_image(
+    backend.store_single_avatar_image(
         backend.get_avatar_path(file_path, medium=False),
         user_profile=user_profile,
         image_data=image_data,
@@ -391,7 +391,7 @@ def write_jdenticon_avatars(
         future=future,
     )
 
-    backend.upload_single_avatar_image(
+    backend.store_single_avatar_image(
         backend.get_avatar_path(file_path, medium=True),
         user_profile=user_profile,
         image_data=image_data_medium,
@@ -456,7 +456,7 @@ def ensure_avatar_image(user_profile: UserProfile, medium: bool = False) -> None
         resized_avatar = resize_avatar(image_data, MEDIUM_AVATAR_SIZE)
     else:
         resized_avatar = resize_avatar(image_data)
-    upload_backend.upload_single_avatar_image(
+    upload_backend.store_single_avatar_image(
         final_file_path,
         user_profile=user_profile,
         image_data=resized_avatar,
