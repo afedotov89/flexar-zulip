@@ -45,10 +45,17 @@ def image_id(payload: WildValue) -> str:
         return image_name + "@" + resource["digest"].tame(check_string)
 
 
-def handle_push_image_event(
-    payload: WildValue, user_profile: UserProfile, operator_username: str
-) -> str:
-    return f"{operator_username} pushed image `{image_id(payload)}`"
+IMAGE_PUSHED_TEMPLATE_WITH_OPERATOR = "{operator} pushed image `{image_id}`."
+IMAGE_PUSHED_TEMPLATE = "Image `{image_id}` was pushed."
+
+
+def handle_push_image_event(payload: WildValue, operator_username: str | None = None) -> str:
+    if operator_username:
+        return IMAGE_PUSHED_TEMPLATE_WITH_OPERATOR.format(
+            operator=operator_username,
+            image_id=image_id(payload),
+        )
+    return IMAGE_PUSHED_TEMPLATE.format(image_id=image_id(payload))  # nocoverage
 
 
 SCANNING_COMPLETED_TEMPLATE = """
@@ -59,7 +66,7 @@ Image scan completed for `{image_id}`. Vulnerabilities by severity:
 
 
 def handle_scanning_completed_event(
-    payload: WildValue, user_profile: UserProfile, operator_username: str
+    payload: WildValue, operator_username: str | None = None
 ) -> str:
     scan_results = ""
     scan_overview = payload["event_data"]["resources"][0]["scan_overview"]
@@ -115,9 +122,9 @@ def api_harbor_webhook(
         else:
             operator_username = f"**{operator}**"
     else:
-        operator_username = operator
+        operator_username = None
 
-    content: str = content_func(payload, user_profile, operator_username)
+    content: str = content_func(payload, operator_username)
 
     check_send_webhook_message(
         request, user_profile, topic_name, content, event, unquote_url_parameters=True
