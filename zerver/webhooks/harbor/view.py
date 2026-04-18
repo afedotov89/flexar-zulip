@@ -96,14 +96,6 @@ def api_harbor_webhook(
     *,
     payload: JsonBodyPayload[WildValue],
 ) -> HttpResponse:
-    operator_username = "**{}**".format(payload["operator"].tame(check_string))
-
-    if operator_username != "auto":
-        operator_profile = guess_zulip_user_from_harbor(operator_username, user_profile.realm)
-
-    if operator_profile:
-        operator_username = f"@**{operator_profile.full_name}**"  # nocoverage
-
     event = payload["type"].tame(check_string)
     topic_name = payload["event_data"]["repository"]["repo_full_name"].tame(check_string)
 
@@ -114,6 +106,16 @@ def api_harbor_webhook(
 
     if content_func is None:
         raise UnsupportedWebhookEventTypeError(event)
+
+    operator = payload["operator"].tame(check_string)
+    if operator != "auto":
+        operator_profile = guess_zulip_user_from_harbor(operator, user_profile.realm)
+        if operator_profile:
+            operator_username = f"@**{operator_profile.full_name}**"  # nocoverage
+        else:
+            operator_username = f"**{operator}**"
+    else:
+        operator_username = operator
 
     content: str = content_func(payload, user_profile, operator_username)
 
