@@ -26,10 +26,10 @@ CI workflow lives at `.github/workflows/flexar-deploy.yml`.
 GitHub push  →  GH Actions runner (ubuntu-22.04, qemu-emulated arm64)
                     │
                     ├─ docker buildx build → linux/arm64 image
-                    ├─ docker push cr.yandex/$REGISTRY/flexar-zulip-server:$SHA
+                    ├─ docker push ghcr.io/$OWNER/flexar-zulip-server:$SHA
                     │
                     ├─ scp deploy_zulip.sh → deploy@<host>
-                    └─ ssh deploy@<host> 'deploy_zulip.sh ...'
+                    └─ ssh deploy@<host> 'deploy_zulip.sh <image_ref>'
                                                         │
                                             ┌───────────┴───────────┐
                                             │ docker compose up -d  │
@@ -44,51 +44,31 @@ GitHub push  →  GH Actions runner (ubuntu-22.04, qemu-emulated arm64)
 
 ## First-time setup
 
-### 1. Yandex Container Registry
+### 1. Container Registry — using ghcr.io (free for public repos)
 
-Either reuse the registry already used by polymarket_bots (same
-`YC_REGISTRY_ID`, just a new container/repo name) or create a fresh one:
+The deploy uses **GitHub Container Registry** (`ghcr.io`). Since
+`flexar-zulip` is a public repository, this needs **zero setup**:
+- GH Actions auto-authenticates via `GITHUB_TOKEN`
+- The server pulls public images without credentials
 
-```bash
-yc container registry create --name flexar-zulip
-yc container registry get flexar-zulip   # note the ID
-```
+The image will be published as
+`ghcr.io/afedotov89/flexar-zulip-server:<SHA>` and `:latest`.
 
-The container repo (image name) can be `flexar-zulip-server`. The registry
-auto-creates it on first push.
+If at some point you want to switch to Yandex Container Registry (for
+sovereign-cloud requirements), see the original polymarket pattern — the
+workflow needs ~10 lines changed.
 
-### 2. Service account for CI/CD
+### 2. SSH key for deploy user on the VM
 
-If you don't already have one for polymarket:
+Reuse polymarket's `VM_SSH_PRIVATE_KEY` — the same `deploy@<host>`
+user serves both projects, no need for a second key. (Or generate a new
+key pair and add the public key to `/home/deploy/.ssh/authorized_keys`
+on the server.)
 
-```bash
-yc iam service-account create --name flexar-ci
-SA_ID=$(yc iam service-account get flexar-ci --format json | jq -r .id)
-yc container registry add-access-binding flexar-zulip \
-    --role container-registry.images.pusher --service-account-id $SA_ID
-yc iam key create --service-account-id $SA_ID --output flexar-ci-key.json
-```
-
-The `flexar-ci-key.json` content becomes `YC_SA_JSON_CREDENTIALS` secret.
-
-### 3. SSH key for deploy user on the VM
-
-Either reuse polymarket's `VM_SSH_PRIVATE_KEY` (the deploy user is the same)
-or generate a new key pair and add the public key to
-`/home/deploy/.ssh/authorized_keys` on the server.
-
-### 4. GitHub repository secrets
+### 3. GitHub repository secrets
 
 Go to **Settings → Secrets and variables → Actions → New repository secret**
 and add ALL of the following:
-
-#### Yandex Container Registry
-
-| Secret | Example value |
-|---|---|
-| `YC_SA_JSON_CREDENTIALS` | Full JSON content of `flexar-ci-key.json` |
-| `YC_REGISTRY_ID` | `crpXXXXXXXXX` (12-char registry ID) |
-| `YC_ZULIP_CONTAINER_NAME` | `flexar-zulip-server` |
 
 #### VM access
 

@@ -68,9 +68,6 @@ jobs:
       # burn an hour on the build only to fail at deploy time. ----------
       - name: Verify required secrets
         env:
-          YC_SA_JSON_CREDENTIALS: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
-          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
-          YC_ZULIP_CONTAINER_NAME: ${{ secrets.YC_ZULIP_CONTAINER_NAME }}
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
           VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
@@ -83,8 +80,7 @@ jobs:
           ZULIP_ADMIN_EMAIL: ${{ secrets.ZULIP_ADMIN_EMAIL }}
         run: |
           missing=()
-          for v in YC_SA_JSON_CREDENTIALS YC_REGISTRY_ID YC_ZULIP_CONTAINER_NAME \
-                   VM_HOST VM_USER VM_SSH_PRIVATE_KEY \
+          for v in VM_HOST VM_USER VM_SSH_PRIVATE_KEY \
                    ZULIP__POSTGRES_PASSWORD ZULIP__MEMCACHED_PASSWORD \
                    ZULIP__RABBITMQ_PASSWORD ZULIP__REDIS_PASSWORD \
                    ZULIP__SECRET_KEY ZULIP_EXTERNAL_HOST ZULIP_ADMIN_EMAIL; do
@@ -106,12 +102,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Yandex Container Registry
+      # Compute lowercase image name (ghcr.io requires lowercase).
+      - name: Compute image name
+        id: image
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO_NAME="flexar-zulip-server"
+          echo "name=ghcr.io/${OWNER_LC}/${REPO_NAME}" >> "$GITHUB_OUTPUT"
+          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: cr.yandex
-          username: json_key
-          password: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image (arm64)
         uses: docker/build-push-action@v5
@@ -121,12 +126,12 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: |
-            cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:${{ github.sha }}
-            cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+            ${{ steps.image.outputs.name }}:latest
           cache-from: |
-            type=registry,ref=cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:buildcache
+            type=registry,ref=${{ steps.image.outputs.name }}:buildcache
           cache-to: |
-            type=registry,ref=cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:buildcache,mode=max
+            type=registry,ref=${{ steps.image.outputs.name }}:buildcache,mode=max
 
       # --- Ship deploy_zulip.sh to the server every run so the script
       # follows the repo. ------------------------------------------------
@@ -148,8 +153,7 @@ jobs:
 
       - name: Deploy to VM
         env:
-          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
-          YC_ZULIP_CONTAINER_NAME: ${{ secrets.YC_ZULIP_CONTAINER_NAME }}
+          ZULIP_IMAGE_REF: ${{ steps.image.outputs.name }}:${{ github.sha }}
           ZULIP_HTTP_PORT: ${{ secrets.ZULIP_HTTP_PORT }}
           ZULIP_HTTPS_PORT: ${{ secrets.ZULIP_HTTPS_PORT }}
           ZULIP__POSTGRES_PASSWORD: ${{ secrets.ZULIP__POSTGRES_PASSWORD }}
@@ -197,7 +201,7 @@ jobs:
              TRUST_GATEWAY_IP='${TRUST_GATEWAY_IP}' \
              NGINX_WORKERS='${NGINX_WORKERS}' \
              AUTO_BACKUP_ENABLED='${AUTO_BACKUP_ENABLED}' \
-             ${REMOTE_SCRIPT} '${{ github.sha }}' '${YC_REGISTRY_ID}' '${YC_ZULIP_CONTAINER_NAME}'"; then
+             ${REMOTE_SCRIPT} '${ZULIP_IMAGE_REF}'"; then
             echo "Deploy failed. Collecting diagnostics..."
             ssh -i ~/.ssh/id_rsa "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
               "docker ps -a --filter label=com.docker.compose.project=flexar-zulip || true; \

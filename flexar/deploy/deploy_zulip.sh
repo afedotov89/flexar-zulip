@@ -2,11 +2,13 @@
 # Flexar Zulip deploy script — runs on the server as the `deploy` user.
 #
 # Usage:
-#   ./deploy_zulip.sh <image_tag> <registry_id> <container_name>
+#   ./deploy_zulip.sh <full_image_ref>
 # Example:
-#   ./deploy_zulip.sh abc123 crp123456789 flexar-zulip-server
+#   ./deploy_zulip.sh ghcr.io/afedotov89/flexar-zulip-server:abc123
 #
-# Mirrors the structure of deploy_polymarket.sh.
+# Mirrors the structure of deploy_polymarket.sh, but takes the full image
+# reference as a single argument (registry-agnostic — works for ghcr.io,
+# cr.yandex, docker.io, whatever).
 #
 # Required env vars (passed from GitHub Actions via SSH):
 #   ZULIP__POSTGRES_PASSWORD, ZULIP__MEMCACHED_PASSWORD,
@@ -24,16 +26,18 @@
 
 set -euo pipefail
 
-IMAGE_TAG="${1:-}"
-REGISTRY_ID="${2:-}"
-CONTAINER_NAME="${3:-flexar-zulip-server}"
+FULL_IMAGE_NAME="${1:-}"
 
-if [ -z "${IMAGE_TAG}" ] || [ -z "${REGISTRY_ID}" ]; then
-  echo "ERROR: Usage: $0 <image_tag> <registry_id> [container_name]"
+if [ -z "${FULL_IMAGE_NAME}" ]; then
+  echo "ERROR: Usage: $0 <full_image_ref>"
+  echo "Example: $0 ghcr.io/afedotov89/flexar-zulip-server:abc123"
   exit 1
 fi
 
-FULL_IMAGE_NAME="cr.yandex/${REGISTRY_ID}/${CONTAINER_NAME}:${IMAGE_TAG}"
+# Derive registry host for prune-old-images step at the end.
+REGISTRY_HOST="${FULL_IMAGE_NAME%%/*}"
+# Strip tag to get repo (everything up to the last `:`).
+IMAGE_REPO="${FULL_IMAGE_NAME%:*}"
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-flexar-zulip}"
 DEPLOY_DIR="${DEPLOY_DIR:-/home/${USER}/zulip}"
@@ -223,7 +227,7 @@ echo "  https://${ZULIP_EXTERNAL_HOST%:*}:${ZULIP_HTTPS_PORT}/ (self-signed cert
 # Keep only last 3 tags.
 # ------------------------------------------------------------
 echo "===> Pruning old image tags..."
-docker images "cr.yandex/${REGISTRY_ID}/${CONTAINER_NAME}" \
+docker images "${IMAGE_REPO}" \
   --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" \
   | sort -k2,3 -r \
   | tail -n +4 \
