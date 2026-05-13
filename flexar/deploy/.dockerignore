@@ -1,0 +1,19 @@
+# NOTE: build context is the repo root, so this .dockerignore lives next to
+# the Dockerfile but acts as a SECOND-tier ignore — the primary one is
+# /Users/alexander/projects/flexar-zulip/.dockerignore at repo root.
+#
+# This file is here for documentation/reference. Docker actually reads the
+# repo-root .dockerignore.
+
+.git
+.github
+node_modules
+**/__pycache__
+*.pyc
+.venv
+var/
+.tox/
+.pytest_cache
+flexar/deploy/.env
+flexar/deploy/.env.local
+zulip-server-docker.tar.gz

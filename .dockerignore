@@ -1,0 +1,39 @@
+# Flexar Zulip Docker build context excludes.
+# Keep the build context minimal — Zulip source itself is ~250MB, .git is 1GB+.
+
+.git
+.github
+
+# Node/Python build artifacts
+node_modules
+**/__pycache__
+*.pyc
+.venv
+.tox/
+.pytest_cache
+
+# Zulip-specific build artifacts
+var/
+zulip-py3-venv/
+static/generated/
+static/min/
+static/webpack-bundles/
+prod-static/
+build/
+dist/
+
+# IDE / editor
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Local env files (must NOT leak into image)
+flexar/deploy/.env
+flexar/deploy/.env.local
+.env.local
+
+# Misc
+*.log
+*.tar.gz
+zulip-server-docker.tar.gz
