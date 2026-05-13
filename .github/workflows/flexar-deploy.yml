@@ -1,0 +1,235 @@
+# Flexar Zulip — build & deploy.
+#
+# Modeled on polymarket_bots/backend_deployment.yml.
+#
+# What it does:
+#   1. Build a linux/arm64 image from this fork (via docker buildx + qemu).
+#   2. Push to Yandex Container Registry (cr.yandex).
+#   3. SSH into the deploy VM, run /home/deploy/deploy_zulip.sh which pulls
+#      the new image and recreates the compose stack.
+#
+# Triggers:
+#   - workflow_dispatch (manual run, optional ref input)
+#   - push to main, only when files under flexar/deploy/ or zulip server
+#     code that affects the image change.
+#
+# IMPORTANT first-time-setup: see flexar/deploy/README.md for the full
+# list of required GitHub secrets. Without them this workflow will fail
+# at the "Verify required secrets" step with a clear message.
+
+name: Flexar Zulip — Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or SHA to deploy (leave empty for current branch)'
+        required: false
+        default: ''
+  push:
+    branches:
+      - main
+    paths:
+      - 'flexar/deploy/**'
+      - 'zerver/**'
+      - 'zilencer/**'
+      - 'analytics/**'
+      - 'corporate/**'
+      - 'static/**'
+      - 'templates/**'
+      - 'web/**'
+      - 'tools/**'
+      - 'puppet/**'
+      - 'requirements/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/flexar-deploy.yml'
+
+permissions:
+  contents: read
+
+# Avoid stacked deploys: only one run at a time, cancel in-progress on new push.
+concurrency:
+  group: flexar-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180  # ARM64 emulated build of Zulip can take 1-2h on first cache miss.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      # --- Sanity-check that all required secrets are present BEFORE we
+      # burn an hour on the build only to fail at deploy time. ----------
+      - name: Verify required secrets
+        env:
+          YC_SA_JSON_CREDENTIALS: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+          YC_ZULIP_CONTAINER_NAME: ${{ secrets.YC_ZULIP_CONTAINER_NAME }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          ZULIP__POSTGRES_PASSWORD: ${{ secrets.ZULIP__POSTGRES_PASSWORD }}
+          ZULIP__MEMCACHED_PASSWORD: ${{ secrets.ZULIP__MEMCACHED_PASSWORD }}
+          ZULIP__RABBITMQ_PASSWORD: ${{ secrets.ZULIP__RABBITMQ_PASSWORD }}
+          ZULIP__REDIS_PASSWORD: ${{ secrets.ZULIP__REDIS_PASSWORD }}
+          ZULIP__SECRET_KEY: ${{ secrets.ZULIP__SECRET_KEY }}
+          ZULIP_EXTERNAL_HOST: ${{ secrets.ZULIP_EXTERNAL_HOST }}
+          ZULIP_ADMIN_EMAIL: ${{ secrets.ZULIP_ADMIN_EMAIL }}
+        run: |
+          missing=()
+          for v in YC_SA_JSON_CREDENTIALS YC_REGISTRY_ID YC_ZULIP_CONTAINER_NAME \
+                   VM_HOST VM_USER VM_SSH_PRIVATE_KEY \
+                   ZULIP__POSTGRES_PASSWORD ZULIP__MEMCACHED_PASSWORD \
+                   ZULIP__RABBITMQ_PASSWORD ZULIP__REDIS_PASSWORD \
+                   ZULIP__SECRET_KEY ZULIP_EXTERNAL_HOST ZULIP_ADMIN_EMAIL; do
+            if [ -z "${!v}" ]; then missing+=("$v"); fi
+          done
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "ERROR: missing required secrets:"
+            for v in "${missing[@]}"; do echo "  - $v"; done
+            echo "See flexar/deploy/README.md for setup instructions."
+            exit 1
+          fi
+          echo "All required secrets are present."
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: cr.yandex
+          username: json_key
+          password: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+
+      - name: Build and push Docker image (arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: flexar/deploy/Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: |
+            cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:${{ github.sha }}
+            cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:latest
+          cache-from: |
+            type=registry,ref=cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:buildcache
+          cache-to: |
+            type=registry,ref=cr.yandex/${{ secrets.YC_REGISTRY_ID }}/${{ secrets.YC_ZULIP_CONTAINER_NAME }}:buildcache,mode=max
+
+      # --- Ship deploy_zulip.sh to the server every run so the script
+      # follows the repo. ------------------------------------------------
+      - name: Copy deploy script to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${VM_HOST}" >> ~/.ssh/known_hosts
+
+          scp -i ~/.ssh/id_rsa \
+              flexar/deploy/deploy_zulip.sh \
+              "${VM_USER}@${VM_HOST}:/home/${VM_USER}/deploy_zulip.sh"
+          ssh -i ~/.ssh/id_rsa "${VM_USER}@${VM_HOST}" \
+              "chmod +x /home/${VM_USER}/deploy_zulip.sh"
+
+      - name: Deploy to VM
+        env:
+          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+          YC_ZULIP_CONTAINER_NAME: ${{ secrets.YC_ZULIP_CONTAINER_NAME }}
+          ZULIP_HTTP_PORT: ${{ secrets.ZULIP_HTTP_PORT }}
+          ZULIP_HTTPS_PORT: ${{ secrets.ZULIP_HTTPS_PORT }}
+          ZULIP__POSTGRES_PASSWORD: ${{ secrets.ZULIP__POSTGRES_PASSWORD }}
+          ZULIP__MEMCACHED_PASSWORD: ${{ secrets.ZULIP__MEMCACHED_PASSWORD }}
+          ZULIP__RABBITMQ_PASSWORD: ${{ secrets.ZULIP__RABBITMQ_PASSWORD }}
+          ZULIP__REDIS_PASSWORD: ${{ secrets.ZULIP__REDIS_PASSWORD }}
+          ZULIP__SECRET_KEY: ${{ secrets.ZULIP__SECRET_KEY }}
+          ZULIP__EMAIL_PASSWORD: ${{ secrets.ZULIP__EMAIL_PASSWORD }}
+          ZULIP_EXTERNAL_HOST: ${{ secrets.ZULIP_EXTERNAL_HOST }}
+          ZULIP_ADMIN_EMAIL: ${{ secrets.ZULIP_ADMIN_EMAIL }}
+          SETTING_EMAIL_HOST: ${{ secrets.SETTING_EMAIL_HOST }}
+          SETTING_EMAIL_HOST_USER: ${{ secrets.SETTING_EMAIL_HOST_USER }}
+          SETTING_EMAIL_PORT: ${{ secrets.SETTING_EMAIL_PORT }}
+          SETTING_EMAIL_USE_TLS: ${{ secrets.SETTING_EMAIL_USE_TLS }}
+          SETTING_NOREPLY_EMAIL_ADDRESS: ${{ secrets.SETTING_NOREPLY_EMAIL_ADDRESS }}
+          ZULIP_AUTH_BACKENDS: ${{ secrets.ZULIP_AUTH_BACKENDS }}
+          CERTIFICATES: ${{ secrets.CERTIFICATES }}
+          LOADBALANCER_IPS: ${{ secrets.LOADBALANCER_IPS }}
+          TRUST_GATEWAY_IP: ${{ secrets.TRUST_GATEWAY_IP }}
+          NGINX_WORKERS: ${{ secrets.NGINX_WORKERS }}
+          AUTO_BACKUP_ENABLED: ${{ secrets.AUTO_BACKUP_ENABLED }}
+        run: |
+          REMOTE_SCRIPT="/home/${{ secrets.VM_USER }}/deploy_zulip.sh"
+
+          # Pass env vars via single SSH command. Keep quoting safe.
+          if ! ssh -i ~/.ssh/id_rsa "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
+            "ZULIP_HTTP_PORT='${ZULIP_HTTP_PORT}' \
+             ZULIP_HTTPS_PORT='${ZULIP_HTTPS_PORT}' \
+             ZULIP__POSTGRES_PASSWORD='${ZULIP__POSTGRES_PASSWORD}' \
+             ZULIP__MEMCACHED_PASSWORD='${ZULIP__MEMCACHED_PASSWORD}' \
+             ZULIP__RABBITMQ_PASSWORD='${ZULIP__RABBITMQ_PASSWORD}' \
+             ZULIP__REDIS_PASSWORD='${ZULIP__REDIS_PASSWORD}' \
+             ZULIP__SECRET_KEY='${ZULIP__SECRET_KEY}' \
+             ZULIP__EMAIL_PASSWORD='${ZULIP__EMAIL_PASSWORD}' \
+             ZULIP_EXTERNAL_HOST='${ZULIP_EXTERNAL_HOST}' \
+             ZULIP_ADMIN_EMAIL='${ZULIP_ADMIN_EMAIL}' \
+             SETTING_EMAIL_HOST='${SETTING_EMAIL_HOST}' \
+             SETTING_EMAIL_HOST_USER='${SETTING_EMAIL_HOST_USER}' \
+             SETTING_EMAIL_PORT='${SETTING_EMAIL_PORT}' \
+             SETTING_EMAIL_USE_TLS='${SETTING_EMAIL_USE_TLS}' \
+             SETTING_NOREPLY_EMAIL_ADDRESS='${SETTING_NOREPLY_EMAIL_ADDRESS}' \
+             ZULIP_AUTH_BACKENDS='${ZULIP_AUTH_BACKENDS}' \
+             CERTIFICATES='${CERTIFICATES}' \
+             LOADBALANCER_IPS='${LOADBALANCER_IPS}' \
+             TRUST_GATEWAY_IP='${TRUST_GATEWAY_IP}' \
+             NGINX_WORKERS='${NGINX_WORKERS}' \
+             AUTO_BACKUP_ENABLED='${AUTO_BACKUP_ENABLED}' \
+             ${REMOTE_SCRIPT} '${{ github.sha }}' '${YC_REGISTRY_ID}' '${YC_ZULIP_CONTAINER_NAME}'"; then
+            echo "Deploy failed. Collecting diagnostics..."
+            ssh -i ~/.ssh/id_rsa "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
+              "docker ps -a --filter label=com.docker.compose.project=flexar-zulip || true; \
+               docker logs flexar-zulip-server --tail 200 || true"
+            exit 1
+          fi
+
+      - name: Verify deployment
+        env:
+          ZULIP_HTTP_PORT: ${{ secrets.ZULIP_HTTP_PORT }}
+        run: |
+          FINAL_HTTP_PORT="${ZULIP_HTTP_PORT:-8800}"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa \
+              "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" "
+            if docker ps | grep -q flexar-zulip-server; then
+              echo 'Container is running.'
+              max_retries=20
+              count=0
+              while [ \$count -lt \$max_retries ]; do
+                if curl -fs http://localhost:${FINAL_HTTP_PORT}/health > /dev/null 2>&1; then
+                  echo 'Health check passed.'
+                  exit 0
+                fi
+                echo 'Waiting for app to be ready...'
+                sleep 10
+                count=\$((count + 1))
+              done
+              echo 'Health check failed after retries.'
+              docker logs flexar-zulip-server --tail 100
+              exit 1
+            else
+              echo 'Container is not running.'
+              exit 1
+            fi
+          "
