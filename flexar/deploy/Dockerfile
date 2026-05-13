@@ -57,6 +57,20 @@ COPY --chown=zulip:zulip . /home/zulip/zulip
 
 WORKDIR /home/zulip/zulip
 
+# tools/provision and tools/build-release-tarball require a valid git
+# repository: provision blocks if `.git` is missing; build-release-tarball
+# uses `git rev-parse HEAD` for GITID and `git archive HEAD` to produce
+# the source tarball. We deliberately exclude upstream `.git` from the
+# build context (~1 GB), so reconstruct a minimal one-commit history
+# inside the image. This keeps the build context lean while satisfying
+# both tools.
+RUN git config --global user.email "build@flexar.local" && \
+    git config --global user.name "Flexar Build" && \
+    git config --global init.defaultBranch flexar-build && \
+    git init -q && \
+    git add -A && \
+    git commit -q -m "flexar build snapshot" --no-gpg-sign
+
 # Provision dev env (installs all build-time deps) and produce a release tarball.
 RUN SKIP_VENV_SHELL_WARNING=1 ./tools/provision --build-release-tarball-only && \
     uv run --no-sync ./tools/build-release-tarball docker && \
