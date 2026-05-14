@@ -1,0 +1,86 @@
+/*
+ * DropdownMenu primitive styles (Phase 0.6, group D).
+ * The floating surface, shadow and z-index come from `Popover`; this
+ * file styles only the menu list, items and separators. Every design
+ * value is a `var(--token)`; only pure-layout values are literal.
+ */
+
+/*
+ * The floating surface is `Popover`'s panel; this override drops it
+ * from `--z-popover` to the menu layer `--z-dropdown` per the design
+ * system's stacking order.
+ */
+.panel {
+  z-index: var(--z-dropdown);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: var(--space-12);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.item:hover:not(:disabled) {
+  background-color: var(--color-hover);
+}
+
+.item:active:not(:disabled) {
+  background-color: var(--color-active);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+  color: var(--color-text-on-accent);
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.itemLabel {
+  overflow: hidden;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background-color: var(--color-border);
+}

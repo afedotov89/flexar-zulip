@@ -1,0 +1,66 @@
+/*
+ * Spinner primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values and
+ * the rotation keyframes are literal, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.spinner {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  width: 100%;
+  height: 100%;
+
+  /* three sides transparent leaves one visible arc that reads as a spinner */
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  border-radius: var(--radius-full);
+  animation: spinner-rotate var(--duration-slow) linear infinite;
+}
+
+.sizeSm {
+  width: var(--font-size-md);
+  height: var(--font-size-md);
+}
+
+.sizeMd {
+  width: var(--font-size-lg);
+  height: var(--font-size-lg);
+}
+
+.sizeLg {
+  width: var(--font-size-xl);
+  height: var(--font-size-xl);
+}
+
+/* visually hidden, still announced by screen readers */
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation-duration: calc(var(--duration-slow) * 6);
+  }
+}

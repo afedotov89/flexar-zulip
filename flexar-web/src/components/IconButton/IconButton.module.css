@@ -1,0 +1,108 @@
+/*
+ * IconButton primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4. The `variant`/`size` vocabulary
+ * matches Button; the footprint is square (width === height).
+ */
+
+.iconButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.loading:disabled {
+  cursor: progress;
+}
+
+/* ---- sizes (square footprint) ------------------------------------ */
+
+.sizeSm {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+}
+
+.sizeMd {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+}
+
+.sizeLg {
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+}
+
+/* ---- variants (shared vocabulary with Button) -------------------- */
+
+.primary {
+  color: var(--color-text-on-accent);
+  background-color: var(--color-accent);
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+.primary:active:not(:disabled) {
+  background-color: var(--color-accent-active);
+}
+
+.secondary {
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.secondary:active:not(:disabled) {
+  background-color: var(--color-active);
+}
+
+.ghost {
+  background-color: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  background-color: var(--color-hover);
+}
+
+.ghost:active:not(:disabled) {
+  background-color: var(--color-active);
+}
+
+.danger {
+  color: var(--color-text-on-accent);
+  background-color: var(--color-danger);
+}
+
+.danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}
+
+.danger:active:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}

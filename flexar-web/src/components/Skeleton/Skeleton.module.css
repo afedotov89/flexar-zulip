@@ -1,0 +1,107 @@
+/*
+ * Skeleton primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values
+ * (100%, the pulse keyframes) are literal, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.skeleton {
+  display: block;
+  background-color: var(--color-hover);
+  animation: skeleton-pulse var(--duration-slow) ease-in-out infinite alternate;
+}
+
+/* ---- variants ---------------------------------------------------- */
+
+.text {
+  border-radius: var(--radius-sm);
+}
+
+.rect {
+  border-radius: var(--radius-md);
+}
+
+.circle {
+  /* width is set to match height by the height-* rules below */
+  border-radius: var(--radius-full);
+}
+
+/* ---- width presets (text / rect) --------------------------------- */
+
+.widthFull {
+  width: 100%;
+}
+
+.widthSm {
+  width: var(--space-12);
+}
+
+.widthMd {
+  width: calc(var(--space-12) * 3);
+}
+
+.widthLg {
+  width: calc(var(--space-12) * 6);
+}
+
+/*
+ * Height presets. For `text` the height tracks the type scale (the
+ * line looks like a row of text). For `rect`/`circle` the same keys
+ * give progressively larger blocks. `circle` additionally pins width
+ * to height below.
+ */
+
+.text.heightSm {
+  height: var(--font-size-sm);
+}
+
+.text.heightMd {
+  height: var(--font-size-md);
+}
+
+.text.heightLg {
+  height: var(--font-size-lg);
+}
+
+.rect.heightSm {
+  height: var(--space-8);
+}
+
+.rect.heightMd {
+  height: var(--space-12);
+}
+
+.rect.heightLg {
+  height: calc(var(--space-12) * 2);
+}
+
+.circle.heightSm {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+}
+
+.circle.heightMd {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+}
+
+.circle.heightLg {
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+}
+
+@keyframes skeleton-pulse {
+  from {
+    opacity: 0.45;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.7;
+  }
+}

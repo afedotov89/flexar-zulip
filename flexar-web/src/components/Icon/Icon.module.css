@@ -1,0 +1,27 @@
+/*
+ * Icon primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4. Icon footprint tracks the type
+ * scale so icons sit in rhythm with adjacent text.
+ */
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.sizeSm {
+  width: var(--font-size-md);
+  height: var(--font-size-md);
+}
+
+.sizeMd {
+  width: var(--font-size-lg);
+  height: var(--font-size-lg);
+}
+
+.sizeLg {
+  width: var(--font-size-xl);
+  height: var(--font-size-xl);
+}

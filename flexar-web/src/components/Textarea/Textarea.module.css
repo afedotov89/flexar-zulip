@@ -1,0 +1,60 @@
+/*
+ * Textarea primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4. Border, radius and focus-ring
+ * treatment match Input so the two controls read as one family.
+ */
+
+.textarea {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  /* vertical-only resize keeps the layout column stable */
+  resize: vertical;
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+
+.textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/*
+ * State rules: all single-class+pseudo selectors share one specificity
+ * level, so plain source order drives the cascade (hover < disabled <
+ * focus); the `.invalid` rules are deliberately last and more specific.
+ */
+
+.textarea:hover {
+  border-color: var(--color-border-strong);
+}
+
+.textarea:disabled {
+  cursor: not-allowed;
+  border-color: var(--color-border);
+  opacity: 0.55;
+  resize: none;
+}
+
+.textarea:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.textarea.invalid {
+  border-color: var(--color-danger);
+}
+
+.textarea.invalid:focus-visible {
+  outline-color: var(--color-danger);
+}

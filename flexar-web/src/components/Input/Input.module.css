@@ -1,0 +1,100 @@
+/*
+ * Input primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4. The `size` vocabulary, radius,
+ * border and focus-ring treatment match Button so form controls and
+ * buttons share one visual rhythm.
+ */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+
+.wrapper:hover:not(.disabled) {
+  border-color: var(--color-border-strong);
+}
+
+/* focus-visible lives on the inner <input>; lift it to the wrapper */
+.wrapper:focus-within:not(.disabled) {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.wrapper.invalid {
+  border-color: var(--color-danger);
+}
+
+.wrapper.invalid:focus-within {
+  outline-color: var(--color-danger);
+}
+
+.wrapper.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font-family: var(--font-family-base);
+  color: inherit;
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.iconLeft,
+.iconRight {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---- sizes (heights + type scale match Button) ------------------- */
+
+.sizeSm {
+  height: var(--control-height-sm);
+}
+
+.sizeSm .input {
+  font-size: var(--font-size-sm);
+}
+
+.sizeMd {
+  height: var(--control-height-md);
+}
+
+.sizeMd .input {
+  font-size: var(--font-size-md);
+}
+
+.sizeLg {
+  height: var(--control-height-lg);
+  padding: 0 var(--space-4);
+}
+
+.sizeLg .input {
+  font-size: var(--font-size-md);
+}

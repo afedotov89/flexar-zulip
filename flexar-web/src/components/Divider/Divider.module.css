@@ -1,0 +1,51 @@
+/*
+ * Divider primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values
+ * (border 0, 100%, auto) are literal, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.divider {
+  flex-shrink: 0;
+  border: 0;
+  background-color: var(--color-border);
+}
+
+.horizontal {
+  width: 100%;
+
+  /* a single hairline; height is the line, not a box model literal */
+  height: 1px;
+  margin: 0;
+}
+
+.vertical {
+  align-self: stretch;
+  width: 1px;
+  margin: 0;
+}
+
+/* ---- spacing (symmetric, along the main axis) -------------------- */
+
+.spacingSm.horizontal {
+  margin-block: var(--space-2);
+}
+
+.spacingMd.horizontal {
+  margin-block: var(--space-4);
+}
+
+.spacingLg.horizontal {
+  margin-block: var(--space-6);
+}
+
+.spacingSm.vertical {
+  margin-inline: var(--space-2);
+}
+
+.spacingMd.vertical {
+  margin-inline: var(--space-4);
+}
+
+.spacingLg.vertical {
+  margin-inline: var(--space-6);
+}

@@ -1,0 +1,91 @@
+/*
+ * Banner / Alert primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4.
+ *
+ * Each tone is carried by a coloured left strip + matching icon
+ * colour, drawing on its own semantic colour role: `info` → accent,
+ * `success` → success, `warning` → warning, `danger` → danger.
+ */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-left-width: var(--space-1);
+  border-radius: var(--radius-md);
+}
+
+.iconSlot {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.body {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* space the body from the title only when both are present */
+.title + .body {
+  margin-top: var(--space-1);
+}
+
+.dismiss {
+  flex-shrink: 0;
+
+  /* pull the ghost button's padding back to the banner edge rhythm */
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) 0 0;
+}
+
+/* ---- tones ------------------------------------------------------- */
+
+.info {
+  border-left-color: var(--color-accent);
+}
+
+.info .iconSlot {
+  color: var(--color-accent);
+}
+
+.success {
+  border-left-color: var(--color-success);
+}
+
+.success .iconSlot {
+  color: var(--color-success);
+}
+
+.warning {
+  border-left-color: var(--color-warning);
+}
+
+.warning .iconSlot {
+  color: var(--color-warning);
+}
+
+.danger {
+  border-left-color: var(--color-danger);
+}
+
+.danger .iconSlot {
+  color: var(--color-danger);
+}

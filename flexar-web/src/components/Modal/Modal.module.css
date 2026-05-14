@@ -1,0 +1,90 @@
+/*
+ * Modal / Dialog primitive styles (Phase 0.6, group D).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background-color: var(--color-overlay-scrim);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialog:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- sizes ------------------------------------------------------- */
+
+.sizeSm {
+  max-width: var(--container-width-sm);
+}
+
+.sizeMd {
+  max-width: var(--container-width-md);
+}
+
+.sizeLg {
+  max-width: var(--container-width-lg);
+}
+
+/* ---- sections ---------------------------------------------------- */
+
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.closeSlot {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.body {
+  overflow-y: auto;
+  flex: 1;
+  padding: var(--space-4);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}

@@ -1,0 +1,42 @@
+/*
+ * Badge / Counter primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4. Pill shape via `--radius-full`;
+ * a `min-width` equal to the height keeps single-digit counters round.
+ */
+
+.badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+}
+
+/* ---- variants ---------------------------------------------------- */
+
+.neutral {
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-border);
+}
+
+.accent {
+  color: var(--color-text-on-accent);
+  background-color: var(--color-accent);
+}
+
+.danger {
+  color: var(--color-text-on-accent);
+  background-color: var(--color-danger);
+}

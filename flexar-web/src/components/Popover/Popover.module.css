@@ -1,0 +1,28 @@
+/*
+ * Popover primitive styles (Phase 0.6, group D).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal. `--overlay-x` / `--overlay-y` are computed geometry written
+ * imperatively by `useOverlayPosition` (see that file's header).
+ */
+
+.panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-popover);
+  min-width: var(--space-12);
+  padding: var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transform: translate(var(--overlay-x, 0), var(--overlay-y, 0));
+}
+
+.panel:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

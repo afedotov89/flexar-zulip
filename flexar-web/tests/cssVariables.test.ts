@@ -16,6 +16,7 @@ describe("scaleVariableDeclarations", () => {
     expect(decls).toContain("--line-height-normal: 1.5;");
     expect(decls).toContain("--letter-spacing-wide: 0.07em;");
     expect(decls).toContain("--control-height-md: 36px;");
+    expect(decls).toContain("--container-width-md: 480px;");
     expect(decls).toContain("--duration-base: 200ms;");
     expect(decls).toContain("--shadow-md: 0 4px 16px hsl(0deg 0% 0% / 10%);");
     expect(decls).toContain("--z-modal: 1300;");
@@ -38,6 +39,28 @@ describe("colorVariableDeclarations", () => {
     expect(light).toContain("--color-border: hsl(214deg 32% 91%);");
     expect(light).toContain("--color-text-on-accent: hsl(0deg 0% 100%);");
     expect(light).toContain("--color-focus-ring: hsl(215deg 100% 54% / 45%);");
+  });
+
+  it("emits the status, scrim, and avatar roles", () => {
+    const light = colorVariableDeclarations(lightTheme);
+    const dark = colorVariableDeclarations(darkTheme);
+    expect(light).toContain("--color-success: hsl(142deg 71% 38%);");
+    expect(light).toContain("--color-success-hover: hsl(142deg 71% 45%);");
+    expect(light).toContain("--color-warning: hsl(38deg 92% 45%);");
+    expect(light).toContain("--color-warning-hover: hsl(38deg 92% 52%);");
+    expect(dark).toContain("--color-success: hsl(142deg 64% 48%);");
+    expect(dark).toContain("--color-warning: hsl(38deg 95% 55%);");
+    // The scrim deepens in the dark theme.
+    expect(light).toContain("--color-overlay-scrim: hsl(0deg 0% 0% / 50%);");
+    expect(dark).toContain("--color-overlay-scrim: hsl(0deg 0% 0% / 65%);");
+    // The five avatar roles emit with a hyphen before the index, and
+    // are theme-independent (same in light and dark).
+    for (let index = 1; index <= 5; index += 1) {
+      const role = `--color-avatar-${index}`;
+      const lightDecl = light.find((line) => line.startsWith(`${role}:`));
+      expect(lightDecl).toBeDefined();
+      expect(dark).toContain(lightDecl as string);
+    }
   });
 
   it("produces distinct light and dark values for every role", () => {

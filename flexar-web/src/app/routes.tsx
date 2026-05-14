@@ -7,6 +7,9 @@
 //                   standalone full-page component (its own 100vh page
 //                   chrome), so it lives OUTSIDE the AppShell layout
 //                   rather than inside the center column.
+//   /primitives  -> the Phase 0.6 PrimitivesShowcase, same treatment as
+//                   /showcase: a standalone full-page witness component
+//                   outside the AppShell layout.
 //   *            -> NotFound placeholder.
 
 import { createBrowserRouter } from "react-router-dom";
@@ -14,6 +17,7 @@ import { AppShell } from "./AppShell";
 import { Feed } from "../pages/Feed";
 import { NotFound } from "../pages/NotFound";
 import { TokenShowcase } from "../pages/TokenShowcase";
+import { PrimitivesShowcase } from "../pages/PrimitivesShowcase";
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +28,10 @@ export const router = createBrowserRouter([
   {
     path: "/showcase",
     element: <TokenShowcase />,
+  },
+  {
+    path: "/primitives",
+    element: <PrimitivesShowcase />,
   },
   {
     path: "*",

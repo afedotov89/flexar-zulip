@@ -1,0 +1,56 @@
+/*
+ * ScrollArea primitive styles (Phase 0.6).
+ * Every design value is a `var(--token)`; only pure-layout values are
+ * literal, per ENGINEERING_GUIDE §2/§4.
+ *
+ * Native overflow with theme-aware scrollbars: Firefox via
+ * `scrollbar-color`/`scrollbar-width`, Chromium/WebKit via the
+ * `::-webkit-scrollbar*` pseudo-elements. Both pull from the same
+ * border/hover colour roles so the scrollbar tracks light/dark theme.
+ */
+
+.scrollArea {
+  /* min-height/min-width: 0 lets the area shrink inside flex parents */
+  min-width: 0;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.scrollArea:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: calc(-1 * var(--space-1));
+  border-radius: var(--radius-sm);
+}
+
+.vertical {
+  overflow: hidden auto;
+}
+
+.horizontal {
+  overflow: auto hidden;
+}
+
+.both {
+  overflow: auto;
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+
+.scrollArea::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  background-clip: padding-box;
+  border: var(--space-1) solid transparent;
+  border-radius: var(--radius-full);
+}
+
+.scrollArea::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
+}

@@ -26,9 +26,13 @@ function scaleVars(
   );
 }
 
-// camelCase role name -> kebab-case CSS variable suffix.
+// camelCase role name -> kebab-case CSS variable suffix. A trailing
+// digit run is also split off with a hyphen, so the numbered avatar
+// roles (`avatar1`..`avatarN`) emit as `--color-avatar-1`..`-N`.
 function kebab(name: string): string {
-  return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+  return name
+    .replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+    .replace(/(\d+)$/, "-$1");
 }
 
 function colorVars(colors: ColorRoles): string[] {
@@ -47,6 +51,7 @@ export function scaleVariableDeclarations(): string[] {
     ...scaleVars("line-height", scales.lineHeight),
     ...scaleVars("letter-spacing", scales.letterSpacing),
     ...scaleVars("control-height", scales.controlHeight),
+    ...scaleVars("container-width", scales.containerWidth),
     ...scaleVars("duration", scales.duration),
     ...scaleVars("shadow", scales.shadow),
     ...scaleVars("z", scales.zIndex),

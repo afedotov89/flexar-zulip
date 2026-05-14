@@ -195,6 +195,16 @@ export const scales = {
     lg: '40px',
   },
 
+  // Container / dialog widths — max-width tiers for modals and other
+  // bounded containers. `xs` ≈ 240px suits tooltips; `md` ≈ 480px is a
+  // comfortable modal width.
+  containerWidth: {
+    xs: '240px',
+    sm: '360px',
+    md: '480px',
+    lg: '640px',
+  },
+
   // Transition durations.
   duration: {
     fast: '120ms',

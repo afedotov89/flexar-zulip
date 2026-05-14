@@ -29,44 +29,64 @@
   `--font-weight-{regular,medium,semibold,bold}`,
   `--line-height-{tight,normal,relaxed}`,
   `--letter-spacing-{normal,wide}`, `--control-height-{sm,md,lg}`,
+  `--container-width-{xs,sm,md,lg}` (240/360/480/640 — max-width
+  тултипов/модалок/контейнеров),
   `--duration-{fast,base,slow}`, `--shadow-{sm,md,lg}`,
   `--z-{base,dropdown,sticky,overlay,modal,popover,tooltip,toast}`,
   `--font-family-{base,mono}`.
-- Цветовые роли (16, значения свет/тёмная — в `:root` / `:root[data-theme="dark"]`):
+- Цветовые роли (27, значения свет/тёмная — в `:root` / `:root[data-theme="dark"]`):
   `--color-accent`, `--color-accent-hover`, `--color-accent-active`,
   `--color-bg`, `--color-surface`, `--color-surface-raised`,
   `--color-text`, `--color-text-muted`, `--color-text-on-accent`,
   `--color-border`, `--color-border-strong`,
   `--color-danger`, `--color-danger-hover`,
-  `--color-hover`, `--color-active`, `--color-focus-ring`.
+  `--color-success`, `--color-success-hover`,
+  `--color-warning`, `--color-warning-hover`,
+  `--color-hover`, `--color-active`, `--color-focus-ring`,
+  `--color-overlay-scrim` (подложка модалок),
+  `--color-avatar-{1..5}` (палитра фонов аватаров — из `avatarMarble`).
 
 ---
 
 ## Примитивы UI (`src/components/`)
 
-| Компонент | Статус | Путь | Краткое назначение / ключевые пропсы |
+**20 примитивов, все ✅ (Фаза 0.6, протыканы через `/primitives`).**
+Импорт из `src/components/<Name>`. Named export + `Props`-интерфейс.
+Общий словарь: `ButtonVariant` (`primary|secondary|ghost|danger`) и
+`ButtonSize` (`sm|md|lg`) — экспортятся из `Button`, переиспользуются
+остальными размерными/вариантными примитивами. Все интерактивные
+примитивы — `forwardRef` на нативный DOM-элемент.
+
+| Компонент | Статус | Путь | Назначение / ключевые пропсы |
 |---|---|---|---|
-| Button | ⬜ | — | — |
-| IconButton | ⬜ | — | — |
-| Input | ⬜ | — | — |
-| Textarea | ⬜ | — | — |
-| Select | ⬜ | — | — |
-| Checkbox | ⬜ | — | — |
-| Radio | ⬜ | — | — |
-| Toggle | ⬜ | — | — |
-| Avatar / UserAvatar | ⬜ | — | — |
-| Badge / Counter | ⬜ | — | — |
-| Spinner | ⬜ | — | — |
-| Skeleton | ⬜ | — | — |
-| Tooltip | ⬜ | — | — |
-| Popover | ⬜ | — | — |
-| DropdownMenu | ⬜ | — | — |
-| Modal / Dialog | ⬜ | — | — |
-| Tabs | ⬜ | — | — |
-| Banner / Alert | ⬜ | — | — |
-| Divider | ⬜ | — | — |
-| Icon | ⬜ | — | — |
-| ScrollArea | ⬜ | — | — |
+| Icon | ✅ | `src/components/Icon/` | SVG из `src/icons/`. `name: IconName`, `size`. 15 иконок. Декоративна по умолчанию. |
+| Button | ✅ | `src/components/Button/` | `variant`, `size`, `loading`, `iconLeft/Right` (имя иконки), `fullWidth`, `disabled`. |
+| IconButton | ✅ | `src/components/IconButton/` | Иконка-кнопка. `icon`, обяз. `aria-label`, `variant`, `size`, `loading`. |
+| Input | ✅ | `src/components/Input/` | `size`, `invalid`, `iconLeft/Right` + нативные атрибуты `<input>`. |
+| Textarea | ✅ | `src/components/Textarea/` | `invalid` + нативные атрибуты. `rows` по умолч. 3. |
+| Select | ✅ | `src/components/Select/` | Стилизованный нативный `<select>`. `options: SelectOption[]`, `size`, `invalid`, `placeholder`. |
+| Checkbox | ✅ | `src/components/Checkbox/` | `label`, `indeterminate`, `invalid` + нативные. `useId` для label. |
+| Radio | ✅ | `src/components/Radio/` | `label`, `name`, `value` (обяз.), `invalid`. |
+| Toggle | ✅ | `src/components/Toggle/` | Switch (`role="switch"`). `label` (обяз.), `size` (`ToggleSize` = `sm\|md`). |
+| Avatar | ✅ | `src/components/Avatar/` | `src`, `name`, `size`. Фолбэк на инициалы; стабильный цвет из `--color-avatar-*` по хешу имени. |
+| Badge | ✅ | `src/components/Badge/` | `variant` (`neutral\|accent\|danger`), `count`+`max` → `"99+"`, либо `children`. |
+| Banner | ✅ | `src/components/Banner/` | `tone` (`info\|success\|warning\|danger` — 4 цвета + иконки), `title`, `onDismiss`. |
+| Spinner | ✅ | `src/components/Spinner/` | Индикатор загрузки. `size`. `role="status"`. |
+| Skeleton | ✅ | `src/components/Skeleton/` | `variant` (`text\|rect\|circle`), `width`, `height` (token-пресеты). |
+| Divider | ✅ | `src/components/Divider/` | `orientation` (`horizontal\|vertical`), `spacing`. |
+| Tabs | ✅ | `src/components/Tabs/` | `tabs`, `activeId`, `onChange`, `children: (activeId) => ReactNode`. WAI-ARIA, roving tabindex. |
+| ScrollArea | ✅ | `src/components/ScrollArea/` | Стилизованный overflow-контейнер. `orientation`. Token-скроллбары. |
+| Tooltip | ✅ | `src/components/Tooltip/` | `content`, `children` (триггер, клонируется), `placement`, `delay`. Hover+focus. |
+| Popover | ✅ | `src/components/Popover/` | `trigger` (клонируется), `placement`, controlled/uncontrolled `open`. `role="dialog"`. |
+| DropdownMenu | ✅ | `src/components/DropdownMenu/` | `trigger`, `items: DropdownMenuEntry[]`. На базе Popover. Клавиатура, `role="menu"`. |
+| Modal | ✅ | `src/components/Modal/` | `open`, `onClose`, `title`, `footer`, `size`, `dismissable`. Focus-trap, scroll-lock, портал. |
+
+**Внутренний хелпер overlay-семейства** — `src/components/_overlay/`
+(не публичный примитив, используют Tooltip/Popover/DropdownMenu/Modal):
+`Portal`, `useOverlayPosition` (+ `OverlayPlacement`), `useDismiss`,
+`getTabbableElements`, `createFocusTrapHandler`. Позиционирование пишет
+`--overlay-x/-y` императивно через ref (не JSX `style` — линт его
+запрещает).
 
 ---
 
@@ -157,7 +177,8 @@ Query-хуки поверх клиента — позже, с фичами.
 |---|---|---|---|
 | Скаффолд (Vite/React/TS, гейты, dev-proxy) | ✅ | `flexar-web/` | Базовый проект, тулинг, Vite dev-proxy `/api` → стенд |
 | Провайдер-стек | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` (общий `QueryClient`) → `RouterProvider`. |
-| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `AppShell` (index → `Feed`); `/showcase` → `TokenShowcase`; `*` → `NotFound`. |
+| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `AppShell` (index → `Feed`); `/showcase` → `TokenShowcase`; `/primitives` → `PrimitivesShowcase`; `*` → `NotFound`. |
+| `PrimitivesShowcase` (страница) | ✅ | `src/pages/PrimitivesShowcase/` | Дев-витрина всех 20 примитивов в состояниях — для протыка. Роут `/primitives`. |
 | `AppShell` | ✅ | `src/app/AppShell/` | Трёхколоночный каркас: `Navbar` + левый/правый `<aside>` + центральный `<main>` с `<Outlet/>`. Колонки — плейсхолдеры. Сайдбары схлопываются `display:none` при `width ≤ 768px`. |
 | `Navbar` | ✅ | `src/app/Navbar/` | Верхний бар: бренд / слот поиска (плейсхолдер) / actions (тоггл темы на `useTheme()` + плейсхолдер юзера). |
 | `Feed` (страница) | ✅ | `src/pages/Feed/` | Плейсхолдер центральной ленты (index-роут). |
