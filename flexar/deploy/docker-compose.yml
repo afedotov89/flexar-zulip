@@ -21,6 +21,7 @@ services:
   database:
     image: "zulip/zulip-postgresql:14"
     container_name: "${COMPOSE_PROJECT_NAME:-flexar-zulip}-database"
+    hostname: database
     restart: unless-stopped
     environment:
       POSTGRES_DB: "zulip"
@@ -35,6 +36,12 @@ services:
   memcached:
     image: "memcached:alpine"
     container_name: "${COMPOSE_PROJECT_NAME:-flexar-zulip}-memcached"
+    # CRITICAL: hostname must match the service name Zulip uses to connect
+    # (SETTING_MEMCACHED_LOCATION=memcached:11211). Memcached SASL writes
+    # `zulip@$HOSTNAME:password` to its auth DB; if HOSTNAME is the default
+    # random container ID, Zulip's `zulip@memcached` username won't match
+    # → "Auth failure".
+    hostname: memcached
     restart: unless-stopped
     command:
       - "sh"
@@ -55,6 +62,7 @@ services:
   rabbitmq:
     image: "rabbitmq:4.2"
     container_name: "${COMPOSE_PROJECT_NAME:-flexar-zulip}-rabbitmq"
+    hostname: rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: "zulip"
@@ -68,6 +76,7 @@ services:
   redis:
     image: "redis:alpine"
     container_name: "${COMPOSE_PROJECT_NAME:-flexar-zulip}-redis"
+    hostname: redis
     restart: unless-stopped
     command:
       - "sh"
