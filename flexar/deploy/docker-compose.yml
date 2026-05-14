@@ -126,7 +126,7 @@ services:
       SECRETS_email_password: "${ZULIP__EMAIL_PASSWORD:-}"
 
       # Public-facing config
-      SETTING_EXTERNAL_HOST: "${ZULIP_EXTERNAL_HOST:?ZULIP_EXTERNAL_HOST required, e.g. flexar-hub.example.com or <host>:8843}"
+      SETTING_EXTERNAL_HOST: "${ZULIP_EXTERNAL_HOST:?ZULIP_EXTERNAL_HOST required, e.g. flexar-hub.example.com or <ip>:<https_port>}"
       SETTING_ZULIP_ADMINISTRATOR: "${ZULIP_ADMIN_EMAIL:?ZULIP_ADMIN_EMAIL required}"
       # FAKE_EMAIL_DOMAIN is required when EXTERNAL_HOST is an IP or any
       # value that doesn't have a TLD — Zulip uses it to build synthetic
