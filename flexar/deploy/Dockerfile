@@ -7,7 +7,7 @@
 # Key differences vs upstream:
 #   - Source is COPYed from this repo (build context root), not cloned.
 #     Lets us build a private fork without injecting GitHub credentials.
-#   - Default platform target is linux/arm64 (<deploy-host> host).
+#   - Default platform target is linux/arm64 (matches our deploy host).
 #     Multi-arch builds via `docker buildx build --platform linux/arm64,linux/amd64`.
 #   - Build context MUST be the repository root (not flexar/deploy/),
 #     because we need to COPY the full Zulip source tree.
