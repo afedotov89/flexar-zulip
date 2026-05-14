@@ -94,7 +94,9 @@
 
 | Хук | Статус | Путь | Назначение |
 |---|---|---|---|
-| _(пока нет)_ | — | — | — |
+| `useCurrentNarrow()` | ✅ | `src/lib/narrow/` | Текущий `Narrow` из URL; `undefined` вне narrow-пространства, малформ → `[]`. |
+| `useCurrentView()` | ✅ | `src/lib/narrow/` | Текущий `BuiltinView` из URL (спец-вид по path, narrow-вид по deep-equal). |
+| `useNarrowNavigation()` | ✅ | `src/lib/narrow/` | `{ goToNarrow(narrow), goToView(view) }` — типизированная навигация. |
 
 ---
 
@@ -128,7 +130,16 @@
 
 | Утилита | Статус | Путь | Назначение |
 |---|---|---|---|
-| _(пока нет)_ | — | — | — |
+| narrow-кодек | ✅ | `src/lib/narrow/scheme.ts` | `narrowToPath(narrow, resolveChannelSlug?)` ↔ `parseNarrowPath(path): NarrowParseResult`. Чистый, round-trip-корректный. |
+| built-in views | ✅ | `src/lib/narrow/builtinViews.ts` | `BUILTIN_VIEWS`, `SPECIAL_VIEWS`, `getBuiltinView(id)`; типы `BuiltinView` (`NarrowView\|SpecialView`), `BuiltinViewId`. |
+
+**URL-схема narrow** (path-based, корень `/narrow`; импорт из
+`src/lib/narrow`): сегменты `/<op>/<operand>` парами; пустой narrow =
+`/narrow`. `channel` — `<id>` или `<id>-<slug>` (slug декоративен);
+`dm` — отсортированные user-id через `,`; negated-term — префикс
+`not-`. Спец-виды (не narrow): `/inbox`, `/recent`, `/drafts`.
+Narrow-виды: Combined `/narrow`, Mentions `/narrow/is/mentioned`,
+Starred `/narrow/is/starred`, Reactions `/narrow/has/reaction/sender/me`.
 
 ---
 
@@ -210,7 +221,7 @@ Query-хуки поверх клиента — позже, с фичами.
 | Артефакт | Статус | Путь | Назначение |
 |---|---|---|---|
 | Скаффолд (Vite/React/TS, гейты, dev-proxy) | ✅ | `flexar-web/` | Базовый проект, тулинг, Vite dev-proxy `/api` → стенд |
-| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `RequireAuth` → `AppShell` (index → `Feed`); `/login` → `LoginPage`; `/showcase` → `TokenShowcase`; `/primitives` → `PrimitivesShowcase`; `*` → `NotFound`. |
+| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `RequireAuth` → `AppShell` (index + `/narrow/*` + `/inbox`/`/recent`/`/drafts` → `Feed`); `/login` → `LoginPage`; `/showcase` → `TokenShowcase`; `/primitives` → `PrimitivesShowcase`; `*` → `NotFound`. Narrow/спец-вид роуты синхронизированы с `src/lib/narrow`. |
 | `RequireAuth` (guard) | ✅ | `src/app/RequireAuth/` | Гард авторизованных роутов. `"unknown"` → `Spinner`-загрузка (НЕ редиректит); `"unauthenticated"` → `Navigate` на `/login` (запоминает `from`); `"authenticated"` → `<Outlet/>`. |
 | `LoginPage` (страница) | ✅ | `src/pages/LoginPage/` | Экран входа: форма email/password (примитивы `Input`/`Button`), ошибка через `Banner`. Зовёт `apiClient.fetchApiKey` через `authStore.login`. Standalone, вне `AppShell`. Авторизованного редиректит на `/`. |
 | `PrimitivesShowcase` (страница) | ✅ | `src/pages/PrimitivesShowcase/` | Дев-витрина всех 20 примитивов в состояниях — для протыка. Роут `/primitives`. |
