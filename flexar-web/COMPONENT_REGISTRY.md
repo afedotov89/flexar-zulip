@@ -156,4 +156,17 @@ Query-хуки поверх клиента — позже, с фичами.
 | Артефакт | Статус | Путь | Назначение |
 |---|---|---|---|
 | Скаффолд (Vite/React/TS, гейты, dev-proxy) | ✅ | `flexar-web/` | Базовый проект, тулинг, Vite dev-proxy `/api` → стенд |
-| App-shell (3 колонки, навбар) | ⬜ | — | Фаза 0.5 |
+| Провайдер-стек | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` (общий `QueryClient`) → `RouterProvider`. |
+| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `AppShell` (index → `Feed`); `/showcase` → `TokenShowcase`; `*` → `NotFound`. |
+| `AppShell` | ✅ | `src/app/AppShell/` | Трёхколоночный каркас: `Navbar` + левый/правый `<aside>` + центральный `<main>` с `<Outlet/>`. Колонки — плейсхолдеры. Сайдбары схлопываются `display:none` при `width ≤ 768px`. |
+| `Navbar` | ✅ | `src/app/Navbar/` | Верхний бар: бренд / слот поиска (плейсхолдер) / actions (тоггл темы на `useTheme()` + плейсхолдер юзера). |
+| `Feed` (страница) | ✅ | `src/pages/Feed/` | Плейсхолдер центральной ленты (index-роут). |
+| `NotFound` (страница) | ✅ | `src/pages/NotFound/` | Плейсхолдер catch-all роута. |
+
+**Зависимости, добавленные оркестратором (Фаза 0.5):** `react-router-dom`
+(v7), `@tanstack/react-query` (v5) — оба из зафиксированного стека (GUIDE §1).
+
+**Флаг для 1.x:** левый сайдбар сейчас `<aside>`-плейсхолдер; настоящий
+`<nav>` со списком каналов встанет внутрь него в фичевой фазе. Тоггл темы
+в навбаре — временный локальный `<button>`, заменить на `Button`/
+`IconButton` после 0.6.

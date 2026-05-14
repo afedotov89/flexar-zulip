@@ -1,0 +1,20 @@
+/*
+ * Feed page placeholder styles (Phase 0.5).
+ * Design values are `var(--token)`; literals are pure-layout only.
+ */
+
+.feed {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.placeholderLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}

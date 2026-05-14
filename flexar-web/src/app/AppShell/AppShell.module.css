@@ -1,0 +1,71 @@
+/*
+ * App-shell layout styles (Phase 0.5).
+ * Three-column chat layout under a full-width navbar. Design values are
+ * `var(--token)`; literals are pure-layout only (flex, grid, 100%, 0,
+ * 1, viewport units), per ENGINEERING_GUIDE §2/§4.
+ *
+ * Responsive: the side columns are fixed-width on desktop and collapse
+ * (display: none) below 768px — at that width three columns can no
+ * longer coexist without horizontal overflow, and the message feed is
+ * the primary content, so it keeps the full width. Real responsive
+ * navigation (drawers, etc.) is a later feature, not this phase.
+ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.leftSidebar,
+.rightSidebar {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background-color: var(--color-surface);
+}
+
+.leftSidebar {
+  width: 240px;
+  border-right: 1px solid var(--color-border);
+}
+
+.rightSidebar {
+  width: 280px;
+  border-left: 1px solid var(--color-border);
+}
+
+.center {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+  background-color: var(--color-bg);
+}
+
+.placeholderLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+@media (width <= 768px) {
+  .leftSidebar,
+  .rightSidebar {
+    display: none;
+  }
+}

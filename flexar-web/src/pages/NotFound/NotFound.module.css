@@ -1,0 +1,37 @@
+/*
+ * Not-found page placeholder styles (Phase 0.5).
+ * Design values are `var(--token)`; literals are pure-layout only.
+ */
+
+.notFound {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.homeLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.homeLink:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+.homeLink:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
