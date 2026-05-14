@@ -47,6 +47,7 @@ on:
 
 permissions:
   contents: read
+  packages: write   # required to push to ghcr.io (first-time package creation)
 
 # Avoid stacked deploys: only one run at a time, cancel in-progress on new push.
 concurrency:
