@@ -1,5 +1,5 @@
 /*
- * Presence dot (Phase 1.5).
+ * Presence dot (Phase 1.5; promoted to a shared primitive in 1.8).
  * Colors come from semantic color-role tokens; the dot geometry uses
  * the smallest space-scale steps. Only pure-layout literals appear bare.
  */

@@ -1,13 +1,16 @@
-// Presence indicator dot for the DM list (Phase 1.5).
+// Presence indicator dot (Phase 1.5; promoted to a shared primitive
+// in Phase 1.8).
 //
-// A small status dot overlaid on a one-on-one DM's avatar. It collapses
-// the user's `Presence` into the coarse active / idle / offline status
-// (see `./presence`) and colors the dot accordingly. The freshness
-// comparison is against the wall clock, read here so the pure
-// `presenceStatus` helper stays clock-free and unit-testable.
+// A small status dot overlaid on a user's avatar — used by both the
+// left sidebar's DM list and the right sidebar's user list. It
+// collapses the user's `Presence` into the coarse active / idle /
+// offline status (see `src/lib/presence`) and colors the dot
+// accordingly. The freshness comparison is against the wall clock,
+// read here so the pure `presenceStatus` helper stays clock-free and
+// unit-testable.
 
 import type { Presence } from "../../domain";
-import { presenceStatus } from "./presence";
+import { presenceStatus } from "../../lib/presence";
 import styles from "./PresenceDot.module.css";
 
 export interface PresenceDotProps {

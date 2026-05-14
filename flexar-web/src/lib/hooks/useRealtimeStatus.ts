@@ -1,5 +1,5 @@
-// Subscribe a component to the realtime connection status (Phase 1.5).
-//
+// Subscribe a component to the realtime connection status (Phase 1.5,
+// promoted to src/lib/hooks in 1.8 — shared by both sidebars).
 // The sidebar needs a "stores not hydrated yet" signal so it can show
 // skeletons instead of a misleading empty state. The server-state
 // stores hydrate from the register snapshot, which the realtime layer

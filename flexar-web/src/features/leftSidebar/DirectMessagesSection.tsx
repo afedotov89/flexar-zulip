@@ -30,8 +30,8 @@ import { useUnreadStore } from "../../stores/unreadStore";
 import { dmUnreadCount } from "../../stores/unreadReducer";
 import { useUsersStore } from "../../stores/usersStore";
 import { Avatar } from "../../components/Avatar";
+import { PresenceDot } from "../../components/PresenceDot";
 import { NavRow } from "./NavRow";
-import { PresenceDot } from "./PresenceDot";
 import { SidebarSection } from "./SidebarSection";
 import styles from "./DirectMessagesSection.module.css";
 

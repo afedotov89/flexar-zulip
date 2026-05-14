@@ -1,0 +1,53 @@
+/*
+ * Right sidebar user row (Phase 1.8).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 0, 1, 100%) appear bare, per ENGINEERING_GUIDE §2/§4.
+ *
+ * The row rhythm — gap, padding, font size — matches the left
+ * sidebar's `NavRow` so people read consistently across both columns,
+ * even though this row is non-interactive (no hover/active states).
+ */
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+/* The avatar plus its overlaid presence dot. */
+.avatarSlot {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pin the presence dot to the avatar's bottom-right corner. */
+.presenceDot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+/* The name takes the remaining width and truncates rather than wraps. */
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Trailing "bot" / "deactivated" tag — a quiet, uppercase micro-label. */
+.tag {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}

@@ -1,7 +1,7 @@
-// Presence freshness for the DM list (Phase 1.5).
+// Presence freshness (Phase 1.5; promoted to `src/lib` in Phase 1.8).
 //
 // The presence store keeps each user's newest `active_timestamp` /
-// `idle_timestamp` (see `presenceReducer`). The sidebar only needs a
+// `idle_timestamp` (see `presenceReducer`). The sidebars only need a
 // coarse three-state answer for the presence dot, so this pure helper
 // collapses the two timestamps against the current time.
 //
@@ -11,9 +11,9 @@
 // and "offline" otherwise. Kept as a pure function of `(presence, now)`
 // so it is trivially unit-testable without mocking the clock.
 
-import type { Presence } from "../../domain";
+import type { Presence } from "../domain";
 
-/** Coarse presence state for the sidebar's per-user dot. */
+/** Coarse presence state for the sidebars' per-user dot. */
 export type PresenceStatus = "active" | "idle" | "offline";
 
 /** A recent `active_timestamp` within this many seconds means "active". */

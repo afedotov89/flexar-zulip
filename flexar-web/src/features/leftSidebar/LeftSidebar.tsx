@@ -26,7 +26,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { ChannelsSection } from "./ChannelsSection";
 import { DirectMessagesSection } from "./DirectMessagesSection";
 import { ViewsSection } from "./ViewsSection";
-import { useStoresLoading } from "./useRealtimeStatus";
+import { useStoresLoading } from "../../lib/hooks/useRealtimeStatus";
 import styles from "./LeftSidebar.module.css";
 
 // The three collapsible sections, for the section-expanded state map.

@@ -60,6 +60,7 @@
 | Компонент | Статус | Путь | Назначение / ключевые пропсы |
 |---|---|---|---|
 | Icon | ✅ | `src/components/Icon/` | SVG из `src/icons/`. `name: IconName`, `size`. 21 иконка (+6 для built-in-видов в 1.5a). Декоративна по умолчанию. |
+| PresenceDot | ✅ | `src/components/PresenceDot/` | Индикатор присутствия (active/idle/offline). Промоутнут из leftSidebar в 1.8 — общий для обоих сайдбаров. |
 | Button | ✅ | `src/components/Button/` | `variant`, `size`, `loading`, `iconLeft/Right` (имя иконки), `fullWidth`, `disabled`. |
 | IconButton | ✅ | `src/components/IconButton/` | Иконка-кнопка. `icon`, обяз. `aria-label`, `variant`, `size`, `loading`. |
 | Input | ✅ | `src/components/Input/` | `size`, `invalid`, `iconLeft/Right` + нативные атрибуты `<input>`. |
@@ -97,6 +98,7 @@
 | `useCurrentNarrow()` | ✅ | `src/lib/narrow/` | Текущий `Narrow` из URL; `undefined` вне narrow-пространства, малформ → `[]`. |
 | `useCurrentView()` | ✅ | `src/lib/narrow/` | Текущий `BuiltinView` из URL (спец-вид по path, narrow-вид по deep-equal). |
 | `useNarrowNavigation()` | ✅ | `src/lib/narrow/` | `{ goToNarrow(narrow), goToView(view) }` — типизированная навигация. |
+| `useRealtimeStatus()` / `useStoresLoading()` | ✅ | `src/lib/hooks/useRealtimeStatus.ts` | Биндинг к статусу `realtimeConnection` (`useSyncExternalStore`); `useStoresLoading` → `true` пока сторы не гидрированы. Общий для сайдбаров. |
 
 ---
 
@@ -136,6 +138,7 @@
 | built-in views | ✅ | `src/lib/narrow/builtinViews.ts` | `BUILTIN_VIEWS`, `SPECIAL_VIEWS`, `getBuiltinView(id)`; типы `BuiltinView` (`NarrowView\|SpecialView`, с полем `icon`), `BuiltinViewId`. |
 | `matchesNarrow` | ✅ | `src/lib/narrow/matchesNarrow.ts` | Чистый предикат `matchesNarrow(message, narrow, ctx)` — для live-reconcile ленты. Оценивает channel/topic/dm/sender/`is:`; неразрешимые операторы (search/has/near/…) — пермиссивно. |
 | renderedContent | ✅ | `src/lib/renderedContent/` | `sanitizeRenderedContent(html)` — XSS-граница (DOMPurify, строгий allowlist; 20 тестов); `parseNarrowLink(href, realmUrl)` — детект in-app narrow-ссылок Zulip → `Narrow`. |
+| `presence` | ✅ | `src/lib/presence.ts` | Чистый хелпер свежести присутствия (active/idle/offline из `Presence`). Промоутнут из leftSidebar в 1.8. |
 
 **URL-схема narrow** (path-based, корень `/narrow`; импорт из
 `src/lib/narrow`): сегменты `/<op>/<operand>` парами; пустой narrow =
@@ -257,6 +260,7 @@ CSS-Modules-фикс.
 |---|---|---|---|
 | `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`, с иконками), полный список ЛС (`dmConversationsStore`), список каналов с полными топиками (`topicsStore`, ленивая загрузка на раскрытии; сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты, у Mentions — `getMentionsCount`), фильтр-инпут, кнопка «+» (пока no-op). Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref. |
 | `MessageFeed` | ✅ | `src/features/messageFeed/` | Центральная лента (1.6): виртуализированный список (`@tanstack/react-virtual`), recipient-бары (канал›топик / ЛС), дата-разделители, строка сообщения (аватар/отправитель/время/контент/hover-тулбар), группировка последовательных сообщений, состояния loading/empty/error, дозагрузка старых/новых по скроллу. Читает narrow из `useCurrentNarrow`, тянет историю `apiClient.getMessages` → `messagesStore.ingest`, живые события — из `messagesStore`; `useFeedWindow` владеет per-narrow окном (порядок ids + пагинация + live-reconcile через `matchesNarrow`). `MessageContent` (1.7) — рендерит `rendered_content`: DOMPurify-санитайз → `dangerouslySetInnerHTML` → event-delegation (спойлеры toggle, narrow-ссылки → router, внешние → `_blank rel=noopener`). Стили — `:global()` под root-классом, токены, свет/тёмная. Смонтирован в `src/pages/Feed/`. |
+| `RightSidebar` | ✅ | `src/features/rightSidebar/` | Правая колонка (1.8): список пользователей с `PresenceDot`, контекстная секция «в этом канале»/«в этом разговоре» (из `useCurrentNarrow`) + полный справочник, фильтр пользователей, loading-скелетоны. Сортировка: presence-группы → боты → деактивированные, внутри — алфавит. Смонтирован в правый `<aside>` `AppShell`. |
 
 **Доборка 1.5a — закрыто:** иконки видов, `dmConversationsStore`,
 `topicsStore`+`getTopics`, `mentions`-бакет. Остаток: бейдж Starred —

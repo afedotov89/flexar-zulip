@@ -26,27 +26,25 @@
   min-height: 0;
 }
 
+/*
+ * Both sidebar features (LeftSidebar, RightSidebar) manage their own
+ * internal scroll area, so the columns themselves must not also
+ * scroll — that would nest two scrollbars. Hence `overflow-y: hidden`
+ * here rather than `auto`.
+ */
 .leftSidebar,
 .rightSidebar {
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
   padding: var(--space-4);
-  overflow-y: auto;
+  overflow-y: hidden;
   background-color: var(--color-surface);
 }
 
 .leftSidebar {
   width: 240px;
   border-right: 1px solid var(--color-border);
-
-  /*
-   * The Phase 1.5 LeftSidebar feature manages its own internal scroll
-   * area, so the column itself must not also scroll — that would nest
-   * two scrollbars. The shared rule above sets `overflow-y: auto` for
-   * the right placeholder column; the left column overrides it.
-   */
-  overflow-y: hidden;
 }
 
 .rightSidebar {
@@ -61,14 +59,6 @@
   min-width: 0;
   overflow-y: auto;
   background-color: var(--color-bg);
-}
-
-.placeholderLabel {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
 }
 
 @media (width <= 768px) {
