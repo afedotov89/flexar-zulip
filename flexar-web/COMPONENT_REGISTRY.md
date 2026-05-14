@@ -96,9 +96,25 @@
 
 ## Доменные типы (`src/domain/`)
 
-| Тип | Статус | Путь | Назначение |
-|---|---|---|---|
-| _(пока нет — Фаза 0.3)_ | — | — | — |
+**Импортировать из `src/domain` (`index.ts` ре-экспортит всё).** Не
+лезть в отдельные файлы. Типы заморожены — на них завязаны 0.4 и 1.x.
+
+| Файл | Статус | Экспорты |
+|---|---|---|
+| `primitives.ts` | ✅ | `UserId`, `StreamId`, `MessageId`, `UnixTimestamp` (алиасы); `Role`, `BotType` (`as const` + тип; в index — значения как `RoleValues`/`BotTypeValues`); `GroupSettingValue` |
+| `emoji.ts` | ✅ | `ReactionType`, `EmojiIdentity`, `Reaction`, `RealmEmoji`, `Draft` |
+| `user.ts` | ✅ | `User`, `ProfileData`, `ProfileFieldValue`, `UserStatus`, `Presence`, `PresenceMap` |
+| `stream.ts` | ✅ | `ChannelBase`, `ChannelPermissionGroups`, `Stream`, `Subscription`, `Topic`, `TopicVisibilityPolicy` (`as const` + тип) |
+| `message.ts` | ✅ | `Message`, `MessageType`, `DisplayRecipient`, `DirectMessageRecipient`, `TopicLink`, `MessageEdit`, `Submessage`, `MessageFlag` |
+| `narrow.ts` | ✅ | `Narrow`, `NarrowOperator`, `NarrowTerm`, `NarrowTuple` |
+| `realm.ts` | ✅ | `Realm`, `OwnUser`, `ChannelFolder` |
+| `events.ts` | ✅ | `ServerEvent` (дискр. объединение) + члены: `MessageEvent`, `UpdateMessageEvent`, `DeleteMessageEvent`, `ReactionEvent`, `UpdateMessageFlagsEvent`, `SubscriptionEvent` (+5 op-вариантов), `StreamEvent` (+3), `RealmUserEvent` (+3), `PresenceEvent`, `TypingEvent`, `TypingEventUser`, `UserStatusEvent`, `UserTopicEvent`, `HeartbeatEvent`, `UnknownEvent` |
+| `index.ts` | ✅ | Ре-экспорт всей публичной поверхности |
+
+**Объём событий — намеренно частичный:** точные формы у событий ядра чата;
+длинный хвост (`realm`, `user_group`, `realm_emoji`, `drafts`,
+`scheduled_messages` и т.п.) поглощается `UnknownEvent`. Понадобится
+точная форма в 1.x — добавлять через оркестратора.
 
 ---
 
