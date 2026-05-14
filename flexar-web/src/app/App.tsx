@@ -13,12 +13,18 @@
 // then, so `initialize()` resolves the auth `status` out of its
 // `"unknown"` startup state — see `stores/authStore` for why this lives
 // in a mount effect rather than `onRehydrateStorage`.
+//
+// We also wire the realtime connection to the auth lifecycle here
+// (`wireRealtimeToAuth`): it starts the event queue while
+// authenticated and stops it on logout. The wiring lives in a mount
+// effect, outside the render tree — see `realtime/lifecycle`.
 
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "../theme";
 import { useAuthStore } from "../stores/authStore";
+import { wireRealtimeToAuth } from "../realtime";
 import { router } from "./routes";
 
 const queryClient = new QueryClient();
@@ -28,6 +34,7 @@ export function App() {
 
   useEffect(() => {
     initialize();
+    return wireRealtimeToAuth();
   }, [initialize]);
 
   return (

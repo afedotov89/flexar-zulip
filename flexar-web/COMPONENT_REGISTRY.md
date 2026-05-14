@@ -175,9 +175,22 @@ Query-хуки поверх клиента — позже, с фичами.
 
 ## Realtime (`src/realtime/`)
 
-| Артефакт | Статус | Назначение |
-|---|---|---|
-| _(пока нет — Фаза 1.2)_ | — | — |
+**Слой соединения (1.2) — «труба».** Сторы server-state (1.3) подписы-
+ваются на события через `realtimeConnection.subscribe(...)`.
+
+| Артефакт | Статус | Путь | Назначение |
+|---|---|---|---|
+| `realtimeConnection` | ✅ | `src/realtime/lifecycle.ts` | App-wide синглтон `RealtimeConnection`. Сторы 1.3 зовут `.subscribe()` на нём. |
+| `RealtimeConnection` | ✅ | `src/realtime/connection.ts` | register queue → long-poll `getEvents` → диспатч; reconnect (exp backoff+jitter), re-register на `BAD_EVENT_QUEUE_ID`; `start/stop` (generation-token, чистый стоп). `subscribe(listener)` → событийный поток (без heartbeat, по порядку); `onStatusChange`/`getStatus` (`idle\|connecting\|connected\|reconnecting`). |
+| `wireRealtimeToAuth()` | ✅ | `src/realtime/lifecycle.ts` | Бинд lifecycle к `authStore.status` (start на `authenticated`, stop на logout). Зовётся из `App` на маунте. |
+| `backoff.ts` / `events.ts` | ✅ | `src/realtime/` | Чистые хелперы: `backoffDelay`/`backoffBaseDelay`; `maxEventId`/`isHeartbeat`/`dropHeartbeats`. Unit-покрыты. |
+
+**Контракт для 1.3:** (1) **нет буфера/replay** — подписываться на
+`module-load`, до `start()`; (2) **initial state из `register` НЕ
+потребляется** — 1.2 хранит только `queueId`/`lastEventId`. Сторам 1.3
+начальное состояние брать отдельными REST-вызовами (`getSubscriptions`,
+`getUsers`, …) ИЛИ через оркестратора расширить API connection, чтобы
+отдавать register-payload. **Решить до старта 1.3.**
 
 ---
 
