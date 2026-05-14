@@ -1,24 +1,47 @@
-// Flexar Hub Web — message content renderer (Phase 1.6 seam).
+// Flexar Hub Web — message content renderer (Phase 1.7).
 //
-// ⚠️ PHASE 1.7 SEAM — READ BEFORE CHANGING ⚠️
+// Renders a message's `rendered_content` — Zulip's server-side
+// Markdown-to-HTML output — safely, themed, and interactive where the
+// content needs behaviour. This replaces the Phase 1.6 plain-text
+// placeholder; the component name and props are unchanged so
+// `MessageRow`'s layout is untouched.
 //
-// `Message.content` is server-rendered, *untrusted* HTML. Hydrating it
-// safely — sanitising it and turning it into React elements, wiring up
-// mentions / emoji / code blocks / spoilers — is the whole job of
-// Phase 1.7. It is deliberately NOT done here.
+// Pipeline:
 //
-// For Phase 1.6 this component renders the message as **plain text**:
-// it strips the HTML tags and shows the textual content, so the feed
-// is fully functional and demonstrable without ever putting untrusted
-// HTML into the DOM. There is **no `dangerouslySetInnerHTML`** in this
-// file, and there must not be one until Phase 1.7 replaces this body
-// with the real sanitized-hydration pipeline.
+//   1. SANITISE. `Message.content` is untrusted, message-grade HTML.
+//      `sanitizeRenderedContent` (the app's XSS boundary) runs it
+//      through DOMPurify with a strict allowlist before it can reach
+//      the DOM. Only the sanitised string is ever injected.
+//   2. INJECT. The sanitised string goes in via `dangerouslySetInnerHTML`
+//      — safe by construction now, and the only practical way to keep
+//      Zulip's exact class/structure contract that the CSS and the
+//      interactive handlers below depend on.
+//   3. DECORATE. After injection, `decorateSpoilers` makes spoiler
+//      headers keyboard-operable toggles and `decorateLinks` gives
+//      external links a safe new-tab target — both done on trusted,
+//      post-sanitisation nodes.
+//   4. DELEGATE. A single click + keydown handler on the container
+//      provides behaviour for the interactive bits — spoilers, in-app
+//      narrow links — instead of per-element handlers. This matches the
+//      project's "no inline handlers, use event delegation" stance and
+//      survives content re-renders cleanly.
 //
-// Phase 1.7's contract: keep this component's name and props
-// (`MessageContent({ content })`) so the feed's row layout does not
-// change; swap only the *body* — the tag-stripping below — for the
-// sanitiser + element tree.
+// Styling lives in `MessageContent.module.css`: the server HTML carries
+// fixed class names (`.user-mention`, `.spoiler-block`, `.codehilite`,
+// `.katex`, …), targeted with `:global()` selectors scoped under the
+// component's root class. Code blocks and KaTeX are styled purely as
+// CSS over the server's pre-rendered markup — no client-side highlighter
+// or math renderer is involved.
 
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useNarrowNavigation } from "../../lib/narrow";
+import {
+  parseNarrowLink,
+  sanitizeRenderedContent,
+} from "../../lib/renderedContent";
+import { useRealmStore } from "../../stores/realmStore";
+import { decorateLinks } from "./renderedContent/links";
+import { decorateSpoilers, toggleSpoiler } from "./renderedContent/spoilers";
 import styles from "./MessageContent.module.css";
 
 export interface MessageContentProps {
@@ -26,34 +49,100 @@ export interface MessageContentProps {
   content: string;
 }
 
-// Strip HTML tags and decode the handful of entities Zulip's renderer
-// emits in text positions, yielding a plain-text approximation of the
-// message. This is a *temporary* 1.6 measure — see the file header.
-//
-// Done with a detached DOM node rather than a regex: setting
-// `innerHTML` on an element that is never inserted into the document
-// parses the markup without executing it (no scripts run, no resources
-// load), and reading `textContent` back gives correctly-decoded text.
-// In the node test environment `document` is present (jsdom), so this
-// works there too.
-function htmlToPlainText(html: string): string {
-  if (typeof document === "undefined") {
-    // Defensive: no DOM at all. Fall back to a coarse tag strip.
-    return html.replace(/<[^>]*>/g, "").trim();
-  }
-  const parser = document.createElement("div");
-  parser.innerHTML = html;
-  return (parser.textContent ?? "").trim();
-}
+// Zulip's renderer emits spoiler headers with this class.
+const SPOILER_HEADER_CLASS = "spoiler-header";
 
 /**
- * Renders a message body. Phase 1.6: plain text only (tags stripped).
- * Phase 1.7 replaces the body with sanitized HTML hydration — see the
- * file header.
+ * Renders a message body: sanitised `rendered_content`, themed, with
+ * spoilers and links wired up via event delegation.
  */
 export function MessageContent({
   content,
 }: MessageContentProps): React.JSX.Element {
-  const text = htmlToPlainText(content);
-  return <div className={styles.content}>{text}</div>;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const realmUrl = useRealmStore((state) => state.realm?.realm_url);
+  const { goToNarrow } = useNarrowNavigation();
+
+  // Sanitise once per content string. This is the XSS boundary: the
+  // result, and only the result, is injected into the DOM below.
+  const sanitizedHtml = useMemo(
+    () => sanitizeRenderedContent(content),
+    [content],
+  );
+
+  // After the sanitised HTML is in the DOM, decorate it: make spoiler
+  // headers accessible toggles, give external links a safe new-tab
+  // target. Re-runs whenever the content (and hence the nodes) change;
+  // both decorators are idempotent.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container !== null) {
+      decorateSpoilers(container);
+      decorateLinks(container, realmUrl);
+    }
+  }, [sanitizedHtml, realmUrl]);
+
+  // One delegated click handler for the whole message body, routing by
+  // click target:
+  //
+  //   - on a link: if it is an in-app narrow link, route the SPA
+  //     instead of navigating; otherwise let the browser handle it
+  //     (the link already carries safe `target`/`rel` from decoration).
+  //   - inside a spoiler header (and not on a link): toggle the spoiler.
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+
+      // Links inside a spoiler header must behave as links, not toggle
+      // the spoiler — so check for an enclosing anchor first.
+      const anchor = target.closest("a");
+      if (anchor !== null) {
+        const narrow = parseNarrowLink(
+          anchor.getAttribute("href") ?? "",
+          realmUrl,
+        );
+        if (narrow !== null) {
+          event.preventDefault();
+          goToNarrow(narrow);
+        }
+        return;
+      }
+
+      const spoilerHeader = target.closest(`.${SPOILER_HEADER_CLASS}`);
+      if (spoilerHeader instanceof HTMLElement) {
+        toggleSpoiler(spoilerHeader);
+      }
+    },
+    [goToNarrow, realmUrl],
+  );
+
+  // Keyboard activation of spoilers: Enter / Space on a focused spoiler
+  // header toggles it, mirroring the click path.
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      const target = event.target as HTMLElement;
+      const spoilerHeader = target.closest(`.${SPOILER_HEADER_CLASS}`);
+      if (spoilerHeader instanceof HTMLElement) {
+        event.preventDefault();
+        toggleSpoiler(spoilerHeader);
+      }
+    },
+    [],
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className={styles.content}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      // Safe by construction: `sanitizedHtml` is the output of
+      // `sanitizeRenderedContent` (DOMPurify, strict allowlist). Raw
+      // `content` is never injected.
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    />
+  );
 }

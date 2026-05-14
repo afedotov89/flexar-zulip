@@ -4,6 +4,10 @@
   "rules": {
     "selector-class-pattern": null,
     "color-no-hex": true,
+    "selector-pseudo-class-no-unknown": [
+      true,
+      { "ignorePseudoClasses": ["global", "local"] }
+    ],
     "scale-unlimited/declaration-strict-value": [
       ["color", "background-color", "border-color"],
       {

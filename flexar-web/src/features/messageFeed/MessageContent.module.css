@@ -1,9 +1,21 @@
 /*
- * Message content styles (Phase 1.6 seam — plain-text rendering).
- * Every design value is a `var(--token)`; only pure-layout literals
- * appear bare. Phase 1.7 swaps the component body, not necessarily
- * this rule — but the `overflow-wrap` guard below must survive: it is
- * what keeps a very long unbroken word from blowing out the row width.
+ * Message content styles (Phase 1.7 — rendered `rendered_content`).
+ *
+ * The message body is Zulip's server-rendered HTML, injected as a
+ * sanitised string. Its element class names are a *fixed contract* set
+ * by Zulip's Markdown renderer (`zerver/lib/markdown/`) — CSS-Modules
+ * hashing cannot touch them, so they are targeted with `:global()`
+ * selectors scoped under `.content` (the one hashed class). That keeps
+ * everything inside this CSS Module — no separate global stylesheet —
+ * while still styling the server's contract classes.
+ *
+ * Every design value is a `var(--token)`; only pure-layout literals and
+ * relative `em`/`%` sizing appear bare. The styles are written fresh
+ * against Zulip's class contract — none of Zulip's own CSS is copied.
+ *
+ * Works in light and dark (all colours are theme tokens). Long code
+ * lines and wide tables/images scroll or are contained rather than
+ * blowing out the message row width.
  */
 
 .content {
@@ -13,5 +25,339 @@
 
   /* A very long single-word string must wrap, not overflow the row. */
   overflow-wrap: anywhere;
-  white-space: pre-wrap;
+
+  /* ---- Block text -------------------------------------------------- */
+
+  & :global(p) {
+    margin: 0 0 var(--space-2);
+  }
+
+  /* Collapse the trailing margin of the last block so the message box
+     hugs its content. */
+  & :global(p):last-child,
+  & :global(ul):last-child,
+  & :global(ol):last-child,
+  & :global(blockquote):last-child {
+    margin-bottom: 0;
+  }
+
+  & :global(h1),
+  & :global(h2),
+  & :global(h3),
+  & :global(h4),
+  & :global(h5),
+  & :global(h6) {
+    margin: var(--space-3) 0 var(--space-2);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+  }
+
+  & :global(h1):first-child,
+  & :global(h2):first-child,
+  & :global(h3):first-child,
+  & :global(h4):first-child,
+  & :global(h5):first-child,
+  & :global(h6):first-child {
+    margin-top: 0;
+  }
+
+  & :global(h1) {
+    font-size: var(--font-size-xl);
+  }
+
+  & :global(h2) {
+    font-size: var(--font-size-lg);
+  }
+
+  & :global(h3),
+  & :global(h4),
+  & :global(h5),
+  & :global(h6) {
+    font-size: var(--font-size-md);
+  }
+
+  & :global(hr) {
+    margin: var(--space-3) 0;
+    border: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* ---- Lists ------------------------------------------------------- */
+
+  & :global(ul),
+  & :global(ol) {
+    margin: 0 0 var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+
+  & :global(li) {
+    margin: var(--space-1) 0;
+  }
+
+  /* ---- Blockquotes ------------------------------------------------- */
+
+  & :global(blockquote) {
+    margin: 0 0 var(--space-2);
+    padding-inline-start: var(--space-3);
+    border-inline-start: 3px solid var(--color-border-strong);
+    color: var(--color-text-muted);
+  }
+
+  /* ---- Links ------------------------------------------------------- */
+
+  & :global(a) {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  & :global(a):hover,
+  & :global(a):focus-visible {
+    text-decoration: underline;
+  }
+
+  /* ---- Inline code & code blocks ----------------------------------- */
+
+  /* Inline `code`: a tinted chip. Zulip ships code blocks pre-tokenised
+     by Pygments (`.codehilite` wrapper, token-class spans); we only
+     style the container here — no client-side highlighter runs. */
+  & :global(code) {
+    padding: 0.1em 0.3em;
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+    color: var(--color-text);
+    background-color: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  & :global(pre) {
+    margin: 0 0 var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    /* Long code lines scroll horizontally instead of widening the row
+       or wrapping mid-token. */
+    overflow-x: auto;
+  }
+
+  /* Code inside a `pre` (and inside Zulip's `.codehilite` wrapper) is
+     plain monospace text on the block's own background — the chip
+     treatment above would double up borders and tints. */
+  & :global(pre code),
+  & :global(.codehilite) code {
+    padding: 0;
+    color: inherit;
+    white-space: pre;
+    background-color: transparent;
+    border: 0;
+  }
+
+  & :global(.codehilite) {
+    margin: 0 0 var(--space-2);
+  }
+
+  & :global(.codehilite):last-child {
+    margin-bottom: 0;
+  }
+
+  /* ---- Tables ------------------------------------------------------ */
+
+  & :global(table) {
+    margin: 0 0 var(--space-2);
+    border-collapse: collapse;
+
+    /* A wide table scrolls within the message row rather than
+       stretching it. `display: block` is what makes `overflow-x`
+       effective on a table element. */
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  & :global(th),
+  & :global(td) {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-border);
+    text-align: start;
+  }
+
+  & :global(th) {
+    font-weight: var(--font-weight-semibold);
+    background-color: var(--color-surface-raised);
+  }
+
+  /* ---- Emoji ------------------------------------------------------- */
+
+  /* Realm emoji are `<img class="emoji">`; unicode emoji are a
+     `<span class="emoji">` with the glyph as text. Size both to sit on
+     the text baseline without disturbing line height. */
+  & :global(img.emoji) {
+    width: 1.25em;
+    height: 1.25em;
+    vertical-align: text-bottom;
+  }
+
+  /* ---- Mentions ---------------------------------------------------- */
+
+  /* User / group / topic mentions: a tinted, rounded inline chip.
+     `data-user-id="*"` group/wildcard mentions and `.user-mention-me`
+     (a mention of the current user) get a stronger accent treatment. */
+  & :global(.user-mention),
+  & :global(.user-group-mention),
+  & :global(.topic-mention) {
+    padding: 0 var(--space-1);
+    font-size: 0.95em;
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    color: var(--color-accent);
+    background-color: var(--color-hover);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  & :global(.user-mention):hover,
+  & :global(.user-group-mention):hover,
+  & :global(.topic-mention):hover {
+    background-color: var(--color-active);
+  }
+
+  & :global(.user-mention-me) {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-on-accent);
+    background-color: var(--color-accent);
+  }
+
+  /* A silent mention (`@_user`) is rendered without the leading `@`;
+     it is referential, not a ping, so tone the highlight down. */
+  & :global(.user-mention.silent),
+  & :global(.user-group-mention.silent) {
+    color: var(--color-text);
+    background-color: var(--color-hover);
+  }
+
+  /* ---- Channel / topic links -------------------------------------- */
+
+  /* `#**channel**` and `#**channel>topic**` links render as anchors
+     with a chip look, distinct from plain inline links. */
+  & :global(a.stream),
+  & :global(a.stream-topic) {
+    padding: 0 var(--space-1);
+    font-size: 0.95em;
+    color: var(--color-accent);
+    background-color: var(--color-hover);
+    border-radius: var(--radius-sm);
+  }
+
+  & :global(a.stream):hover,
+  & :global(a.stream-topic):hover {
+    background-color: var(--color-active);
+    text-decoration: none;
+  }
+
+  /* ---- Timestamps -------------------------------------------------- */
+
+  /* `<time:…>` renders as a `<time>` element; present it as a subtle
+     inline chip. */
+  & :global(time) {
+    padding: 0 var(--space-1);
+    font-size: 0.95em;
+    background-color: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+
+  /* ---- Math (KaTeX) ----------------------------------------------- */
+
+  /* Zulip renders math server-side: KaTeX emits a `<span class="katex">`
+     tree that positions its own glyphs via inline `style` attributes —
+     so there is no client-side math rendering here. Display math
+     (`.katex-display`) is centred and allowed to scroll horizontally if
+     a formula is wider than the row. `.tex-error` is Zulip's fallback
+     for invalid TeX. */
+  & :global(.katex-display) {
+    margin: var(--space-2) 0;
+    overflow: auto hidden;
+    text-align: center;
+  }
+
+  & :global(.katex-display):last-child {
+    margin-bottom: 0;
+  }
+
+  & :global(.tex-error) {
+    color: var(--color-danger);
+  }
+
+  /* ---- Spoilers ---------------------------------------------------- */
+
+  /* Zulip emits `.spoiler-block > .spoiler-header + .spoiler-content`.
+     `MessageContent` decorates the header into an accessible toggle
+     (`role="button"`, `tabindex`, `aria-expanded`) and flips an
+     `.spoiler-content-open` modifier on the body; the rules below key
+     the show/hide off that. */
+  & :global(.spoiler-block) {
+    margin: 0 0 var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+  }
+
+  & :global(.spoiler-block):last-child {
+    margin-bottom: 0;
+  }
+
+  & :global(.spoiler-header) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+
+  & :global(.spoiler-header):focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  /* A disclosure caret after the header text, rotated when expanded. */
+  & :global(.spoiler-header)::after {
+    content: "";
+    width: 0;
+    height: 0;
+    margin-inline-start: auto;
+    border-inline: 4px solid transparent;
+    border-top: 5px solid var(--color-text-muted);
+    transition: transform var(--duration-fast);
+  }
+
+  & :global(.spoiler-header)[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+  }
+
+  /* The body is collapsed by default and revealed only when the
+     decoration logic adds `.spoiler-content-open`. */
+  & :global(.spoiler-content) {
+    height: 0;
+    padding: 0 var(--space-3);
+    overflow: hidden;
+  }
+
+  & :global(.spoiler-content-open) {
+    height: auto;
+    padding: var(--space-2) var(--space-3);
+    border-top: 1px solid var(--color-border-strong);
+  }
+
+  /* ---- Inline images / previews ----------------------------------- */
+
+  /* Any image (inline image, link preview thumbnail) is contained
+     within the row width and keeps its aspect ratio. */
+  & :global(img):not(.emoji) {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+  }
 }
