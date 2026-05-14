@@ -128,6 +128,11 @@ services:
       # Public-facing config
       SETTING_EXTERNAL_HOST: "${ZULIP_EXTERNAL_HOST:?ZULIP_EXTERNAL_HOST required, e.g. flexar-hub.example.com or <host>:8843}"
       SETTING_ZULIP_ADMINISTRATOR: "${ZULIP_ADMIN_EMAIL:?ZULIP_ADMIN_EMAIL required}"
+      # FAKE_EMAIL_DOMAIN is required when EXTERNAL_HOST is an IP or any
+      # value that doesn't have a TLD — Zulip uses it to build synthetic
+      # bot email addresses (e.g. `bot@<domain>`); without a valid domain
+      # the home page raises InvalidFakeEmailDomainError.
+      SETTING_FAKE_EMAIL_DOMAIN: "${SETTING_FAKE_EMAIL_DOMAIN:-flexar.local}"
       SETTING_EMAIL_HOST: "${SETTING_EMAIL_HOST:-}"
       SETTING_EMAIL_HOST_USER: "${SETTING_EMAIL_HOST_USER:-}"
       SETTING_EMAIL_PORT: "${SETTING_EMAIL_PORT:-587}"
