@@ -1,0 +1,14 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "selector-class-pattern": null,
+    "color-no-hex": true,
+    "scale-unlimited/declaration-strict-value": [
+      ["color", "background-color", "border-color"],
+      {
+        "ignoreValues": ["transparent", "currentColor", "inherit", "none"]
+      }
+    ]
+  }
+}
