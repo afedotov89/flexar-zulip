@@ -113,12 +113,15 @@ services:
       SETTING_RABBITMQ_HOST: "rabbitmq"
       SETTING_REDIS_HOST: "redis"
 
-      # Secrets surfaced from .env (Zulip entrypoint copies these into
-      # /etc/zulip/zulip-secrets.conf at startup).
-      ZULIP__POSTGRES_PASSWORD: "${ZULIP__POSTGRES_PASSWORD}"
-      ZULIP__MEMCACHED_PASSWORD: "${ZULIP__MEMCACHED_PASSWORD}"
-      ZULIP__RABBITMQ_PASSWORD: "${ZULIP__RABBITMQ_PASSWORD}"
-      ZULIP__REDIS_PASSWORD: "${ZULIP__REDIS_PASSWORD}"
+      # Secrets surfaced from .env into /etc/zulip/zulip-secrets.conf via
+      # entrypoint.sh (it scans for SECRETS_* env vars and copies them).
+      # The corresponding Zulip settings keys are
+      # postgres_password / memcached_password / rabbitmq_password /
+      # redis_password / secret_key / email_password.
+      SECRETS_postgres_password: "${ZULIP__POSTGRES_PASSWORD:?ZULIP__POSTGRES_PASSWORD required}"
+      SECRETS_memcached_password: "${ZULIP__MEMCACHED_PASSWORD:?ZULIP__MEMCACHED_PASSWORD required}"
+      SECRETS_rabbitmq_password: "${ZULIP__RABBITMQ_PASSWORD:?ZULIP__RABBITMQ_PASSWORD required}"
+      SECRETS_redis_password: "${ZULIP__REDIS_PASSWORD:?ZULIP__REDIS_PASSWORD required}"
       SECRETS_secret_key: "${ZULIP__SECRET_KEY:?ZULIP__SECRET_KEY required}"
       SECRETS_email_password: "${ZULIP__EMAIL_PASSWORD:-}"
 
