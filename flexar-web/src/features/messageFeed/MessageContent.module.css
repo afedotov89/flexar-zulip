@@ -1,0 +1,17 @@
+/*
+ * Message content styles (Phase 1.6 seam — plain-text rendering).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * appear bare. Phase 1.7 swaps the component body, not necessarily
+ * this rule — but the `overflow-wrap` guard below must survive: it is
+ * what keeps a very long unbroken word from blowing out the row width.
+ */
+
+.content {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+
+  /* A very long single-word string must wrap, not overflow the row. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

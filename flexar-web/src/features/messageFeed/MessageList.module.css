@@ -1,0 +1,51 @@
+/*
+ * Virtualized message-list styles (Phase 1.6).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 100%, absolute positioning, 0) appear bare. `--row-start` is
+ * computed virtualization geometry written imperatively by MessageList
+ * via a ref — not a design token (see MessageList's header).
+ */
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: var(--color-bg);
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/*
+ * The full-height spacer: react-virtual positions absolutely-placed
+ * rows inside it, so its height must equal the list's total scrollable
+ * height. MessageList writes that height as `--total-size` via a ref
+ * (computed virtualization geometry, not a token — see its header).
+ */
+.sizer {
+  position: relative;
+  width: 100%;
+  height: var(--total-size, 0);
+}
+
+/*
+ * One virtualized row. Absolutely positioned and offset by the
+ * react-virtual-computed `--row-start`. Width spans the container so
+ * row content can ellipsise / wrap against a real width.
+ */
+.rowWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(var(--row-start, 0));
+}
+
+/* The in-flight spinner shown at whichever end is fetching a page. */
+.edgeSpinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3);
+}

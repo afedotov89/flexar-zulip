@@ -133,7 +133,8 @@
 | Утилита | Статус | Путь | Назначение |
 |---|---|---|---|
 | narrow-кодек | ✅ | `src/lib/narrow/scheme.ts` | `narrowToPath(narrow, resolveChannelSlug?)` ↔ `parseNarrowPath(path): NarrowParseResult`. Чистый, round-trip-корректный. |
-| built-in views | ✅ | `src/lib/narrow/builtinViews.ts` | `BUILTIN_VIEWS`, `SPECIAL_VIEWS`, `getBuiltinView(id)`; типы `BuiltinView` (`NarrowView\|SpecialView`), `BuiltinViewId`. |
+| built-in views | ✅ | `src/lib/narrow/builtinViews.ts` | `BUILTIN_VIEWS`, `SPECIAL_VIEWS`, `getBuiltinView(id)`; типы `BuiltinView` (`NarrowView\|SpecialView`, с полем `icon`), `BuiltinViewId`. |
+| `matchesNarrow` | ✅ | `src/lib/narrow/matchesNarrow.ts` | Чистый предикат `matchesNarrow(message, narrow, ctx)` — для live-reconcile ленты. Оценивает channel/topic/dm/sender/`is:`; неразрешимые операторы (search/has/near/…) — пермиссивно. |
 
 **URL-схема narrow** (path-based, корень `/narrow`; импорт из
 `src/lib/narrow`): сегменты `/<op>/<operand>` парами; пустой narrow =
@@ -230,11 +231,13 @@ Query-хуки поверх клиента — позже, с фичами.
 | `AppShell` | ✅ | `src/app/AppShell/` | Трёхколоночный каркас: `Navbar` + левый/правый `<aside>` + центральный `<main>` с `<Outlet/>`. Колонки — плейсхолдеры. Сайдбары схлопываются `display:none` при `width ≤ 768px`. |
 | `Navbar` | ✅ | `src/app/Navbar/` | Верхний бар: бренд / слот поиска (плейсхолдер) / actions (тоггл темы + email сессии + logout-кнопка на `authStore.logout`). Тоггл темы — пока временный локальный `<button>`. |
 | Провайдер-стек / `App` | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` → `RouterProvider`; на маунте зовёт `authStore.initialize()` (резолвит `"unknown"`-статус). |
-| `Feed` (страница) | ✅ | `src/pages/Feed/` | Плейсхолдер центральной ленты (index-роут). |
+| `Feed` (страница) | ✅ | `src/pages/Feed/` | Центр-колонка для narrow/index-роутов: монтирует `MessageFeed` (index `/` → Combined feed); для спец-видов (Inbox/Recent/Drafts) — плейсхолдер. |
 | `NotFound` (страница) | ✅ | `src/pages/NotFound/` | Плейсхолдер catch-all роута. |
 
-**Зависимости, добавленные оркестратором (Фаза 0.5):** `react-router-dom`
-(v7), `@tanstack/react-query` (v5) — оба из зафиксированного стека (GUIDE §1).
+**Зависимости, добавленные оркестратором:** `react-router-dom` (v7),
+`@tanstack/react-query` (v5) — из стека GUIDE §1 (0.5); `zustand` (v5) —
+из стека (1.1); `@tanstack/react-virtual` (v3) — виртуализация ленты,
+пред-одобрено оркестратором (1.6).
 
 **Флаг для 1.x:** тоггл темы в навбаре — временный локальный `<button>`,
 заменить на `Button`/`IconButton` позже.
@@ -246,6 +249,7 @@ Query-хуки поверх клиента — позже, с фичами.
 | Фича | Статус | Путь | Назначение |
 |---|---|---|---|
 | `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`, с иконками), полный список ЛС (`dmConversationsStore`), список каналов с полными топиками (`topicsStore`, ленивая загрузка на раскрытии; сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты, у Mentions — `getMentionsCount`), фильтр-инпут, кнопка «+» (пока no-op). Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref. |
+| `MessageFeed` | ✅ | `src/features/messageFeed/` | Центральная лента (1.6): виртуализированный список (`@tanstack/react-virtual`), recipient-бары (канал›топик / ЛС), дата-разделители, строка сообщения (аватар/отправитель/время/контент/hover-тулбар), группировка последовательных сообщений, состояния loading/empty/error, дозагрузка старых/новых по скроллу. Читает narrow из `useCurrentNarrow`, тянет историю `apiClient.getMessages` → `messagesStore.ingest`, живые события — из `messagesStore`; `useFeedWindow` владеет per-narrow окном (порядок ids + пагинация + live-reconcile через `matchesNarrow`). **`MessageContent` — seam для 1.7** (сейчас рендерит plain-text, без `dangerouslySetInnerHTML`). Смонтирован в `src/pages/Feed/`. |
 
 **Доборка 1.5a — закрыто:** иконки видов, `dmConversationsStore`,
 `topicsStore`+`getTopics`, `mentions`-бакет. Остаток: бейдж Starred —

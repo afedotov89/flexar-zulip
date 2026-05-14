@@ -1,0 +1,42 @@
+/*
+ * Feed recipient-bar styles (Phase 1.6).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 0, min-width) appear bare. The bar is an in-flow virtualized
+ * row (see MessageList's header) — this rule is its own appearance.
+ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.channelIcon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.channelName {
+  flex-shrink: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.topicSeparator {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* The topic takes the remaining width and ellipsises when too long. */
+.topic {
+  overflow: hidden;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

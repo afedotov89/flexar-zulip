@@ -573,7 +573,7 @@ keyboard-driven).
 - [x] 1.3 Сторы server-state — ✅И (6 сторов realm/users/streams/messages/presence/unread + чистые редьюсеры; `RealtimeConnection` расширен `onInitialState`; 337 unit-тестов) · unit ✅
 - [x] 1.4 Роутинг/narrow + парсер — ✅И (`src/lib/narrow/`: кодек narrow↔URL path-based round-trip, реестр built-in-видов, хуки `useCurrentNarrow`/`useCurrentView`/`useNarrowNavigation`, narrow-роуты в `AppShell`) · unit ✅ (на кодек/реестр/хуки) · [ ] П (визуальный — со связкой 1.5/1.6)
 - [~] 1.5 Левый сайдбар — ✅И (`src/features/leftSidebar/`: виды/ЛС/каналы+топики, сворачивание, фильтр, бакетированные счётчики; `unreadStore` реструктурирован; +1.5a доборка данных: иконки видов, `dmConversationsStore`, `topicsStore`+`getTopics`, `mentions`-бакет; 472 unit-теста) · [~] П (структура + skeleton-loading + интеграция в shell протыканы; populated-состояние — живая сессия)
-- [ ] 1.6 Лента сообщений — И · [ ] П (recipient-бары, дата-разделители, группировка, дозагрузка, loading/empty)
+- [~] 1.6 Лента сообщений — ✅И (`src/features/messageFeed/`: виртуализация `@tanstack/react-virtual`, recipient-бары, дата-разделители, группировка, hover-тулбар, дозагрузка по скроллу, loading/empty/error; `useFeedWindow`+`matchesNarrow`; 551 unit-тест) · [~] П (интеграция в shell + loading-скелетоны + корректный `getMessages`-запрос протыканы; populated/empty/error — живая сессия владельца) · контент — plain-text до 1.7
 - [ ] 1.7 Рендер контента — И · [ ] П (код, KaTeX, эмодзи, спойлеры, ссылки) · unit на гидрацию
 - [ ] 1.8 Правый сайдбар — И · [ ] П (presence, фильтр, секции)
 - [ ] **Гейт Фазы 1:** Playwright «логин → narrow → лента видна» зелёный · общий протык фазы

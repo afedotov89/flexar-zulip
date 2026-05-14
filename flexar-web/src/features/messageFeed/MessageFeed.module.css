@@ -1,0 +1,84 @@
+/*
+ * Message-feed feature-root styles (Phase 1.6).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 100%, min-height, 0, 1) appear bare.
+ */
+
+.feed {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--color-bg);
+}
+
+/* The historyLimited / error notice band above the list. */
+.notice {
+  padding: var(--space-3) var(--space-4) var(--space-0);
+}
+
+/* A text-button styled inline retry action inside the error banner. */
+.retryButton {
+  padding: 0;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.retryButton:hover {
+  color: var(--color-accent-hover);
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+/* Initial-fetch skeleton: rows in the message-row rhythm. */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.loadingRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.loadingLines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Empty state: centred in the column. */
+.empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.emptyHint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

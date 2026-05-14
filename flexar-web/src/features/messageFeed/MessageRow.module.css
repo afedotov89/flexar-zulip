@@ -1,0 +1,115 @@
+/*
+ * Feed message-row styles (Phase 1.6).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, grid sizing, 0, min-width) appear bare.
+ *
+ * Layout: a fixed-width gutter (avatar / hover-time) + a flexible body
+ * + a hover toolbar. The gutter width is `--control-height-lg` so the
+ * `md` avatar sits centred in it and follower rows align their content
+ * under the group's content column.
+ */
+
+.row {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-1) var(--space-4);
+  transition: background-color var(--duration-fast);
+}
+
+.row:hover {
+  background-color: var(--color-hover);
+}
+
+/* Keyboard navigation: the row is focusable; a clear ring marks it. */
+.row:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* Follower rows sit tighter — no header above them. */
+.follower {
+  padding-top: var(--space-0);
+  padding-bottom: var(--space-0);
+}
+
+/*
+ * The leading gutter: holds the avatar on group-start rows, or the
+ * hover-revealed timestamp on follower rows. Fixed width so every row's
+ * body starts at the same x.
+ */
+.gutter {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  width: var(--control-height-lg);
+  padding-top: var(--space-1);
+}
+
+/* Follower timestamp: hidden until the row (or group) is hovered. */
+.followerTime {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-muted);
+  visibility: hidden;
+}
+
+.row:hover .followerTime {
+  visibility: visible;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.sender {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.time {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/*
+ * Hover toolbar: in the DOM at all times (so it is keyboard-reachable),
+ * visually revealed on row hover or when a control inside it is
+ * focused. Anchored to the row's top-right.
+ */
+.actions {
+  position: absolute;
+  top: var(--space-0);
+  right: var(--space-4);
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+}
+
+/*
+ * Revealed on row hover, or when focus is anywhere inside the row
+ * (`:focus-within` covers both tabbing onto the row and onto a toolbar
+ * control) — so the toolbar is keyboard-reachable, not hover-only.
+ */
+.row:hover .actions,
+.row:focus-within .actions {
+  opacity: 1;
+}

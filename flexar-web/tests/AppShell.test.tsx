@@ -1,5 +1,7 @@
 import { render, screen, act } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 import { App } from "../src/app/App";
+import { apiClient } from "../src/api";
 import { useAuthStore } from "../src/stores/authStore";
 
 // The app-shell renders inside the full provider stack (ThemeProvider ->
@@ -24,6 +26,21 @@ beforeEach(() => {
     isLoggingIn: false,
     error: null,
   });
+  // The index route renders the message feed (Phase 1.6), which fetches
+  // history on mount. Stub it with an empty window so the feed reaches
+  // a deterministic state instead of hitting the network.
+  vi.spyOn(apiClient, "getMessages").mockResolvedValue({
+    messages: [],
+    anchor: 0,
+    foundNewest: true,
+    foundOldest: true,
+    foundAnchor: false,
+    historyLimited: false,
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("AppShell", () => {
@@ -40,11 +57,14 @@ describe("AppShell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
-  it("renders the routed Outlet content in the center column", () => {
+  it("renders the routed Outlet content in the center column", async () => {
     render(<App />);
 
+    // The index route renders the message feed into the center column;
+    // with an empty history window it settles on its empty state.
     const main = screen.getByRole("main");
-    expect(main).toHaveTextContent("Message feed");
+    expect(await screen.findByText("No messages here yet")).toBeInTheDocument();
+    expect(main).toContainElement(screen.getByText("No messages here yet"));
   });
 
   it("toggles the theme via the navbar toggle button", () => {

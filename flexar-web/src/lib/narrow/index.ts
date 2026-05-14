@@ -25,6 +25,8 @@ export {
 
 export { useCurrentNarrow, useCurrentView } from "./useCurrentNarrow";
 
+export { matchesNarrow, type MatchContext } from "./matchesNarrow";
+
 export {
   useNarrowNavigation,
   type NarrowNavigation,

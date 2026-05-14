@@ -1,0 +1,27 @@
+/*
+ * Feed date-separator styles (Phase 1.6).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 1) appear bare.
+ */
+
+.separator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+}
+
+/* The divider line takes the width the centred label leaves. */
+.line {
+  flex: 1;
+}
+
+.label {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  white-space: nowrap;
+}
