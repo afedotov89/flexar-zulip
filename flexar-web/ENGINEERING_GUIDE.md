@@ -52,14 +52,29 @@ Testing Library · Playwright · ESLint + Stylelint + Prettier.
 
 ## 2. Токены и тема
 
-- Источник значений — `src/theme/tokens.ts` (копия дизайн-токенов
-  Flexar; разрешено дополнять новыми токенами — **через оркестратора**,
-  с фиксацией здесь и в реестре).
+- Источник значений — `src/theme/tokens.ts`. В нём два слоя:
+  **(а)** импортированные Flexar-токены (бренд-цвета light/dark);
+  **(б)** `scales` — semantic-шкалы дизайн-системы Flexar Hub
+  (заданы оркестратором, PRD-решение). Дополнять токены — **только
+  через оркестратора**, с фиксацией здесь и в реестре.
+- **Шкалы (`scales` в `tokens.ts`):** `space` (0,1,2,3,4,5,6,8,10,12 —
+  ключ ≈ px/4), `radius` (sm/md/lg/xl/full), `fontSize`
+  (xs/sm/md/lg/xl/2xl, базовый UI — md=14, xs=11 — микро-лейблы),
+  `fontWeight` (regular/medium/semibold/bold), `lineHeight`
+  (tight/normal/relaxed), `letterSpacing` (normal/wide),
+  `controlHeight` (sm/md/lg), `duration` (fast/base/slow), `shadow`
+  (sm/md/lg), `zIndex`, `fontFamily` (base/mono).
 - Фаза 0.2 строит **токен-пайплайн**: `tokens.ts` → CSS-переменные в
   `:root` (светлая) и в теме `dark`, плюс типизированный TS-объект темы
-  и `ThemeProvider`. Точные имена переменных и экспортов появятся в
-  `COMPONENT_REGISTRY.md` после Фазы 0.2 — **до этого компоненты,
-  зависящие от темы, не пишутся**.
+  и `ThemeProvider` + хук переключения. **Конвенция имён CSS-переменных
+  (пайплайн обязан её соблюсти):** `--space-3`, `--radius-md`,
+  `--font-size-md`, `--font-weight-semibold`, `--line-height-normal`,
+  `--letter-spacing-wide`, `--control-height-md`, `--duration-base`,
+  `--shadow-md`, `--z-modal`, `--font-family-base`; цветовые роли —
+  `--color-*` (конкретный список ролей фиксирует пайплайн и заносит в
+  `COMPONENT_REGISTRY.md`).
+- **До завершения Фазы 0.2 компоненты, зависящие от темы, не пишутся.**
+  Точные имена переменных и экспортов сверяй с `COMPONENT_REGISTRY.md`.
 - В компонентах: цвета/отступы/радиусы/типографика — **только**
   `var(--token-name)` в CSS Modules. Никогда не хардкодь `#fff`,
   `16px`, `0.5rem` для токенизируемых свойств.

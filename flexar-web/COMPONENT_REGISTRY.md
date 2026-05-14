@@ -13,10 +13,11 @@
 
 | Артефакт | Статус | Описание / экспорт |
 |---|---|---|
-| `tokens.ts` | ✅ | Источник значений дизайн-системы (копия из Flexar). Экспорты: `brandColors`, `brandColorsDark`, `projectBaseTokens`, `sharedTokens`, `lightOverrides`, `darkOverrides`, `designTokensLight`, `designTokensDark`, `componentTokens`. **Сырой источник — в компонентах не импортируется напрямую**, потребляется через токен-пайплайн (Фаза 0.2). |
-| CSS-переменные | ⬜ | Имена `--…` появятся после Фазы 0.2 |
-| `ThemeProvider` | ⬜ | Появится после Фазы 0.2 |
-| хук темы / переключатель | ⬜ | Появится после Фазы 0.2 |
+| `tokens.ts` — Flexar-слой | ✅ | Бренд-цвета (light/dark): `brandColors`, `brandColorsDark`, `projectBaseTokens`, `sharedTokens`, `lightOverrides`, `darkOverrides`, `designTokensLight`, `designTokensDark`, `componentTokens`. |
+| `tokens.ts` — `scales` | ✅ | Semantic-шкалы Flexar Hub: `space`, `radius`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `controlHeight`, `duration`, `shadow`, `zIndex`, `fontFamily`. Заданы оркестратором. |
+| **`tokens.ts` в компонентах не импортируется напрямую** | — | Потребляется только через токен-пайплайн (CSS-переменные / TS-тема). |
+| CSS-переменные | 🚧 | Конвенция имён — в `ENGINEERING_GUIDE.md` §2; конкретный список цветовых ролей `--color-*` зафиксирует пайплайн (Фаза 0.2) |
+| `ThemeProvider` + хук темы | 🚧 | Фаза 0.2 |
 
 ---
 

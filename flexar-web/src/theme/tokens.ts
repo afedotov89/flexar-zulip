@@ -121,3 +121,109 @@ export const componentTokens = {
     },
   },
 } as const;
+
+// ============================================================
+// Flexar Hub semantic scale layer.
+//
+// The imported Flexar tokens above are Ant-Design-shaped and thin —
+// they carry brand colours but no spacing / radius / typography
+// scales. Per the PRD (§1.4, owner decision option 1) the scales
+// below are established here as the Flexar Hub design-system scale
+// layer; the token pipeline (Phase 0.2) emits CSS custom properties
+// from them. Values are derived from the live Flexar app's measured
+// design language; they may later be reconciled with Flexar's own
+// scales without changing variable names.
+// ============================================================
+
+export const scales = {
+  // Spacing — 4px base. Key ≈ px / 4.
+  space: {
+    0: '0',
+    1: '4px',
+    2: '8px',
+    3: '12px',
+    4: '16px',
+    5: '20px',
+    6: '24px',
+    8: '32px',
+    10: '40px',
+    12: '48px',
+  },
+
+  // Corner radii — controls 8, popovers 10, cards/modals 12.
+  radius: {
+    sm: '6px',
+    md: '8px',
+    lg: '10px',
+    xl: '12px',
+    full: '9999px',
+  },
+
+  // Type scale. Base UI size 14; xs 11 is the micro-label size.
+  fontSize: {
+    xs: '11px',
+    sm: '13px',
+    md: '14px',
+    lg: '16px',
+    xl: '20px',
+    '2xl': '24px',
+  },
+
+  fontWeight: {
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+  },
+
+  lineHeight: {
+    tight: 1.25,
+    normal: 1.5,
+    relaxed: 1.7,
+  },
+
+  // Letter spacing — `wide` is for tracked uppercase micro-labels.
+  letterSpacing: {
+    normal: '0',
+    wide: '0.07em',
+  },
+
+  // Control heights — inputs, buttons, etc.
+  controlHeight: {
+    sm: '28px',
+    md: '36px',
+    lg: '40px',
+  },
+
+  // Transition durations.
+  duration: {
+    fast: '120ms',
+    base: '200ms',
+    slow: '320ms',
+  },
+
+  // Elevation. Soft shadows, never hard 1px lines.
+  shadow: {
+    sm: '0 1px 3px hsl(0deg 0% 0% / 6%)',
+    md: '0 4px 16px hsl(0deg 0% 0% / 10%)',
+    lg: '0 12px 48px hsl(0deg 0% 0% / 16%), 0 2px 8px hsl(0deg 0% 0% / 10%)',
+  },
+
+  // Stacking order.
+  zIndex: {
+    base: 0,
+    dropdown: 1000,
+    sticky: 1100,
+    overlay: 1200,
+    modal: 1300,
+    popover: 1400,
+    tooltip: 1500,
+    toast: 1600,
+  },
+
+  // Font stack — Inter is the brand face; bundle it, with fallbacks.
+  fontFamily: {
+    base: '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    mono: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+  },
+} as const;
