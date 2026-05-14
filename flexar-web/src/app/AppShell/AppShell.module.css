@@ -39,6 +39,14 @@
 .leftSidebar {
   width: 240px;
   border-right: 1px solid var(--color-border);
+
+  /*
+   * The Phase 1.5 LeftSidebar feature manages its own internal scroll
+   * area, so the column itself must not also scroll — that would nest
+   * two scrollbars. The shared rule above sets `overflow-y: auto` for
+   * the right placeholder column; the left column overrides it.
+   */
+  overflow-y: hidden;
 }
 
 .rightSidebar {

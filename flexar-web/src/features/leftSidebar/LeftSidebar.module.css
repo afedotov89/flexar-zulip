@@ -1,0 +1,38 @@
+/*
+ * Left sidebar feature (Phase 1.5).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * (flex, 100%, 0, 1) appear bare, per ENGINEERING_GUIDE §2/§4.
+ *
+ * The sidebar fills the app shell's left column. The filter input is
+ * pinned at the top; the sections scroll independently below it.
+ */
+
+.sidebar {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.filter {
+  flex-shrink: 0;
+  margin-bottom: var(--space-3);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2);
+}

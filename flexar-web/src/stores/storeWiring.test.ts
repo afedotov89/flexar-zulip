@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServerEvent } from "../domain";
 import type { InitialState } from "../realtime";
 import { makeMessage, makeStream, makeUser } from "./testFixtures";
+import { emptyUnreadBuckets } from "./unreadReducer";
 
 // Capture the listeners the stores register at module load.
 const { initialStateListeners, eventListeners } = vi.hoisted(() => ({
@@ -82,7 +83,7 @@ describe("server-state stores — wiring", () => {
     useStreamsStore.setState({ streams: {}, subscriptions: {} });
     useMessagesStore.setState({ messages: {}, flags: {} });
     usePresenceStore.setState({ presences: {} });
-    useUnreadStore.setState({ unread: {} });
+    useUnreadStore.setState({ unread: emptyUnreadBuckets() });
   });
 
   it("every store subscribes at module load", () => {
@@ -193,9 +194,21 @@ describe("server-state stores — wiring", () => {
   });
 
   it("update_message_flags read removes a message from unread", () => {
-    useUnreadStore.setState({ unread: { 800: true } });
+    // A message from another user is tracked as unread...
+    useAuthStore.setState({
+      session: { email: "me@example.com", apiKey: "k", userId: 1 },
+    });
     emitEvent({
       id: 7,
+      type: "message",
+      message: makeMessage({ id: 800, sender_id: 2 }),
+      flags: [],
+    });
+    expect(useUnreadStore.getState().isUnread(800)).toBe(true);
+
+    // ...and the read flag clears it.
+    emitEvent({
+      id: 8,
       type: "update_message_flags",
       op: "add",
       flag: "read",

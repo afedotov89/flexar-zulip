@@ -1,0 +1,12 @@
+/*
+ * Channels section (Phase 1.5).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * appear bare, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.empty {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

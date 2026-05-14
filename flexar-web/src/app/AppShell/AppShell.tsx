@@ -1,13 +1,14 @@
-// Flexar Hub Web — app-shell layout (Phase 0.5).
+// Flexar Hub Web — app-shell layout (Phase 0.5; left sidebar 1.5).
 //
 // The structural skeleton of the chat UI: a full-width navbar above a
 // three-column body (left navigation, center message feed, right
-// contextual panel). This is STRUCTURE, not content — the columns are
-// labelled placeholders. The center column hosts the routed page via
-// React Router's <Outlet />.
+// contextual panel). The left column hosts the Phase 1.5 `LeftSidebar`
+// feature; the right column is still a labelled placeholder. The center
+// column hosts the routed page via React Router's <Outlet />.
 
 import { Outlet } from "react-router-dom";
 import { Navbar } from "../Navbar";
+import { LeftSidebar } from "../../features/leftSidebar";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -17,7 +18,7 @@ export function AppShell() {
 
       <div className={styles.body}>
         <aside className={styles.leftSidebar} aria-label="Channels and navigation">
-          <span className={styles.placeholderLabel}>Left sidebar</span>
+          <LeftSidebar />
         </aside>
 
         <main className={styles.center}>

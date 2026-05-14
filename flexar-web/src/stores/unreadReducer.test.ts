@@ -1,141 +1,350 @@
 // Unit tests for the unread reducers (`src/stores/unreadReducer`).
 //
-// Covers flattening the `unread_msgs` buckets on hydration, and each
-// unread-affecting event: `message` (with the own-sender and
-// already-read exclusions), `update_message_flags` for the `read` flag
-// (including `all: true`), and `delete_message`.
+// The unread store keeps unread messages bucketed per channel-topic and
+// per DM conversation (Phase 1.5). This suite covers bucketing a
+// register snapshot's `unread_msgs` on hydration, every unread-affecting
+// event — `message`, `update_message` (topic/channel moves),
+// `update_message_flags` (the `read` flag, including `all: true`),
+// `delete_message` — and the count/selector helpers over the buckets.
 
 import { describe, expect, it } from "vitest";
 import type {
   DeleteMessageEvent,
+  DirectMessageRecipient,
   MessageEvent,
+  UpdateMessageEvent,
   UpdateMessageFlagsEvent,
 } from "../domain";
 import { makeInitialState, makeMessage } from "./testFixtures";
 import {
   applyDeleteMessageEventToUnread,
   applyMessageEventToUnread,
+  applyUpdateMessageEventToUnread,
   applyUpdateMessageFlagsEventToUnread,
+  channelUnreadCount,
+  dmConversationKey,
+  dmConversationKeysWithUnread,
+  dmUnreadCount,
+  emptyUnreadBuckets,
+  isUnread,
+  topicUnreadCount,
   unreadCount,
   unreadFromInitialState,
-  type UnreadSet,
+  type UnreadBuckets,
 } from "./unreadReducer";
 
+// Build a `display_recipient` participant list for a DM `Message`.
+function recipients(...ids: number[]): DirectMessageRecipient[] {
+  return ids.map((id) => ({
+    id,
+    email: `user${id}@example.com`,
+    full_name: `User ${id}`,
+    is_mirror_dummy: false,
+  }));
+}
+
+// A `message` event carrying a channel message in a given topic.
+function channelMessageEvent(
+  id: number,
+  streamId: number,
+  topic: string,
+  senderId = 99,
+): MessageEvent {
+  return {
+    id: 1,
+    type: "message",
+    message: makeMessage({
+      id,
+      type: "stream",
+      stream_id: streamId,
+      subject: topic,
+      sender_id: senderId,
+    }),
+    flags: [],
+  };
+}
+
+// A `message` event carrying a direct message to the given participants.
+function dmMessageEvent(
+  id: number,
+  participantIds: number[],
+  senderId = 99,
+): MessageEvent {
+  return {
+    id: 1,
+    type: "message",
+    message: makeMessage({
+      id,
+      type: "private",
+      subject: "",
+      display_recipient: recipients(...participantIds),
+      sender_id: senderId,
+    }),
+    flags: [],
+  };
+}
+
+describe("dmConversationKey", () => {
+  it("sorts, de-duplicates, and comma-joins participant ids", () => {
+    expect(dmConversationKey([7, 2, 7, 4])).toBe("2,4,7");
+  });
+
+  it("yields a single-id key for a self-DM", () => {
+    expect(dmConversationKey([5, 5])).toBe("5");
+  });
+});
+
 describe("unreadFromInitialState", () => {
-  it("flattens pms, streams, huddles and mentions into one id set", () => {
-    const unread = unreadFromInitialState(
+  it("buckets streams into channel-topic, pms and huddles into DMs", () => {
+    const buckets = unreadFromInitialState(
       makeInitialState({
         unread_msgs: {
-          count: 5,
+          count: 6,
           pms: [{ other_user_id: 2, unread_message_ids: [10, 11] }],
           streams: [
-            { stream_id: 1, topic: "t", unread_message_ids: [20, 21] },
+            { stream_id: 1, topic: "alpha", unread_message_ids: [20, 21] },
+            { stream_id: 1, topic: "beta", unread_message_ids: [22] },
           ],
           huddles: [{ user_ids_string: "1,2,3", unread_message_ids: [30] }],
           mentions: [20],
           old_unreads_missing: false,
         },
       }),
+      1,
     );
-    expect(Object.keys(unread).sort()).toEqual(["10", "11", "20", "21", "30"]);
+    expect(unreadCount(buckets)).toBe(6);
+    expect(topicUnreadCount(buckets, 1, "alpha")).toBe(2);
+    expect(topicUnreadCount(buckets, 1, "beta")).toBe(1);
+    expect(channelUnreadCount(buckets, 1)).toBe(3);
+    // The `pms` bucket key mixes in the viewer id (1) with other_user (2).
+    expect(dmUnreadCount(buckets, "1,2")).toBe(2);
+    expect(dmUnreadCount(buckets, "1,2,3")).toBe(1);
   });
 
-  it("returns an empty set when unread_msgs is absent", () => {
-    expect(unreadFromInitialState(makeInitialState())).toEqual({});
+  it("buckets pms with only the other id when the viewer id is unknown", () => {
+    const buckets = unreadFromInitialState(
+      makeInitialState({
+        unread_msgs: {
+          count: 1,
+          pms: [{ other_user_id: 2, unread_message_ids: [10] }],
+        },
+      }),
+      null,
+    );
+    expect(dmUnreadCount(buckets, "2")).toBe(1);
+  });
+
+  it("returns empty buckets when unread_msgs is absent", () => {
+    expect(unreadFromInitialState(makeInitialState(), 1)).toEqual(
+      emptyUnreadBuckets(),
+    );
   });
 
   it("tolerates an unread_msgs object with missing buckets", () => {
-    const unread = unreadFromInitialState(
+    const buckets = unreadFromInitialState(
       makeInitialState({
         unread_msgs: {
           count: 0,
           streams: [{ stream_id: 1, topic: "t", unread_message_ids: [7] }],
         },
       }),
+      1,
     );
-    expect(unread).toEqual({ 7: true });
+    expect(unreadCount(buckets)).toBe(1);
+    expect(topicUnreadCount(buckets, 1, "t")).toBe(1);
   });
 });
 
 describe("applyMessageEventToUnread", () => {
-  it("marks a received message unread", () => {
-    const event: MessageEvent = {
-      id: 1,
-      type: "message",
-      message: makeMessage({ id: 42, sender_id: 99 }),
-      flags: [],
-    };
-    const next = applyMessageEventToUnread({}, event, 1);
-    expect(next).toEqual({ 42: true });
+  it("files a received channel message into its channel-topic bucket", () => {
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general"),
+      1,
+    );
+    expect(topicUnreadCount(next, 5, "general")).toBe(1);
+    expect(isUnread(next, 42)).toBe(true);
+  });
+
+  it("files a received direct message into its DM bucket", () => {
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      dmMessageEvent(43, [1, 2]),
+      1,
+    );
+    expect(dmUnreadCount(next, "1,2")).toBe(1);
+    expect(isUnread(next, 43)).toBe(true);
   });
 
   it("does not mark the viewer's own message unread", () => {
-    const event: MessageEvent = {
-      id: 1,
-      type: "message",
-      message: makeMessage({ id: 42, sender_id: 1 }),
-      flags: [],
-    };
-    const next = applyMessageEventToUnread({}, event, 1);
-    expect(next).toEqual({});
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general", 1),
+      1,
+    );
+    expect(unreadCount(next)).toBe(0);
   });
 
   it("does not mark an already-read message unread", () => {
-    const event: MessageEvent = {
-      id: 1,
-      type: "message",
-      message: makeMessage({ id: 42, sender_id: 99 }),
-      flags: ["read"],
-    };
-    const next = applyMessageEventToUnread({}, event, 1);
-    expect(next).toEqual({});
+    const event = channelMessageEvent(42, 5, "general");
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      { ...event, flags: ["read"] },
+      1,
+    );
+    expect(unreadCount(next)).toBe(0);
   });
 
   it("treats a message as unread when the viewer id is not yet known", () => {
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general"),
+      null,
+    );
+    expect(isUnread(next, 42)).toBe(true);
+  });
+
+  it("is a no-op when the message id is already tracked", () => {
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general"),
+      1,
+    );
+    const next = applyMessageEventToUnread(
+      buckets,
+      channelMessageEvent(42, 5, "general"),
+      1,
+    );
+    expect(next).toBe(buckets);
+  });
+
+  it("ignores a channel message with no stream_id", () => {
     const event: MessageEvent = {
       id: 1,
       type: "message",
-      message: makeMessage({ id: 42, sender_id: 99 }),
+      message: makeMessage({ id: 42, type: "stream", stream_id: undefined }),
       flags: [],
     };
-    const next = applyMessageEventToUnread({}, event, null);
-    expect(next).toEqual({ 42: true });
+    const next = applyMessageEventToUnread(emptyUnreadBuckets(), event, 1);
+    expect(unreadCount(next)).toBe(0);
   });
+});
 
-  it("is a no-op when the message id is already in the set", () => {
-    const set: UnreadSet = { 42: true };
-    const next = applyMessageEventToUnread(
-      set,
-      {
-        id: 1,
-        type: "message",
-        message: makeMessage({ id: 42, sender_id: 99 }),
-        flags: [],
-      },
+describe("applyUpdateMessageEventToUnread", () => {
+  // Buckets holding one unread channel message, id 50, in stream 1 / "old".
+  function seeded(): UnreadBuckets {
+    return applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(50, 1, "old"),
       1,
     );
-    expect(next).toBe(set);
+  }
+
+  it("re-buckets a message moved to a new topic in the same channel", () => {
+    const event: UpdateMessageEvent = {
+      id: 2,
+      type: "update_message",
+      user_id: 9,
+      rendering_only: false,
+      message_id: 50,
+      message_ids: [50],
+      flags: [],
+      edit_timestamp: 1000,
+      subject: "new",
+    };
+    const next = applyUpdateMessageEventToUnread(seeded(), event);
+    expect(topicUnreadCount(next, 1, "old")).toBe(0);
+    expect(topicUnreadCount(next, 1, "new")).toBe(1);
+  });
+
+  it("re-buckets a message moved to a different channel", () => {
+    const event: UpdateMessageEvent = {
+      id: 2,
+      type: "update_message",
+      user_id: 9,
+      rendering_only: false,
+      message_id: 50,
+      message_ids: [50],
+      flags: [],
+      edit_timestamp: 1000,
+      new_stream_id: 7,
+    };
+    const next = applyUpdateMessageEventToUnread(seeded(), event);
+    expect(channelUnreadCount(next, 1)).toBe(0);
+    expect(topicUnreadCount(next, 7, "old")).toBe(1);
+  });
+
+  it("ignores a content edit (no topic or channel move)", () => {
+    const buckets = seeded();
+    const event: UpdateMessageEvent = {
+      id: 2,
+      type: "update_message",
+      user_id: 9,
+      rendering_only: false,
+      message_id: 50,
+      message_ids: [50],
+      flags: [],
+      edit_timestamp: 1000,
+      content: "edited",
+      rendered_content: "<p>edited</p>",
+    };
+    expect(applyUpdateMessageEventToUnread(buckets, event)).toBe(buckets);
+  });
+
+  it("leaves already-read (untracked) moved ids alone", () => {
+    const event: UpdateMessageEvent = {
+      id: 2,
+      type: "update_message",
+      user_id: 9,
+      rendering_only: false,
+      message_id: 999,
+      message_ids: [999],
+      flags: [],
+      edit_timestamp: 1000,
+      subject: "new",
+    };
+    const buckets = seeded();
+    const next = applyUpdateMessageEventToUnread(buckets, event);
+    expect(unreadCount(next)).toBe(1);
+    expect(topicUnreadCount(next, 1, "old")).toBe(1);
   });
 });
 
 describe("applyUpdateMessageFlagsEventToUnread", () => {
-  it("add of the read flag removes the listed ids", () => {
-    const set: UnreadSet = { 1: true, 2: true, 3: true };
+  // Buckets holding ids 1 and 2 in stream 9 / "t", and id 3 in a DM.
+  function seeded(): UnreadBuckets {
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(1, 9, "t"),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      channelMessageEvent(2, 9, "t"),
+      100,
+    );
+    return applyMessageEventToUnread(buckets, dmMessageEvent(3, [100, 5]), 100);
+  }
+
+  it("add of the read flag removes the listed ids from their buckets", () => {
     const event: UpdateMessageFlagsEvent = {
       id: 1,
       type: "update_message_flags",
       op: "add",
       flag: "read",
-      messages: [1, 2],
+      messages: [1, 3],
       all: false,
     };
-    const next = applyUpdateMessageFlagsEventToUnread(set, event);
-    expect(next).toEqual({ 3: true });
+    const next = applyUpdateMessageFlagsEventToUnread(seeded(), event);
+    expect(isUnread(next, 1)).toBe(false);
+    expect(isUnread(next, 2)).toBe(true);
+    expect(isUnread(next, 3)).toBe(false);
+    expect(topicUnreadCount(next, 9, "t")).toBe(1);
+    expect(dmUnreadCount(next, "5,100")).toBe(0);
   });
 
-  it("add of the read flag with all: true clears the whole set", () => {
-    const set: UnreadSet = { 1: true, 2: true };
-    const next = applyUpdateMessageFlagsEventToUnread(set, {
+  it("add of the read flag with all: true clears every bucket", () => {
+    const next = applyUpdateMessageFlagsEventToUnread(seeded(), {
       id: 1,
       type: "update_message_flags",
       op: "add",
@@ -143,88 +352,165 @@ describe("applyUpdateMessageFlagsEventToUnread", () => {
       messages: [],
       all: true,
     });
-    expect(next).toEqual({});
+    expect(next).toEqual(emptyUnreadBuckets());
   });
 
-  it("remove of the read flag re-adds the listed ids as unread", () => {
-    const set: UnreadSet = { 1: true };
-    const next = applyUpdateMessageFlagsEventToUnread(set, {
-      id: 1,
+  it("remove of the read flag re-files ids whose bucket is still known", () => {
+    // An id whose `location` is still tracked is re-filed into the same
+    // bucket — a no-op in practice, but it confirms `remove` consults
+    // the reverse index rather than dropping ids.
+    const buckets = seeded();
+    const next = applyUpdateMessageFlagsEventToUnread(buckets, {
+      id: 2,
       type: "update_message_flags",
       op: "remove",
       flag: "read",
-      messages: [1, 2],
-      all: false,
-    });
-    expect(next).toEqual({ 1: true, 2: true });
-  });
-
-  it("ignores flags other than read", () => {
-    const set: UnreadSet = { 1: true };
-    const next = applyUpdateMessageFlagsEventToUnread(set, {
-      id: 1,
-      type: "update_message_flags",
-      op: "add",
-      flag: "starred",
       messages: [1],
       all: false,
     });
-    expect(next).toBe(set);
+    expect(isUnread(next, 1)).toBe(true);
+    expect(topicUnreadCount(next, 9, "t")).toBe(2);
   });
 
-  it("add of read for ids not in the set is a no-op", () => {
-    const set: UnreadSet = { 1: true };
-    const next = applyUpdateMessageFlagsEventToUnread(set, {
+  it("remove of the read flag cannot restore an id with no known bucket", () => {
+    // Once `add` read forgets an id's bucket, a later `remove` for it
+    // has nothing to re-file — the event carries no channel/topic. The
+    // server's reconnect snapshot is what re-establishes such buckets.
+    const buckets = seeded();
+    const forgotten = applyUpdateMessageFlagsEventToUnread(buckets, {
       id: 1,
       type: "update_message_flags",
       op: "add",
       flag: "read",
-      messages: [999],
+      messages: [1],
       all: false,
     });
-    expect(next).toBe(set);
+    const next = applyUpdateMessageFlagsEventToUnread(forgotten, {
+      id: 2,
+      type: "update_message_flags",
+      op: "remove",
+      flag: "read",
+      messages: [1],
+      all: false,
+    });
+    expect(isUnread(next, 1)).toBe(false);
+    expect(unreadCount(next)).toBe(2);
+  });
+
+  it("ignores flags other than read", () => {
+    const buckets = seeded();
+    expect(
+      applyUpdateMessageFlagsEventToUnread(buckets, {
+        id: 1,
+        type: "update_message_flags",
+        op: "add",
+        flag: "starred",
+        messages: [1],
+        all: false,
+      }),
+    ).toBe(buckets);
   });
 });
 
 describe("applyDeleteMessageEventToUnread", () => {
-  it("drops deleted message ids from the set (bulk message_ids)", () => {
-    const set: UnreadSet = { 1: true, 2: true, 3: true };
+  function seeded(): UnreadBuckets {
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(1, 9, "t"),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      channelMessageEvent(2, 9, "t"),
+      100,
+    );
+    return applyMessageEventToUnread(buckets, channelMessageEvent(3, 9, "t"), 100);
+  }
+
+  it("drops deleted message ids from their buckets (bulk message_ids)", () => {
     const event: DeleteMessageEvent = {
       id: 1,
       type: "delete_message",
       message_type: "stream",
       message_ids: [1, 2],
     };
-    const next = applyDeleteMessageEventToUnread(set, event);
-    expect(next).toEqual({ 3: true });
+    const next = applyDeleteMessageEventToUnread(seeded(), event);
+    expect(topicUnreadCount(next, 9, "t")).toBe(1);
+    expect(isUnread(next, 3)).toBe(true);
   });
 
   it("drops a single deleted message id (non-bulk message_id)", () => {
-    const set: UnreadSet = { 1: true, 2: true };
-    const next = applyDeleteMessageEventToUnread(set, {
-      id: 1,
-      type: "delete_message",
-      message_type: "private",
-      message_id: 1,
-    });
-    expect(next).toEqual({ 2: true });
-  });
-
-  it("is a no-op when no deleted id was unread", () => {
-    const set: UnreadSet = { 1: true };
-    const next = applyDeleteMessageEventToUnread(set, {
+    const next = applyDeleteMessageEventToUnread(seeded(), {
       id: 1,
       type: "delete_message",
       message_type: "stream",
-      message_ids: [999],
+      message_id: 1,
     });
-    expect(next).toBe(set);
+    expect(isUnread(next, 1)).toBe(false);
+    expect(unreadCount(next)).toBe(2);
+  });
+
+  it("prunes a channel bucket that empties out", () => {
+    const next = applyDeleteMessageEventToUnread(seeded(), {
+      id: 1,
+      type: "delete_message",
+      message_type: "stream",
+      message_ids: [1, 2, 3],
+    });
+    expect(channelUnreadCount(next, 9)).toBe(0);
+    expect(next.channels[9]).toBeUndefined();
+  });
+
+  it("is a no-op when no deleted id was unread", () => {
+    const buckets = seeded();
+    expect(
+      applyDeleteMessageEventToUnread(buckets, {
+        id: 1,
+        type: "delete_message",
+        message_type: "stream",
+        message_ids: [999],
+      }),
+    ).toBe(buckets);
   });
 });
 
-describe("unreadCount", () => {
-  it("counts the ids in the set", () => {
-    expect(unreadCount({})).toBe(0);
-    expect(unreadCount({ 1: true, 2: true, 3: true })).toBe(3);
+describe("selectors", () => {
+  it("unreadCount counts ids across all buckets", () => {
+    expect(unreadCount(emptyUnreadBuckets())).toBe(0);
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(1, 9, "t"),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      dmMessageEvent(2, [100, 5]),
+      100,
+    );
+    expect(unreadCount(buckets)).toBe(2);
+  });
+
+  it("dmConversationKeysWithUnread lists DM conversations with unreads", () => {
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      dmMessageEvent(1, [100, 5]),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      dmMessageEvent(2, [100, 5, 6]),
+      100,
+    );
+    expect(dmConversationKeysWithUnread(buckets).sort()).toEqual([
+      "5,100",
+      "5,6,100",
+    ]);
+  });
+
+  it("channel/topic/dm counts are 0 for unknown buckets", () => {
+    const buckets = emptyUnreadBuckets();
+    expect(channelUnreadCount(buckets, 1)).toBe(0);
+    expect(topicUnreadCount(buckets, 1, "t")).toBe(0);
+    expect(dmUnreadCount(buckets, "1,2")).toBe(0);
   });
 });

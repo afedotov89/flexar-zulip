@@ -115,7 +115,7 @@
 | `useStreamsStore` | ✅ | `src/stores/streamsStore.ts` | `streams`, `subscriptions` (Record по `StreamId`); `getStream/getSubscription/isSubscribed`. Гидрация + `stream` + `subscription` события. |
 | `useMessagesStore` | ✅ | `src/stores/messagesStore.ts` | `messages: Record<MessageId,Message>`, `flags: Record<MessageId,MessageFlag[]>`; `getMessage/getFlags`, `ingest(messages, flagsById?)` — **сюда пишет history-fetch Фазы 1.6**. Гидрация = пусто (снапшот без тел сообщений); re-register чистит кэш. События: message/update_message/delete_message/reaction/update_message_flags. |
 | `usePresenceStore` | ✅ | `src/stores/presenceStore.ts` | `presences: PresenceMap`; `getPresence(id)`. Гидрация + `presence` события. |
-| `useUnreadStore` | ✅ | `src/stores/unreadStore.ts` | `unread: Record<MessageId,true>`; `isUnread(id)`, `getUnreadCount()`. Гидрация + message/update_message_flags(`read`)/delete. |
+| `useUnreadStore` | ✅ | `src/stores/unreadStore.ts` | **Бакетированный** (1.5): `unread: UnreadBuckets` (`channels: streamId→topic→ids`, `dms: convKey→ids`, `location`-обратный индекс). Селекторы: `isUnread`, `getUnreadCount`, `getChannelUnread(streamId)`, `getTopicUnread(streamId,topic)`, `getDmUnread(convKey)`, `getDmConversationKeys()`. `convKey` = отсортированные user-id через `,`, включая себя. Гидрация из `unread_msgs` + message/update_message(move)/update_message_flags(`read`)/delete. Чистые экв-ты — в `unreadReducer.ts`. |
 
 **Без `persist`** (в отличие от `authStore`): server-state пере-фетчится
 из `register` при каждом коннекте, не должен переживать релоад.
@@ -234,7 +234,19 @@ Query-хуки поверх клиента — позже, с фичами.
 **Зависимости, добавленные оркестратором (Фаза 0.5):** `react-router-dom`
 (v7), `@tanstack/react-query` (v5) — оба из зафиксированного стека (GUIDE §1).
 
-**Флаг для 1.x:** левый сайдбар сейчас `<aside>`-плейсхолдер; настоящий
-`<nav>` со списком каналов встанет внутрь него в фичевой фазе. Тоггл темы
-в навбаре — временный локальный `<button>`, заменить на `Button`/
-`IconButton` после 0.6.
+**Флаг для 1.x:** тоггл темы в навбаре — временный локальный `<button>`,
+заменить на `Button`/`IconButton` позже.
+
+---
+
+## Доменные блоки (`src/features/`)
+
+| Фича | Статус | Путь | Назначение |
+|---|---|---|---|
+| `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`), список ЛС, список каналов с топиками (сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты), фильтр-инпут, кнопка «+». Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref (как `_overlay`). |
+
+**Известные пробелы 1.5 (на доработку):** список ЛС/топиков показывает
+только сущности **с непрочитанным** (нет `dmConversationsStore` и
+`topicsStore`/`getTopics`); у видов нет иконок (`src/icons/` без глифов
+inbox/recent/mentions/…); бейджи непрочитанного — только у Combined feed
+(нет `mentions`-бакета в `unreadStore`). Кнопка «+» — пока no-op.

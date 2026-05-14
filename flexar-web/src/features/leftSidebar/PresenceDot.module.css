@@ -1,0 +1,29 @@
+/*
+ * Presence dot (Phase 1.5).
+ * Colors come from semantic color-role tokens; the dot geometry uses
+ * the smallest space-scale steps. Only pure-layout literals appear bare.
+ */
+
+.dot {
+  display: block;
+  width: var(--space-2);
+  height: var(--space-2);
+  border: 1px solid var(--color-surface);
+  border-radius: var(--radius-full);
+}
+
+/* Online: the success role reads as "available" in both themes. */
+.active {
+  background-color: var(--color-success);
+}
+
+/* Idle: the warning role reads as "away". */
+.idle {
+  background-color: var(--color-warning);
+}
+
+/* Offline: a hollow dot, just the border. */
+.offline {
+  background-color: var(--color-surface);
+  border-color: var(--color-border-strong);
+}

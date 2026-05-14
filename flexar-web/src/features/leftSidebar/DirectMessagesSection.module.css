@@ -1,0 +1,27 @@
+/*
+ * Direct messages section (Phase 1.5).
+ * Every design value is a `var(--token)`; only pure-layout literals
+ * appear bare, per ENGINEERING_GUIDE §2/§4.
+ */
+
+.empty {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* The avatar plus its overlaid presence dot. */
+.avatarSlot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pin the presence dot to the avatar's bottom-right corner. */
+.presenceDot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
