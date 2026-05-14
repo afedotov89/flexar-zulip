@@ -29,12 +29,25 @@ vi.mock("../../realtime", () => ({
   },
 }));
 
+// The API client is mocked so `ChannelRow`'s lazy `loadTopics` fetch
+// never touches the network; tests seed `topicsStore` directly instead.
+const { getTopicsMock } = vi.hoisted(() => ({
+  getTopicsMock: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("../../api", () => ({
+  apiClient: { getTopics: getTopicsMock },
+}));
+
 const { LeftSidebar } = await import("./LeftSidebar");
 const { useUnreadStore } = await import("../../stores/unreadStore");
 const { useStreamsStore } = await import("../../stores/streamsStore");
 const { useUsersStore } = await import("../../stores/usersStore");
 const { usePresenceStore } = await import("../../stores/presenceStore");
 const { useAuthStore } = await import("../../stores/authStore");
+const { useDmConversationsStore } = await import(
+  "../../stores/dmConversationsStore"
+);
+const { useTopicsStore } = await import("../../stores/topicsStore");
 const { emptyUnreadBuckets, applyMessageEventToUnread } = await import(
   "../../stores/unreadReducer"
 );
@@ -62,10 +75,14 @@ function renderSidebar(initialPath = "/"): void {
 // Reset every store and the connection status before each test.
 beforeEach(() => {
   connectionStatus = "connected";
+  getTopicsMock.mockClear();
+  getTopicsMock.mockResolvedValue([]);
   useUnreadStore.setState({ unread: emptyUnreadBuckets() });
   useStreamsStore.setState({ streams: {}, subscriptions: {} });
   useUsersStore.setState({ users: {} });
   usePresenceStore.setState({ presences: {} });
+  useDmConversationsStore.setState({ conversations: [] });
+  useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
   useAuthStore.setState({
     session: { email: "me@example.com", apiKey: "k", userId: 1 },
   });
@@ -93,9 +110,7 @@ describe("LeftSidebar — data states", () => {
   it("shows empty states for channels and DMs when there is no data", () => {
     renderSidebar();
     expect(screen.getByText("Нет каналов")).toBeInTheDocument();
-    expect(
-      screen.getByText("Нет непрочитанных личных сообщений"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Нет личных сообщений")).toBeInTheDocument();
   });
 
   it("renders subscribed channels, pinned ones first", () => {
@@ -120,9 +135,14 @@ describe("LeftSidebar — data states", () => {
 });
 
 describe("LeftSidebar — unread counts", () => {
-  it("shows a channel's unread count and its unread topic rows", () => {
+  it("shows a channel's unread count and its topic rows with overlaid counts", () => {
     useStreamsStore.setState({
       subscriptions: { 10: makeSubscription({ stream_id: 10, name: "dev" }) },
+    });
+    // The full topic list for channel 10 comes from `topicsStore`.
+    useTopicsStore.setState({
+      topicsByChannel: { 10: [{ name: "deploys", max_id: 101 }] },
+      loadStatus: { 10: "loaded" },
     });
     // Two unread messages from another user in channel 10 / "deploys".
     let buckets = applyMessageEventToUnread(
@@ -162,7 +182,7 @@ describe("LeftSidebar — unread counts", () => {
 
     // The channel row carries the aggregate unread badge...
     expect(screen.getByText("dev")).toBeInTheDocument();
-    // ...and the unread topic appears nested below it.
+    // ...and the topic appears nested below it.
     expect(screen.getByText("deploys")).toBeInTheDocument();
     // Badge count "2" shows somewhere in the sidebar.
     expect(screen.getAllByText("2").length).toBeGreaterThan(0);
@@ -224,23 +244,9 @@ describe("LeftSidebar — collapse", () => {
     useStreamsStore.setState({
       subscriptions: { 10: makeSubscription({ stream_id: 10, name: "dev" }) },
     });
-    useUnreadStore.setState({
-      unread: applyMessageEventToUnread(
-        emptyUnreadBuckets(),
-        {
-          id: 1,
-          type: "message",
-          message: makeMessage({
-            id: 100,
-            type: "stream",
-            stream_id: 10,
-            subject: "deploys",
-            sender_id: 2,
-          }),
-          flags: [],
-        },
-        1,
-      ),
+    useTopicsStore.setState({
+      topicsByChannel: { 10: [{ name: "deploys", max_id: 100 }] },
+      loadStatus: { 10: "loaded" },
     });
     renderSidebar();
     expect(screen.getByText("deploys")).toBeInTheDocument();
@@ -284,13 +290,19 @@ describe("LeftSidebar — active highlighting and navigation", () => {
 });
 
 describe("LeftSidebar — direct messages", () => {
-  it("lists a DM conversation with unreads and navigates to its narrow", () => {
+  it("lists a DM conversation from the store and navigates to its narrow", () => {
     useUsersStore.setState({
       users: {
         2: makeUser({ user_id: 2, full_name: "Ada Lovelace" }),
       },
     });
-    // One unread DM from user 2 to the viewer (user 1).
+    // The conversation list comes from `dmConversationsStore`; the
+    // unread overlay comes from `unreadStore`.
+    useDmConversationsStore.setState({
+      conversations: [
+        { conversationKey: "1,2", participantIds: [1, 2], maxMessageId: 200 },
+      ],
+    });
     useUnreadStore.setState({
       unread: applyMessageEventToUnread(
         emptyUnreadBuckets(),
@@ -332,6 +344,22 @@ describe("LeftSidebar — direct messages", () => {
     );
   });
 
+  it("lists a read DM conversation (no unreads) from the store", () => {
+    useUsersStore.setState({
+      users: { 3: makeUser({ user_id: 3, full_name: "Grace Hopper" }) },
+    });
+    // No unread buckets — the conversation still appears, badge-less.
+    useDmConversationsStore.setState({
+      conversations: [
+        { conversationKey: "1,3", participantIds: [1, 3], maxMessageId: 5 },
+      ],
+    });
+    renderSidebar("/");
+    expect(
+      screen.getByRole("link", { name: /Grace Hopper/ }),
+    ).toBeInTheDocument();
+  });
+
   it("shows a presence dot for a one-on-one DM", () => {
     useUsersStore.setState({
       users: { 2: makeUser({ user_id: 2, full_name: "Ada Lovelace" }) },
@@ -339,36 +367,10 @@ describe("LeftSidebar — direct messages", () => {
     usePresenceStore.setState({
       presences: { 2: { active_timestamp: Date.now() / 1000 } },
     });
-    useUnreadStore.setState({
-      unread: applyMessageEventToUnread(
-        emptyUnreadBuckets(),
-        {
-          id: 1,
-          type: "message",
-          message: makeMessage({
-            id: 200,
-            type: "private",
-            subject: "",
-            sender_id: 2,
-            display_recipient: [
-              {
-                id: 1,
-                email: "me@example.com",
-                full_name: "Me",
-                is_mirror_dummy: false,
-              },
-              {
-                id: 2,
-                email: "ada@example.com",
-                full_name: "Ada Lovelace",
-                is_mirror_dummy: false,
-              },
-            ],
-          }),
-          flags: [],
-        },
-        1,
-      ),
+    useDmConversationsStore.setState({
+      conversations: [
+        { conversationKey: "1,2", participantIds: [1, 2], maxMessageId: 200 },
+      ],
     });
     renderSidebar("/");
     const dmRow = screen.getByRole("link", { name: /Ada Lovelace/ });

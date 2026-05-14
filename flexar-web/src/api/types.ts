@@ -13,6 +13,7 @@ import type {
   ServerEvent,
   Stream,
   Subscription,
+  Topic,
   User,
   UserId,
 } from "../domain";
@@ -156,6 +157,15 @@ export interface GetSubscriptionsResult {
 /** Response of `GET /api/v1/streams`. */
 export interface GetStreamsResult {
   streams: Stream[];
+}
+
+/**
+ * Response of `GET /api/v1/users/me/{stream_id}/topics` — the topics in
+ * one channel, server-ordered by recency (most recent first). Each
+ * entry matches the domain `Topic` shape (`name`, `max_id`).
+ */
+export interface GetTopicsResult {
+  topics: Topic[];
 }
 
 /** Response of `GET /api/v1/users`. */

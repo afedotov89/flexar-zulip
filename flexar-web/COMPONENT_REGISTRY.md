@@ -59,7 +59,7 @@
 
 | Компонент | Статус | Путь | Назначение / ключевые пропсы |
 |---|---|---|---|
-| Icon | ✅ | `src/components/Icon/` | SVG из `src/icons/`. `name: IconName`, `size`. 15 иконок. Декоративна по умолчанию. |
+| Icon | ✅ | `src/components/Icon/` | SVG из `src/icons/`. `name: IconName`, `size`. 21 иконка (+6 для built-in-видов в 1.5a). Декоративна по умолчанию. |
 | Button | ✅ | `src/components/Button/` | `variant`, `size`, `loading`, `iconLeft/Right` (имя иконки), `fullWidth`, `disabled`. |
 | IconButton | ✅ | `src/components/IconButton/` | Иконка-кнопка. `icon`, обяз. `aria-label`, `variant`, `size`, `loading`. |
 | Input | ✅ | `src/components/Input/` | `size`, `invalid`, `iconLeft/Right` + нативные атрибуты `<input>`. |
@@ -115,7 +115,9 @@
 | `useStreamsStore` | ✅ | `src/stores/streamsStore.ts` | `streams`, `subscriptions` (Record по `StreamId`); `getStream/getSubscription/isSubscribed`. Гидрация + `stream` + `subscription` события. |
 | `useMessagesStore` | ✅ | `src/stores/messagesStore.ts` | `messages: Record<MessageId,Message>`, `flags: Record<MessageId,MessageFlag[]>`; `getMessage/getFlags`, `ingest(messages, flagsById?)` — **сюда пишет history-fetch Фазы 1.6**. Гидрация = пусто (снапшот без тел сообщений); re-register чистит кэш. События: message/update_message/delete_message/reaction/update_message_flags. |
 | `usePresenceStore` | ✅ | `src/stores/presenceStore.ts` | `presences: PresenceMap`; `getPresence(id)`. Гидрация + `presence` события. |
-| `useUnreadStore` | ✅ | `src/stores/unreadStore.ts` | **Бакетированный** (1.5): `unread: UnreadBuckets` (`channels: streamId→topic→ids`, `dms: convKey→ids`, `location`-обратный индекс). Селекторы: `isUnread`, `getUnreadCount`, `getChannelUnread(streamId)`, `getTopicUnread(streamId,topic)`, `getDmUnread(convKey)`, `getDmConversationKeys()`. `convKey` = отсортированные user-id через `,`, включая себя. Гидрация из `unread_msgs` + message/update_message(move)/update_message_flags(`read`)/delete. Чистые экв-ты — в `unreadReducer.ts`. |
+| `useUnreadStore` | ✅ | `src/stores/unreadStore.ts` | **Бакетированный** (1.5): `unread: UnreadBuckets` (`channels: streamId→topic→ids`, `dms: convKey→ids`, `mentions: ids` [1.5a], `location`-обратный индекс). Селекторы: `isUnread`, `getUnreadCount`, `getChannelUnread(streamId)`, `getTopicUnread(streamId,topic)`, `getDmUnread(convKey)`, `getDmConversationKeys()`, `getMentionsCount()`. `convKey` = отсортированные user-id через `,`, включая себя. Гидрация из `unread_msgs` + message/update_message(move)/update_message_flags(`read`)/delete. Чистые экв-ты — в `unreadReducer.ts`. |
+| `useDmConversationsStore` | ✅ | `src/stores/dmConversationsStore.ts` | Полный список ЛС-бесед (1.5a): `conversations: DmConversation[]` (`{conversationKey, participantIds, maxMessageId}`), `getConversations()` (recency-сортировка). Гидрация из `recent_private_conversations` + `message`-события. |
+| `useTopicsStore` | ✅ | `src/stores/topicsStore.ts` | Топики по каналам (1.5a, ленивая загрузка): `topicsByChannel: Record<StreamId,Topic[]>`, `loadStatus`; `loadTopics(streamId)` (идемпотентна, через `apiClient.getTopics`), `getTopics(streamId)`, `getLoadStatus(streamId)`. На re-register кэш чистится. |
 
 **Без `persist`** (в отличие от `authStore`): server-state пере-фетчится
 из `register` при каждом коннекте, не должен переживать релоад.
@@ -184,7 +186,7 @@ Starred `/narrow/is/starred`, Reactions `/narrow/has/reaction/sender/me`.
 `registerQueue(opts?)`; `getEvents(queueId, lastEventId)`;
 `getMessages(opts)`; `sendMessage(params)`; `addReaction(msgId, r)` /
 `removeReaction(msgId, r)`; `getSubscriptions()`; `getStreams(opts?)`;
-`getUsers(opts?)`; `getOwnUser()`.
+`getUsers(opts?)`; `getOwnUser()`; `getTopics(streamId)` → `Topic[]` (1.5a).
 
 Realtime register/long-poll — это транспортные вызовы; цикл подписки и
 диспатч событий (`src/realtime/`) — отдельная Фаза 1.2. TanStack
@@ -243,10 +245,9 @@ Query-хуки поверх клиента — позже, с фичами.
 
 | Фича | Статус | Путь | Назначение |
 |---|---|---|---|
-| `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`), список ЛС, список каналов с топиками (сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты), фильтр-инпут, кнопка «+». Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref (как `_overlay`). |
+| `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`, с иконками), полный список ЛС (`dmConversationsStore`), список каналов с полными топиками (`topicsStore`, ленивая загрузка на раскрытии; сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты, у Mentions — `getMentionsCount`), фильтр-инпут, кнопка «+» (пока no-op). Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref. |
 
-**Известные пробелы 1.5 (на доработку):** список ЛС/топиков показывает
-только сущности **с непрочитанным** (нет `dmConversationsStore` и
-`topicsStore`/`getTopics`); у видов нет иконок (`src/icons/` без глифов
-inbox/recent/mentions/…); бейджи непрочитанного — только у Combined feed
-(нет `mentions`-бакета в `unreadStore`). Кнопка «+» — пока no-op.
+**Доборка 1.5a — закрыто:** иконки видов, `dmConversationsStore`,
+`topicsStore`+`getTopics`, `mentions`-бакет. Остаток: бейдж Starred —
+осознанно нет (нет понятия «непрочитанное отмеченное»); wildcard-
+mentions в live-`message`-пути не считаются (снапшот их учитывает).

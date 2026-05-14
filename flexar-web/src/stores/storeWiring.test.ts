@@ -70,13 +70,18 @@ const { useStreamsStore } = await import("./streamsStore");
 const { useMessagesStore } = await import("./messagesStore");
 const { usePresenceStore } = await import("./presenceStore");
 const { useUnreadStore } = await import("./unreadStore");
+const { useDmConversationsStore } = await import("./dmConversationsStore");
+const { useTopicsStore } = await import("./topicsStore");
 const { useAuthStore } = await import("./authStore");
+
+// The number of server-state stores that wire themselves at module load.
+const STORE_COUNT = 8;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
     // Each store subscribed exactly once, at module load.
-    expect(initialStateListeners.size).toBe(6);
-    expect(eventListeners.size).toBe(6);
+    expect(initialStateListeners.size).toBe(STORE_COUNT);
+    expect(eventListeners.size).toBe(STORE_COUNT);
     // Reset every store to its empty baseline between tests.
     useRealmStore.setState({ realm: null });
     useUsersStore.setState({ users: {} });
@@ -84,12 +89,14 @@ describe("server-state stores — wiring", () => {
     useMessagesStore.setState({ messages: {}, flags: {} });
     usePresenceStore.setState({ presences: {} });
     useUnreadStore.setState({ unread: emptyUnreadBuckets() });
+    useDmConversationsStore.setState({ conversations: [] });
+    useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
   });
 
   it("every store subscribes at module load", () => {
     // Asserted in beforeEach; this names the contract explicitly.
-    expect(initialStateListeners.size).toBe(6);
-    expect(eventListeners.size).toBe(6);
+    expect(initialStateListeners.size).toBe(STORE_COUNT);
+    expect(eventListeners.size).toBe(STORE_COUNT);
   });
 
   it("all stores hydrate from a register snapshot", () => {
@@ -216,6 +223,76 @@ describe("server-state stores — wiring", () => {
       all: false,
     });
     expect(useUnreadStore.getState().isUnread(800)).toBe(false);
+  });
+
+  it("hydrates the DM conversations store from recent_private_conversations", () => {
+    useAuthStore.setState({
+      session: { email: "me@example.com", apiKey: "k", userId: 1 },
+    });
+    emitInitialState({
+      recent_private_conversations: [
+        { max_message_id: 80, user_ids: [2] },
+      ],
+    });
+    expect(
+      useDmConversationsStore.getState().conversations.map(
+        (c) => c.conversationKey,
+      ),
+    ).toEqual(["1,2"]);
+  });
+
+  it("folds a DM message into the DM conversations store", () => {
+    emitEvent({
+      id: 9,
+      type: "message",
+      message: makeMessage({
+        id: 900,
+        type: "private",
+        subject: "",
+        display_recipient: [
+          { id: 1, email: "me@b.c", full_name: "Me", is_mirror_dummy: false },
+          { id: 2, email: "a@b.c", full_name: "Ada", is_mirror_dummy: false },
+        ],
+      }),
+      flags: [],
+    });
+    expect(
+      useDmConversationsStore.getState().conversations[0]?.conversationKey,
+    ).toBe("1,2");
+  });
+
+  it("folds a channel message into a loaded channel's topics store", () => {
+    // A channel only gets folded into once it has been loaded; seed a
+    // loaded channel directly (the lazy `loadTopics` fetch is covered
+    // by the topics store's own suite).
+    useTopicsStore.setState({
+      topicsByChannel: { 10: [{ name: "old", max_id: 1 }] },
+      loadStatus: { 10: "loaded" },
+    });
+    emitEvent({
+      id: 10,
+      type: "message",
+      message: makeMessage({
+        id: 1000,
+        type: "stream",
+        stream_id: 10,
+        subject: "fresh",
+      }),
+      flags: [],
+    });
+    expect(
+      useTopicsStore.getState().getTopics(10).map((t) => t.name),
+    ).toEqual(["fresh", "old"]);
+  });
+
+  it("clears the topics store on re-register", () => {
+    useTopicsStore.setState({
+      topicsByChannel: { 10: [{ name: "t", max_id: 1 }] },
+      loadStatus: { 10: "loaded" },
+    });
+    emitInitialState();
+    expect(useTopicsStore.getState().topicsByChannel).toEqual({});
+    expect(useTopicsStore.getState().loadStatus).toEqual({});
   });
 
   it("ignores event types a store does not own", () => {

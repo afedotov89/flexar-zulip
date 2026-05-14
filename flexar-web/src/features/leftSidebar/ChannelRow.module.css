@@ -55,3 +55,19 @@
   flex: 1;
   min-width: 0;
 }
+
+/*
+ * Status line under an expanded channel: the topic-list loading
+ * spinner, the load-error message, or the "no topics" empty state.
+ * Indented to sit under the topic rows it stands in for.
+ */
+.topicsStatus {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  padding-left: var(--space-8);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

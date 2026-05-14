@@ -1,10 +1,12 @@
 // Server-state store: unread message tracking (Phase 1.3, restructured
-// in 1.5).
+// in 1.5, mentions overlay added in 1.5a).
 //
 // Holds the viewer's unread messages in a *bucketed* shape — per
-// channel-topic and per DM conversation — so the left sidebar can show
-// a per-conversation unread count, not just a grand total. The bucket
-// model and the pure reducers live in `./unreadReducer`.
+// channel-topic and per DM conversation, plus a `mentions` overlay set
+// of unread ids the viewer is mentioned in — so the left sidebar can
+// show a per-conversation unread count and a Mentions-view count, not
+// just a grand total. The bucket model and the pure reducers live in
+// `./unreadReducer`.
 //
 // Lifecycle (see `wireStore`): hydrates from the register snapshot's
 // `unread_msgs` buckets at connect time, re-hydrates on every
@@ -42,6 +44,7 @@ import {
   dmUnreadCount,
   emptyUnreadBuckets,
   isUnread,
+  mentionsCount,
   topicUnreadCount,
   unreadCount,
   unreadFromInitialState,
@@ -68,6 +71,8 @@ export interface UnreadState {
   getDmUnread: (conversationKey: string) => number;
   /** The conversation keys of every DM that currently has unread messages. */
   getDmConversationKeys: () => string[];
+  /** The number of unread messages the viewer is mentioned in. */
+  getMentionsCount: () => number;
 }
 
 export const useUnreadStore = create<UnreadState>()((_set, get) => ({
@@ -79,6 +84,7 @@ export const useUnreadStore = create<UnreadState>()((_set, get) => ({
     topicUnreadCount(get().unread, streamId, topic),
   getDmUnread: (conversationKey) => dmUnreadCount(get().unread, conversationKey),
   getDmConversationKeys: () => dmConversationKeysWithUnread(get().unread),
+  getMentionsCount: () => mentionsCount(get().unread),
 }));
 
 /** The viewer's own user id, or `null` when no session is established. */

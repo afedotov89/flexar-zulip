@@ -27,6 +27,7 @@ export type {
   GetOwnUserResult,
   GetStreamsResult,
   GetSubscriptionsResult,
+  GetTopicsResult,
   GetUsersResult,
   MessageAnchor,
   RegisterQueueOptions,

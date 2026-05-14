@@ -35,6 +35,17 @@ export const icons = {
     '<path d="M12 4 2 20h20L12 4Z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17" x2="12" y2="17" />',
   error:
     '<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />',
+  inbox:
+    '<path d="M3 13 6 4h12l3 9v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6Z" /><path d="M3 13h5a1 1 0 0 1 1 1 3 3 0 0 0 6 0 1 1 0 0 1 1-1h5" />',
+  recent:
+    '<circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />',
+  "combined-feed":
+    '<rect x="3" y="4" width="18" height="6" rx="1" /><rect x="3" y="14" width="18" height="6" rx="1" />',
+  mentions:
+    '<circle cx="12" cy="12" r="4" /><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1" />',
+  star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z" />',
+  drafts:
+    '<path d="M7 3h7l5 5v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><polyline points="14 3 14 8 19 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="16" x2="13" y2="16" />',
 } as const;
 
 export type IconName = keyof typeof icons;

@@ -1,4 +1,5 @@
-// A single channel row in the left sidebar, with its topics (1.5).
+// A single channel row in the left sidebar, with its topics (Phase 1.5,
+// completed in 1.5a).
 //
 // The row itself is a `NavRow` to the channel narrow, prefixed by a
 // collapse toggle that shows/hides the channel's topic rows. A button
@@ -6,28 +7,34 @@
 // side-by-side in a flex container — the same shape `SidebarSection`
 // uses for its header.
 //
-// Topics shown: the sidebar has no full topic list (there is no topics
-// store and no topic-list API method wired yet — flagged in HANDOFF).
-// What it *can* show reliably is the set of topics that currently have
-// unread messages, read from the bucketed unread store. Those are also
-// the topics most worth surfacing in a navigation sidebar. A channel
-// with no unread topics simply shows no topic rows.
+// ── Topic list ──────────────────────────────────────────────────────
+//
+// The full per-channel topic list comes from `topicsStore`, which is
+// populated lazily: this row triggers `loadTopics(streamId)` the first
+// time it is expanded (and on re-expand after a re-register cleared the
+// cache). While the fetch is in flight the row shows a spinner; on
+// failure, a short error line. The topics render in the store's
+// recency order, each with its unread count overlaid from
+// `unreadStore.getTopicUnread`.
 //
 // The channel's leading `#` / lock icon is tinted with the viewer's
 // per-channel `Subscription.color` — passed to `NavRow` as
 // `accentColor`, a data-driven content color (see `NavRow`).
 
+import { useEffect } from "react";
 import type { StreamId, Subscription } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
+import { useTopicsStore } from "../../stores/topicsStore";
+import { useUnreadStore } from "../../stores/unreadStore";
+import { topicUnreadCount } from "../../stores/unreadReducer";
 import { Icon } from "../../components/Icon";
+import { Spinner } from "../../components/Spinner";
 import { NavRow } from "./NavRow";
 import styles from "./ChannelRow.module.css";
 
 export interface ChannelRowProps {
   /** The viewer's subscription to this channel. */
   subscription: Subscription;
-  /** Topics in this channel that currently have unread messages. */
-  unreadTopics: ReadonlyArray<{ topic: string; unreadCount: number }>;
   /** This channel's total unread count, across all topics. */
   channelUnread: number;
   /** Whether the channel's topic list is expanded. */
@@ -40,17 +47,34 @@ export interface ChannelRowProps {
 
 export function ChannelRow({
   subscription,
-  unreadTopics,
   channelUnread,
   expanded,
   onToggle,
   currentPath,
 }: ChannelRowProps): React.JSX.Element {
   const { stream_id: streamId, name, invite_only: inviteOnly } = subscription;
+
+  const topics = useTopicsStore((s) => s.topicsByChannel[streamId]);
+  const loadStatus = useTopicsStore((s) => s.loadStatus[streamId]);
+  const loadTopics = useTopicsStore((s) => s.loadTopics);
+  // The bucketed unread state — subscribed directly so a per-topic
+  // count change re-renders this row. Per-topic counts are derived
+  // below with the pure `topicUnreadCount` reducer.
+  const unread = useUnreadStore((s) => s.unread);
+
+  // Fetch the channel's topics the first time it is expanded. `loadTopics`
+  // is idempotent — an already-loaded or in-flight channel is a no-op —
+  // so this is safe to re-run on every expand (e.g. after a re-register
+  // cleared the cache).
+  useEffect(() => {
+    if (expanded) {
+      void loadTopics(streamId);
+    }
+  }, [expanded, streamId, loadTopics]);
+
   const channelPath = narrowToPath([
     { operator: "channel", operand: streamId },
   ]);
-  const hasTopics = unreadTopics.length > 0;
 
   return (
     <div className={styles.channel}>
@@ -64,7 +88,6 @@ export function ChannelRow({
               ? `Свернуть темы канала ${name}`
               : `Развернуть темы канала ${name}`
           }
-          disabled={!hasTopics}
           onClick={() => onToggle(streamId)}
         >
           <Icon
@@ -87,29 +110,47 @@ export function ChannelRow({
         />
       </div>
 
-      {expanded &&
-        unreadTopics.map(({ topic, unreadCount }) => {
-          const topicPath = narrowToPath([
-            { operator: "channel", operand: streamId },
-            { operator: "topic", operand: topic },
-          ]);
-          // The server's "general" topic is the empty string; show a
-          // readable placeholder rather than a blank row.
-          const topicLabel = topic === "" ? "(без темы)" : topic;
-          return (
-            <NavRow
-              key={topic}
-              to={topicPath}
-              label={topicLabel}
-              indent={1}
-              selected={topicPath === currentPath}
-              unreadCount={unreadCount}
-              unreadLabel={
-                unreadCount > 0 ? `${unreadCount} непрочитанных` : undefined
-              }
-            />
-          );
-        })}
+      {expanded && (
+        <>
+          {loadStatus === "loading" && topics === undefined && (
+            <p className={styles.topicsStatus}>
+              <Spinner size="sm" />
+              <span>Загрузка тем…</span>
+            </p>
+          )}
+          {loadStatus === "error" && (
+            <p className={styles.topicsStatus}>Не удалось загрузить темы</p>
+          )}
+          {topics !== undefined && topics.length === 0 && (
+            <p className={styles.topicsStatus}>Нет тем</p>
+          )}
+          {topics?.map((topic) => {
+            const topicPath = narrowToPath([
+              { operator: "channel", operand: streamId },
+              { operator: "topic", operand: topic.name },
+            ]);
+            // The server's "general" topic is the empty string; show a
+            // readable placeholder rather than a blank row.
+            const topicLabel = topic.name === "" ? "(без темы)" : topic.name;
+            const unreadCount = topicUnreadCount(unread, streamId, topic.name);
+            return (
+              <NavRow
+                key={topic.name}
+                to={topicPath}
+                label={topicLabel}
+                indent={1}
+                selected={topicPath === currentPath}
+                unreadCount={unreadCount}
+                unreadLabel={
+                  unreadCount > 0
+                    ? `${unreadCount} непрочитанных`
+                    : undefined
+                }
+              />
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }

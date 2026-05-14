@@ -27,6 +27,7 @@ import {
   dmUnreadCount,
   emptyUnreadBuckets,
   isUnread,
+  mentionsCount,
   topicUnreadCount,
   unreadCount,
   unreadFromInitialState,
@@ -471,6 +472,124 @@ describe("applyDeleteMessageEventToUnread", () => {
         message_ids: [999],
       }),
     ).toBe(buckets);
+  });
+});
+
+describe("mentions overlay", () => {
+  it("hydrates the mentions overlay from unread_msgs.mentions", () => {
+    const buckets = unreadFromInitialState(
+      makeInitialState({
+        unread_msgs: {
+          count: 2,
+          streams: [
+            { stream_id: 1, topic: "t", unread_message_ids: [20, 21] },
+          ],
+          mentions: [20],
+        },
+      }),
+      1,
+    );
+    expect(mentionsCount(buckets)).toBe(1);
+    // The mentioned id is also filed into its channel-topic bucket.
+    expect(isUnread(buckets, 20)).toBe(true);
+  });
+
+  it("leaves the overlay empty when unread_msgs has no mentions key", () => {
+    const buckets = unreadFromInitialState(
+      makeInitialState({
+        unread_msgs: {
+          count: 1,
+          streams: [{ stream_id: 1, topic: "t", unread_message_ids: [7] }],
+        },
+      }),
+      1,
+    );
+    expect(mentionsCount(buckets)).toBe(0);
+  });
+
+  it("adds a message id to the overlay when it carries the mentioned flag", () => {
+    const event: MessageEvent = {
+      ...channelMessageEvent(42, 5, "general"),
+      flags: ["mentioned"],
+    };
+    const next = applyMessageEventToUnread(emptyUnreadBuckets(), event, 1);
+    expect(mentionsCount(next)).toBe(1);
+    expect(isUnread(next, 42)).toBe(true);
+  });
+
+  it("does not add an unmentioned message to the overlay", () => {
+    const next = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general"),
+      1,
+    );
+    expect(mentionsCount(next)).toBe(0);
+  });
+
+  it("reconciles the overlay even when the id is already tracked", () => {
+    // A plain message lands first; a later event re-delivers it with
+    // the `mentioned` flag — the overlay must still pick it up.
+    const filed = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(42, 5, "general"),
+      1,
+    );
+    const next = applyMessageEventToUnread(
+      filed,
+      { ...channelMessageEvent(42, 5, "general"), flags: ["mentioned"] },
+      1,
+    );
+    expect(mentionsCount(next)).toBe(1);
+  });
+
+  it("removes a mention from the overlay when its message is read", () => {
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      { ...channelMessageEvent(42, 5, "general"), flags: ["mentioned"] },
+      1,
+    );
+    const next = applyUpdateMessageFlagsEventToUnread(buckets, {
+      id: 1,
+      type: "update_message_flags",
+      op: "add",
+      flag: "read",
+      messages: [42],
+      all: false,
+    });
+    expect(mentionsCount(next)).toBe(0);
+    expect(isUnread(next, 42)).toBe(false);
+  });
+
+  it("clears the overlay on a read-all event", () => {
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      { ...channelMessageEvent(42, 5, "general"), flags: ["mentioned"] },
+      1,
+    );
+    const next = applyUpdateMessageFlagsEventToUnread(buckets, {
+      id: 1,
+      type: "update_message_flags",
+      op: "add",
+      flag: "read",
+      messages: [],
+      all: true,
+    });
+    expect(mentionsCount(next)).toBe(0);
+  });
+
+  it("removes a mention from the overlay when its message is deleted", () => {
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      { ...channelMessageEvent(42, 5, "general"), flags: ["mentioned"] },
+      1,
+    );
+    const next = applyDeleteMessageEventToUnread(buckets, {
+      id: 1,
+      type: "delete_message",
+      message_type: "stream",
+      message_id: 42,
+    });
+    expect(mentionsCount(next)).toBe(0);
   });
 });
 

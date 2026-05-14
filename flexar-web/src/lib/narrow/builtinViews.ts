@@ -30,6 +30,7 @@
 // registry stores it precomputed so the sidebar and router can use it
 // without recomputing, and a unit test asserts the two agree.
 
+import type { IconName } from "../../icons";
 import type { Narrow } from "../../domain";
 import { narrowToPath } from "./scheme";
 
@@ -52,6 +53,8 @@ export interface NarrowView {
   kind: "narrow";
   /** ru-RU sidebar label. */
   label: string;
+  /** Icon shown in the sidebar row, from the Flexar Hub icon set. */
+  icon: IconName;
   /** The narrow this view shows. */
   narrow: Narrow;
   /** URL path for this view — equal to `narrowToPath(narrow)`. */
@@ -68,6 +71,8 @@ export interface SpecialView {
   kind: "special";
   /** ru-RU sidebar label. */
   label: string;
+  /** Icon shown in the sidebar row, from the Flexar Hub icon set. */
+  icon: IconName;
   /** URL path for this view's dedicated screen. */
   path: string;
 }
@@ -90,12 +95,25 @@ const REACTIONS_NARROW: Narrow = [
  * single source of truth for view ids, labels, paths, and narrows.
  */
 export const BUILTIN_VIEWS: readonly BuiltinView[] = [
-  { id: "inbox", kind: "special", label: "Входящие", path: "/inbox" },
-  { id: "recent", kind: "special", label: "Последние", path: "/recent" },
+  {
+    id: "inbox",
+    kind: "special",
+    label: "Входящие",
+    icon: "inbox",
+    path: "/inbox",
+  },
+  {
+    id: "recent",
+    kind: "special",
+    label: "Последние",
+    icon: "recent",
+    path: "/recent",
+  },
   {
     id: "combined",
     kind: "narrow",
     label: "Объединённая лента",
+    icon: "combined-feed",
     narrow: COMBINED_FEED_NARROW,
     path: narrowToPath(COMBINED_FEED_NARROW),
   },
@@ -103,6 +121,7 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
     id: "mentions",
     kind: "narrow",
     label: "Упоминания",
+    icon: "mentions",
     narrow: MENTIONS_NARROW,
     path: narrowToPath(MENTIONS_NARROW),
   },
@@ -110,6 +129,7 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
     id: "reactions",
     kind: "narrow",
     label: "Реакции",
+    icon: "smile",
     narrow: REACTIONS_NARROW,
     path: narrowToPath(REACTIONS_NARROW),
   },
@@ -117,10 +137,17 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
     id: "starred",
     kind: "narrow",
     label: "Отмеченные",
+    icon: "star",
     narrow: STARRED_NARROW,
     path: narrowToPath(STARRED_NARROW),
   },
-  { id: "drafts", kind: "special", label: "Черновики", path: "/drafts" },
+  {
+    id: "drafts",
+    kind: "special",
+    label: "Черновики",
+    icon: "drafts",
+    path: "/drafts",
+  },
 ];
 
 // Lookup index, built once from the ordered list above.

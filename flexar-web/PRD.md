@@ -572,7 +572,7 @@ keyboard-driven).
 - [~] 1.2 Цикл событий — ✅И (`RealtimeConnection`: register→long-poll→диспатч, reconnect/backoff, queue-expiry re-register, чистый stop; `wireRealtimeToAuth`; 236 unit-тестов) · [ ] П (события приходят, reconnect — **ждёт живой сессии владельца**)
 - [x] 1.3 Сторы server-state — ✅И (6 сторов realm/users/streams/messages/presence/unread + чистые редьюсеры; `RealtimeConnection` расширен `onInitialState`; 337 unit-тестов) · unit ✅
 - [x] 1.4 Роутинг/narrow + парсер — ✅И (`src/lib/narrow/`: кодек narrow↔URL path-based round-trip, реестр built-in-видов, хуки `useCurrentNarrow`/`useCurrentView`/`useNarrowNavigation`, narrow-роуты в `AppShell`) · unit ✅ (на кодек/реестр/хуки) · [ ] П (визуальный — со связкой 1.5/1.6)
-- [~] 1.5 Левый сайдбар — ✅И (`src/features/leftSidebar/`: виды/ЛС/каналы+топики, сворачивание, фильтр, бакетированные счётчики; `unreadStore` реструктурирован; 433 unit-теста) · [~] П (структура + skeleton-loading + интеграция в shell протыканы; populated-состояние и доборка данных — 1.5a + живая сессия)
+- [~] 1.5 Левый сайдбар — ✅И (`src/features/leftSidebar/`: виды/ЛС/каналы+топики, сворачивание, фильтр, бакетированные счётчики; `unreadStore` реструктурирован; +1.5a доборка данных: иконки видов, `dmConversationsStore`, `topicsStore`+`getTopics`, `mentions`-бакет; 472 unit-теста) · [~] П (структура + skeleton-loading + интеграция в shell протыканы; populated-состояние — живая сессия)
 - [ ] 1.6 Лента сообщений — И · [ ] П (recipient-бары, дата-разделители, группировка, дозагрузка, loading/empty)
 - [ ] 1.7 Рендер контента — И · [ ] П (код, KaTeX, эмодзи, спойлеры, ссылки) · unit на гидрацию
 - [ ] 1.8 Правый сайдбар — И · [ ] П (presence, фильтр, секции)

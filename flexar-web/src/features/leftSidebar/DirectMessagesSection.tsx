@@ -1,4 +1,5 @@
-// The Direct messages section of the left sidebar (Phase 1.5).
+// The Direct messages section of the left sidebar (Phase 1.5,
+// completed in 1.5a).
 //
 // Lists the viewer's DM conversations as navigation rows: participant
 // avatar + name(s), an unread badge, and a presence dot for one-on-one
@@ -6,14 +7,12 @@
 //
 // ── DM conversation data source ─────────────────────────────────────
 //
-// There is no store of "my DM conversations" yet. The cleanest source
-// available offline is the bucketed unread store: its DM buckets
-// (`getDmConversationKeys`) enumerate every conversation that currently
-// has unread messages. That is a *partial* list — a DM with no unreads
-// will not appear — so this section also flags (in HANDOFF) that a
-// proper `dmConversationsStore` is needed for the complete, recency-
-// ordered list. When there are no unread DMs the section shows an empty
-// state rather than implying the user has no DM history.
+// The full, recency-ordered conversation list comes from
+// `dmConversationsStore` (hydrated from the register snapshot's
+// `recent_private_conversations`, kept live by DM `message` events).
+// Read conversations are included, so a DM with no unreads still
+// appears. Unread counts are overlaid from `unreadStore.getDmUnread`,
+// keyed by the same `conversationKey`.
 //
 // A DM conversation key is the sorted, comma-joined participant user
 // ids *including* the viewer (see `dmConversationKey`). The narrow for
@@ -25,12 +24,10 @@ import { useMemo } from "react";
 import type { Narrow, UserId } from "../../domain";
 import { narrowToPath, useCurrentNarrow } from "../../lib/narrow";
 import { useAuthStore } from "../../stores/authStore";
+import { useDmConversationsStore } from "../../stores/dmConversationsStore";
 import { usePresenceStore } from "../../stores/presenceStore";
 import { useUnreadStore } from "../../stores/unreadStore";
-import {
-  dmConversationKeysWithUnread,
-  dmUnreadCount,
-} from "../../stores/unreadReducer";
+import { dmUnreadCount } from "../../stores/unreadReducer";
 import { useUsersStore } from "../../stores/usersStore";
 import { Avatar } from "../../components/Avatar";
 import { NavRow } from "./NavRow";
@@ -47,14 +44,6 @@ export interface DirectMessagesSectionProps {
   filterQuery: string;
 }
 
-/** Parse a DM conversation key ("2,4,7") into its participant ids. */
-function parseConversationKey(key: string): UserId[] {
-  return key
-    .split(",")
-    .map((part) => Number(part))
-    .filter((n) => Number.isInteger(n));
-}
-
 /** The DM narrow for a conversation: the non-viewer participants. */
 function dmNarrow(participantIds: UserId[], ownUserId: UserId | null): Narrow {
   const others = participantIds.filter((id) => id !== ownUserId);
@@ -68,8 +57,12 @@ export function DirectMessagesSection({
   onToggle,
   filterQuery,
 }: DirectMessagesSectionProps): React.JSX.Element {
-  // Select the stable buckets object, not a freshly-built array — a
-  // selector returning a new array each call would loop the store.
+  // The full recency-ordered conversation list — the stable array, not
+  // a freshly-built one, so the selector does not loop the store.
+  const conversations = useDmConversationsStore((s) => s.conversations);
+  // The bucketed unread state — subscribed directly so a
+  // per-conversation count change re-renders this section. Counts are
+  // derived per row below with the pure `dmUnreadCount` reducer.
   const unread = useUnreadStore((s) => s.unread);
   const getUser = useUsersStore((s) => s.getUser);
   const getPresence = usePresenceStore((s) => s.getPresence);
@@ -86,38 +79,33 @@ export function DirectMessagesSection({
       ? narrowToPath(currentNarrow)
       : undefined;
 
-  // Build a display model per conversation, sorted by participant
-  // names so the list has a stable, readable order. Memoised on the
-  // inputs that actually affect it.
-  const conversations = useMemo(
+  // Build the stable display model per conversation (label, path,
+  // participant ids), preserving the store's recency order. The unread
+  // count is overlaid at render time, not memoised, so it stays live.
+  const rows = useMemo(
     () =>
-      dmConversationKeysWithUnread(unread)
-        .map((key) => {
-          const participantIds = parseConversationKey(key);
-          const others = participantIds.filter((id) => id !== ownUserId);
-          const displayIds = others.length > 0 ? others : participantIds;
-          const names = displayIds.map(
-            (id) => getUser(id)?.full_name ?? `User ${id}`,
-          );
-          const narrow = dmNarrow(participantIds, ownUserId);
-          return {
-            key,
-            displayIds,
-            label: names.join(", "),
-            path: narrowToPath(narrow),
-            unreadCount: dmUnreadCount(unread, key),
-          };
-        })
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    [unread, ownUserId, getUser],
+      conversations.map((conversation) => {
+        const { conversationKey, participantIds } = conversation;
+        const others = participantIds.filter((id) => id !== ownUserId);
+        const displayIds = others.length > 0 ? others : participantIds;
+        const names = displayIds.map(
+          (id) => getUser(id)?.full_name ?? `User ${id}`,
+        );
+        const narrow = dmNarrow(participantIds, ownUserId);
+        return {
+          key: conversationKey,
+          displayIds,
+          label: names.join(", "),
+          path: narrowToPath(narrow),
+        };
+      }),
+    [conversations, ownUserId, getUser],
   );
 
   const filtered =
     filterQuery === ""
-      ? conversations
-      : conversations.filter((c) =>
-          c.label.toLowerCase().includes(filterQuery),
-        );
+      ? rows
+      : rows.filter((row) => row.label.toLowerCase().includes(filterQuery));
 
   return (
     <SidebarSection
@@ -127,37 +115,37 @@ export function DirectMessagesSection({
     >
       {filtered.length === 0 ? (
         <p className={styles.empty}>
-          {conversations.length === 0
-            ? "Нет непрочитанных личных сообщений"
+          {rows.length === 0
+            ? "Нет личных сообщений"
             : "Ничего не найдено"}
         </p>
       ) : (
-        filtered.map((conversation) => {
+        filtered.map((row) => {
           // The presence dot is meaningful only for a one-on-one DM.
           const soloOtherId =
-            conversation.displayIds.length === 1
-              ? conversation.displayIds[0]
-              : undefined;
-          const firstId = conversation.displayIds[0];
+            row.displayIds.length === 1 ? row.displayIds[0] : undefined;
+          const firstId = row.displayIds[0];
           const firstUser =
             firstId !== undefined ? getUser(firstId) : undefined;
+          // The unread count is overlaid live from `unreadStore`.
+          const unreadCount = dmUnreadCount(unread, row.key);
           return (
             <NavRow
-              key={conversation.key}
-              to={conversation.path}
-              label={conversation.label}
-              selected={conversation.path === currentDmPath}
-              unreadCount={conversation.unreadCount}
+              key={row.key}
+              to={row.path}
+              label={row.label}
+              selected={row.path === currentDmPath}
+              unreadCount={unreadCount}
               unreadLabel={
-                conversation.unreadCount > 0
-                  ? `${conversation.unreadCount} непрочитанных`
+                unreadCount > 0
+                  ? `${unreadCount} непрочитанных`
                   : undefined
               }
               leading={
                 <span className={styles.avatarSlot}>
                   <Avatar
                     size="sm"
-                    name={conversation.label}
+                    name={row.label}
                     src={firstUser?.avatar_url ?? undefined}
                   />
                   {soloOtherId !== undefined && (

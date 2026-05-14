@@ -16,6 +16,7 @@ import type {
   ServerEvent,
   Stream,
   Subscription,
+  Topic,
   User,
 } from "../domain";
 import { narrowToWire } from "./narrow";
@@ -29,6 +30,7 @@ import type {
   GetOwnUserResult,
   GetStreamsResult,
   GetSubscriptionsResult,
+  GetTopicsResult,
   GetUsersResult,
   RegisterQueueOptions,
   RegisterQueueResult,
@@ -309,6 +311,20 @@ export class ApiClient {
       this.#credentials,
     );
     return body.streams;
+  }
+
+  /**
+   * Fetch the topics in one channel.
+   * `GET /api/v1/users/me/{streamId}/topics`. The server returns them
+   * ordered by recency (the topic with the most recent message first);
+   * that order is preserved in the returned `Topic[]`.
+   */
+  async getTopics(streamId: number): Promise<Topic[]> {
+    const body = await sendRequest<GetTopicsResult>(
+      { method: "GET", path: `/users/me/${streamId}/topics` },
+      this.#credentials,
+    );
+    return body.topics;
   }
 
   /** Fetch users in the organization. `GET /api/v1/users`. */

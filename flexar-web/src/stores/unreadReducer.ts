@@ -9,9 +9,16 @@
 //
 // ── Bucket model ────────────────────────────────────────────────────
 //
-// `UnreadBuckets` holds three things:
+// `UnreadBuckets` holds four things:
 //   - `channels`  — streamId → topic → set of unread message ids.
 //   - `dms`       — DM conversation key → set of unread message ids.
+//   - `mentions`  — set of unread message ids the viewer is mentioned
+//                   in. This is an *overlay*, not a fourth disjoint
+//                   bucket: a mentioned message is also filed into its
+//                   channel-topic or DM bucket. The set is kept in step
+//                   with the same `read`/`delete` events that empty the
+//                   conversation buckets, and a `message` event whose
+//                   `mentioned` flag is set adds the id here too.
 //   - `location`  — messageId → which bucket it lives in. This reverse
 //                   index is what lets flag/delete/move events, which
 //                   only carry message ids, find and update the right
@@ -72,20 +79,27 @@ export type UnreadLocation =
 
 /**
  * The bucketed unread state. `channels` and `dms` carry the id sets the
- * sidebar counts; `location` is the reverse index keyed by message id.
+ * sidebar counts; `mentions` is an overlay set of unread ids the viewer
+ * is mentioned in; `location` is the reverse index keyed by message id.
  */
 export interface UnreadBuckets {
   /** streamId → topic → set of unread message ids in that topic. */
   channels: Record<StreamId, Record<string, UnreadIdSet>>;
   /** DM conversation key → set of unread message ids. */
   dms: Record<string, UnreadIdSet>;
+  /**
+   * Unread message ids the viewer is mentioned in. An overlay over the
+   * conversation buckets — every id here is also filed in `channels` or
+   * `dms` (or was, before a `read`/`delete` removed it everywhere).
+   */
+  mentions: UnreadIdSet;
   /** messageId → its bucket, for flag/delete/move re-bucketing. */
   location: Record<MessageId, UnreadLocation>;
 }
 
 /** An empty bucket state — the store's value before the first hydrate. */
 export function emptyUnreadBuckets(): UnreadBuckets {
-  return { channels: {}, dms: {}, location: {} };
+  return { channels: {}, dms: {}, mentions: {}, location: {} };
 }
 
 /**
@@ -199,8 +213,35 @@ function removeFromDm(
   return nextDms;
 }
 
+// Add an id to the mentions overlay, returning a new set. A no-op (same
+// reference) when the id is already present.
+function addToMentions(
+  mentions: UnreadIdSet,
+  id: MessageId,
+): UnreadIdSet {
+  if (mentions[id] === true) {
+    return mentions;
+  }
+  return { ...mentions, [id]: true };
+}
+
+// Remove an id from the mentions overlay, returning a new set. A no-op
+// (same reference) when the id is not present.
+function removeFromMentions(
+  mentions: UnreadIdSet,
+  id: MessageId,
+): UnreadIdSet {
+  if (mentions[id] !== true) {
+    return mentions;
+  }
+  const next = { ...mentions };
+  delete next[id];
+  return next;
+}
+
 // File one id into the bucket named by `location`, returning new
-// buckets. The reverse `location` index is updated too.
+// buckets. The reverse `location` index is updated too; the `mentions`
+// overlay is carried through untouched.
 function fileId(
   buckets: UnreadBuckets,
   id: MessageId,
@@ -215,22 +256,29 @@ function fileId(
         id,
       ),
       dms: buckets.dms,
+      mentions: buckets.mentions,
       location: { ...buckets.location, [id]: location },
     };
   }
   return {
     channels: buckets.channels,
     dms: addToDm(buckets.dms, location.conversationKey, id),
+    mentions: buckets.mentions,
     location: { ...buckets.location, [id]: location },
   };
 }
 
-// Drop one id from whatever bucket it currently lives in, returning new
-// buckets. A no-op (same reference) when the id is not tracked.
+// Drop one id from whatever bucket it currently lives in *and* from the
+// mentions overlay, returning new buckets. A no-op (same reference)
+// when the id is neither tracked in a conversation bucket nor mentioned.
 function unfileId(buckets: UnreadBuckets, id: MessageId): UnreadBuckets {
   const location = buckets.location[id];
+  const nextMentions = removeFromMentions(buckets.mentions, id);
   if (location === undefined) {
-    return buckets;
+    // Not in a conversation bucket; only the mentions overlay can change.
+    return nextMentions === buckets.mentions
+      ? buckets
+      : { ...buckets, mentions: nextMentions };
   }
   const nextLocation = { ...buckets.location };
   delete nextLocation[id];
@@ -243,12 +291,14 @@ function unfileId(buckets: UnreadBuckets, id: MessageId): UnreadBuckets {
         id,
       ),
       dms: buckets.dms,
+      mentions: nextMentions,
       location: nextLocation,
     };
   }
   return {
     channels: buckets.channels,
     dms: removeFromDm(buckets.dms, location.conversationKey, id),
+    mentions: nextMentions,
     location: nextLocation,
   };
 }
@@ -263,8 +313,9 @@ function unfileId(buckets: UnreadBuckets, id: MessageId): UnreadBuckets {
  * buckets carry only the *other* participant. Pass `null` when the
  * viewer id is not yet known — the next re-register re-hydrates with it.
  *
- * The `mentions` array is intentionally ignored here: its ids are a
- * subset of the per-conversation buckets, so they are already filed.
+ * The `mentions` array is projected into the `mentions` overlay set.
+ * Its ids are also a subset of the per-conversation buckets, so they
+ * are filed there as well.
  */
 export function unreadFromInitialState(
   state: InitialState,
@@ -315,6 +366,16 @@ export function unreadFromInitialState(
     }
   }
 
+  if (Array.isArray(envelope.mentions)) {
+    let mentions = buckets.mentions;
+    for (const id of envelope.mentions) {
+      mentions = addToMentions(mentions, id);
+    }
+    if (mentions !== buckets.mentions) {
+      buckets = { ...buckets, mentions };
+    }
+  }
+
   return buckets;
 }
 
@@ -349,7 +410,9 @@ function locationForMessage(
  * Fold a `message` event into the buckets. A freshly received message
  * is unread unless the viewer sent it (senders have implicitly read
  * their own messages) or the server already attached the `read` flag.
- * Returns new buckets; the input is never mutated.
+ * When the event carries the `mentioned` flag, the message id is added
+ * to the `mentions` overlay as well. Returns new buckets; the input is
+ * never mutated.
  *
  * `ownUserId` is the viewer's user id; pass `null` when it is not yet
  * known (the message is then treated as unread, which the next
@@ -364,14 +427,30 @@ export function applyMessageEventToUnread(
   if (message.sender_id === ownUserId || event.flags.includes("read")) {
     return buckets;
   }
+  // An already-tracked id is left in place, but the mentions overlay is
+  // still reconciled — a later event could carry the `mentioned` flag.
+  const mentioned = event.flags.includes("mentioned");
   if (buckets.location[message.id] !== undefined) {
-    return buckets;
+    if (!mentioned) {
+      return buckets;
+    }
+    const mentions = addToMentions(buckets.mentions, message.id);
+    return mentions === buckets.mentions
+      ? buckets
+      : { ...buckets, mentions };
   }
   const location = locationForMessage(event);
   if (location === undefined) {
     return buckets;
   }
-  return fileId(buckets, message.id, location);
+  const filed = fileId(buckets, message.id, location);
+  if (!mentioned) {
+    return filed;
+  }
+  return {
+    ...filed,
+    mentions: addToMentions(filed.mentions, message.id),
+  };
 }
 
 /**
@@ -530,6 +609,11 @@ export function dmConversationKeysWithUnread(
   buckets: UnreadBuckets,
 ): string[] {
   return Object.keys(buckets.dms);
+}
+
+/** The number of unread messages the viewer is mentioned in. */
+export function mentionsCount(buckets: UnreadBuckets): number {
+  return Object.keys(buckets.mentions).length;
 }
 
 /** Whether a given message is currently tracked as unread. */

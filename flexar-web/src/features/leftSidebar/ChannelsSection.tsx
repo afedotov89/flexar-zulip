@@ -1,8 +1,10 @@
-// The Channels section of the left sidebar (Phase 1.5).
+// The Channels section of the left sidebar (Phase 1.5, completed in
+// 1.5a).
 //
 // Lists the viewer's subscribed channels (`streamsStore.subscriptions`),
 // pinned channels first, then alphabetical. Each channel renders as a
-// `ChannelRow` with its unread topics nested underneath. A per-channel
+// `ChannelRow` with its full topic list nested underneath (lazily
+// loaded by the row from `topicsStore` when expanded). A per-channel
 // collapse state lives here (a set of expanded channel ids); the filter
 // query is passed down from the sidebar and matches channel names.
 //
@@ -45,9 +47,6 @@ export function ChannelsSection({
   filterQuery,
 }: ChannelsSectionProps): React.JSX.Element {
   const subscriptions = useStreamsStore((s) => s.subscriptions);
-  // The raw channel buckets — used to enumerate unread topics per
-  // channel. The count selectors derive from the same buckets.
-  const channelBuckets = useUnreadStore((s) => s.unread.channels);
   const getChannelUnread = useUnreadStore((s) => s.getChannelUnread);
   const currentNarrow = useCurrentNarrow();
 
@@ -109,19 +108,10 @@ export function ChannelsSection({
       ) : (
         filtered.map((subscription) => {
           const streamId = subscription.stream_id;
-          const topicsRecord = channelBuckets[streamId] ?? {};
-          // Unread topics for this channel, alphabetical for stability.
-          const unreadTopics = Object.entries(topicsRecord)
-            .map(([topic, ids]) => ({
-              topic,
-              unreadCount: Object.keys(ids).length,
-            }))
-            .sort((a, b) => a.topic.localeCompare(b.topic));
           return (
             <ChannelRow
               key={streamId}
               subscription={subscription}
-              unreadTopics={unreadTopics}
               channelUnread={getChannelUnread(streamId)}
               expanded={!collapsedChannels.has(streamId)}
               onToggle={toggleChannel}

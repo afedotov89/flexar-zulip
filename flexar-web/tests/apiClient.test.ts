@@ -281,6 +281,27 @@ describe("request encoding", () => {
     expect(query.get("queue_id")).toBe("q-42");
     expect(query.get("last_event_id")).toBe("7");
   });
+
+  it("requests a channel's topics by stream id", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      topics: [
+        { max_id: 26, name: "deploys" },
+        { max_id: 6, name: "general" },
+      ],
+    });
+
+    const topics = await client().getTopics(42);
+
+    expect(calls[0].url).toBe("/api/v1/users/me/42/topics");
+    expect(calls[0].init.method).toBe("GET");
+    // The server's recency order is preserved verbatim.
+    expect(topics).toEqual([
+      { max_id: 26, name: "deploys" },
+      { max_id: 6, name: "general" },
+    ]);
+  });
 });
 
 describe("response handling", () => {

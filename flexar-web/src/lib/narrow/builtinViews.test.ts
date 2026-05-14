@@ -52,6 +52,21 @@ describe("BUILTIN_VIEWS registry", () => {
     }
   });
 
+  it("gives every view an icon from the Flexar Hub icon set", () => {
+    const byId = Object.fromEntries(
+      BUILTIN_VIEWS.map((view) => [view.id, view.icon]),
+    );
+    expect(byId).toEqual({
+      inbox: "inbox",
+      recent: "recent",
+      combined: "combined-feed",
+      mentions: "mentions",
+      reactions: "smile",
+      starred: "star",
+      drafts: "drafts",
+    });
+  });
+
   it("maps each special view to its dedicated path", () => {
     const paths = Object.fromEntries(
       SPECIAL_VIEWS.map((view) => [view.id, view.path]),
