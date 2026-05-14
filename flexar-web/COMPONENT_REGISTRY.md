@@ -120,9 +120,26 @@
 
 ## API-клиент (`src/api/`)
 
-| Метод | Статус | Назначение |
+**Единственная сетевая граница приложения (GUIDE §6).** Свой `fetch` —
+запрещён. Импорт из `src/api`. Доменные сущности — из `src/domain`
+(клиент их НЕ ре-экспортит).
+
+| Артефакт | Статус | Описание |
 |---|---|---|
-| _(пока нет — Фаза 0.4)_ | — | — |
+| `ApiClient` / `createApiClient(credentials?)` | ✅ `src/api/client.ts` | Класс с изменяемым стейтом креденшелов; все методы эндпоинтов. |
+| `ApiError` / `isApiError(v)` | ✅ `src/api/errors.ts` | Единый тип ошибки: `.code`, `.httpStatus`, `.body`. Кидается всеми методами. |
+| Транспорт (`request.ts`, `narrow.ts`, `types.ts`) | ✅ | Внутренности: единственное место с `fetch`, кодирование параметров, `narrowToWire()`, envelope-типы. |
+
+**Методы `ApiClient`:** `setCredentials` / `clearCredentials` /
+`hasCredentials`; `fetchApiKey(username, password)` (без креденшелов);
+`registerQueue(opts?)`; `getEvents(queueId, lastEventId)`;
+`getMessages(opts)`; `sendMessage(params)`; `addReaction(msgId, r)` /
+`removeReaction(msgId, r)`; `getSubscriptions()`; `getStreams(opts?)`;
+`getUsers(opts?)`; `getOwnUser()`.
+
+Realtime register/long-poll — это транспортные вызовы; цикл подписки и
+диспатч событий (`src/realtime/`) — отдельная Фаза 1.2. TanStack
+Query-хуки поверх клиента — позже, с фичами.
 
 ---
 
