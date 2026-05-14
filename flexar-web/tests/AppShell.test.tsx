@@ -1,16 +1,29 @@
 import { render, screen, act } from "@testing-library/react";
 import { App } from "../src/app/App";
+import { useAuthStore } from "../src/stores/authStore";
 
 // The app-shell renders inside the full provider stack (ThemeProvider ->
 // QueryClientProvider -> RouterProvider), so these tests drive the real
-// `App` root. The router boots at "/", which renders the AppShell layout
-// with the Feed placeholder in the center <Outlet />.
+// `App` root. The router boots at "/", which is behind the RequireAuth
+// guard (Phase 1.1) — so each test stages an authenticated session
+// first, otherwise the guard would render its loading/redirect state
+// instead of the AppShell.
 
 beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
   document.getElementById("flexar-hub-theme-tokens")?.remove();
   window.history.pushState({}, "", "/");
+  // Stage a signed-in session so RequireAuth renders the AppShell. The
+  // store is the live singleton; no component is mounted at this point
+  // (RTL's auto-cleanup unmounted the previous test), so a bare
+  // setState here does not need `act`.
+  useAuthStore.setState({
+    session: { email: "tester@flexar.example", apiKey: "test-key" },
+    status: "authenticated",
+    isLoggingIn: false,
+    error: null,
+  });
 });
 
 describe("AppShell", () => {

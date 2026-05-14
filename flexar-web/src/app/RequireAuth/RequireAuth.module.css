@@ -1,0 +1,22 @@
+/*
+ * Authenticated-route guard styles (Phase 1.1).
+ * Only the rehydration loading screen needs styling. Every design value
+ * is a `var(--token)`; literals are pure-layout only, per
+ * ENGINEERING_GUIDE §2/§4.
+ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.loadingLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

@@ -13,6 +13,8 @@ export type {
   ReactionParams,
 } from "./client";
 
+export { apiClient } from "./apiClient";
+
 export { ApiError, isApiError } from "./errors";
 export type { ApiErrorBody } from "./errors";
 

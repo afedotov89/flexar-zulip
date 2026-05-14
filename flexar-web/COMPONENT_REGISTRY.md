@@ -100,9 +100,14 @@
 
 ## Сторы (`src/stores/`)
 
+**Паттерн (задан `authStore`):** `create<State>()(...)` с явным
+интерфейсом, бандлящим данные + экшены; `persist`-middleware только
+когда стейт обязан переживать релоад; сайд-эффекты, которые должны
+идти в ногу с persisted-стейтом — внутри экшенов, не в UI.
+
 | Стор | Статус | Путь | Назначение |
 |---|---|---|---|
-| _(пока нет)_ | — | — | — |
+| `useAuthStore` | ✅ | `src/stores/authStore.ts` | Сессия аутентификации. State: `session: AuthSession\|null`, `status: "unknown"\|"unauthenticated"\|"authenticated"`, `isLoggingIn`, `error`. Actions: `initialize()` (резолвит `"unknown"` — зовётся из `App` на маунте), `login(email,password)`, `logout()`. `persist` (ключ `flexar-hub-auth`, `partialize` → только `session`). Экспорты: `AuthSession`, `AuthStatus`, `AuthState`. |
 
 ---
 
@@ -161,6 +166,11 @@ Realtime register/long-poll — это транспортные вызовы; ц
 диспатч событий (`src/realtime/`) — отдельная Фаза 1.2. TanStack
 Query-хуки поверх клиента — позже, с фичами.
 
+**Общий синглтон** — `apiClient` (`src/api/apiClient.ts`, ре-экспорт из
+`src/api`): один разделяемый экземпляр `ApiClient` на всё приложение.
+Создаётся без креденшелов; `authStore` их проставляет/сбрасывает.
+Все консьюмеры (стор, будущие хуки/realtime) импортируют именно его.
+
 ---
 
 ## Realtime (`src/realtime/`)
@@ -176,11 +186,13 @@ Query-хуки поверх клиента — позже, с фичами.
 | Артефакт | Статус | Путь | Назначение |
 |---|---|---|---|
 | Скаффолд (Vite/React/TS, гейты, dev-proxy) | ✅ | `flexar-web/` | Базовый проект, тулинг, Vite dev-proxy `/api` → стенд |
-| Провайдер-стек | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` (общий `QueryClient`) → `RouterProvider`. |
-| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `AppShell` (index → `Feed`); `/showcase` → `TokenShowcase`; `/primitives` → `PrimitivesShowcase`; `*` → `NotFound`. |
+| Роут-таблица | ✅ | `src/app/routes.tsx` | `createBrowserRouter`: `/` → `RequireAuth` → `AppShell` (index → `Feed`); `/login` → `LoginPage`; `/showcase` → `TokenShowcase`; `/primitives` → `PrimitivesShowcase`; `*` → `NotFound`. |
+| `RequireAuth` (guard) | ✅ | `src/app/RequireAuth/` | Гард авторизованных роутов. `"unknown"` → `Spinner`-загрузка (НЕ редиректит); `"unauthenticated"` → `Navigate` на `/login` (запоминает `from`); `"authenticated"` → `<Outlet/>`. |
+| `LoginPage` (страница) | ✅ | `src/pages/LoginPage/` | Экран входа: форма email/password (примитивы `Input`/`Button`), ошибка через `Banner`. Зовёт `apiClient.fetchApiKey` через `authStore.login`. Standalone, вне `AppShell`. Авторизованного редиректит на `/`. |
 | `PrimitivesShowcase` (страница) | ✅ | `src/pages/PrimitivesShowcase/` | Дев-витрина всех 20 примитивов в состояниях — для протыка. Роут `/primitives`. |
 | `AppShell` | ✅ | `src/app/AppShell/` | Трёхколоночный каркас: `Navbar` + левый/правый `<aside>` + центральный `<main>` с `<Outlet/>`. Колонки — плейсхолдеры. Сайдбары схлопываются `display:none` при `width ≤ 768px`. |
-| `Navbar` | ✅ | `src/app/Navbar/` | Верхний бар: бренд / слот поиска (плейсхолдер) / actions (тоггл темы на `useTheme()` + плейсхолдер юзера). |
+| `Navbar` | ✅ | `src/app/Navbar/` | Верхний бар: бренд / слот поиска (плейсхолдер) / actions (тоггл темы + email сессии + logout-кнопка на `authStore.logout`). Тоггл темы — пока временный локальный `<button>`. |
+| Провайдер-стек / `App` | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` → `RouterProvider`; на маунте зовёт `authStore.initialize()` (резолвит `"unknown"`-статус). |
 | `Feed` (страница) | ✅ | `src/pages/Feed/` | Плейсхолдер центральной ленты (index-роут). |
 | `NotFound` (страница) | ✅ | `src/pages/NotFound/` | Плейсхолдер catch-all роута. |
 
