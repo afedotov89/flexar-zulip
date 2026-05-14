@@ -55,8 +55,12 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 180  # ARM64 emulated build of Zulip can take 1-2h on first cache miss.
+    # Use a native ARM64 runner (free for public repos as of 2025).
+    # qemu emulation of Zulip's full build chain on x86 hosts hits Puppet
+    # exec timeouts on every Go/Rust compile step (smokescreen, tusd, etc.) —
+    # native ARM64 cuts wall time from ~3h to ~30-45min and avoids timeouts.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code
@@ -94,10 +98,7 @@ jobs:
           fi
           echo "All required secrets are present."
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
+      # No QEMU setup needed — runner is already ARM64.
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -128,10 +129,13 @@ jobs:
           tags: |
             ${{ steps.image.outputs.name }}:${{ github.sha }}
             ${{ steps.image.outputs.name }}:latest
+          # buildcache-v2 = bust the old qemu-built cache after switching
+          # to native ARM64 runner. Old layers may have been built under
+          # different libc/QEMU env and not relink cleanly.
           cache-from: |
-            type=registry,ref=${{ steps.image.outputs.name }}:buildcache
+            type=registry,ref=${{ steps.image.outputs.name }}:buildcache-v2
           cache-to: |
-            type=registry,ref=${{ steps.image.outputs.name }}:buildcache,mode=max
+            type=registry,ref=${{ steps.image.outputs.name }}:buildcache-v2,mode=max
 
       # --- Ship deploy_zulip.sh to the server every run so the script
       # follows the repo. ------------------------------------------------
