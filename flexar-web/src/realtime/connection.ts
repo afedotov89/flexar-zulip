@@ -4,11 +4,22 @@
 // queue, long-polls `GET /events` in a loop, and fans the events out to
 // subscribers in order. It is the *pipe* — Phase 1.2. The *stores* that
 // reduce these events into server state are Phase 1.3 and plug in via
-// `subscribe()`.
+// `subscribe()` (the event stream) and `onInitialState()` (the
+// register-time state snapshot).
+//
+// Zulip's `register` call is atomic: a single request both allocates
+// the queue *and* returns a consistent snapshot of the server state for
+// the requested `fetch_event_types`. Phase 1.3 stores hydrate from that
+// snapshot and then apply the event stream on top — no REST/event
+// races. Crucially the snapshot is re-broadcast on every (re-)register,
+// including recovery from `BAD_EVENT_QUEUE_ID`: a rebuilt queue comes
+// with a fresh snapshot, and stores must re-hydrate because state may
+// have changed during the gap.
 //
 // Responsibilities:
 //   - Register: `apiClient.registerQueue(...)` for a chat client's
-//     event types; capture `queueId` + `lastEventId`.
+//     event types, also fetching initial state for them; capture
+//     `queueId` + `lastEventId` and broadcast the snapshot.
 //   - Long-poll loop: `apiClient.getEvents(...)`, advance
 //     `lastEventId` to the highest id seen (heartbeats included), drop
 //     heartbeats from downstream delivery, dispatch the rest, repeat
@@ -27,7 +38,12 @@
 // (or a later `start()`) has moved on — so no promise resolving late
 // can dispatch events or schedule a retry after the connection stopped.
 
-import { apiClient, isApiError, type ApiClient } from "../api";
+import {
+  apiClient,
+  isApiError,
+  type ApiClient,
+  type RegisterQueueResult,
+} from "../api";
 import type { ServerEvent } from "../domain";
 import {
   backoffDelay,
@@ -52,6 +68,24 @@ export type ConnectionStatus =
 
 /** A consumer of the ordered event stream. */
 export type EventListener = (event: ServerEvent) => void;
+
+/**
+ * The register-time state snapshot: the full `register` response,
+ * including the queue bootstrap fields and whatever initial-state /
+ * `realm_*` keys the requested `fetch_event_types` produced. Phase 1.3
+ * stores read the keys they own (`realm_users`, `subscriptions`,
+ * `presences`, `unread_msgs`, …) off the index signature.
+ */
+export type InitialState = RegisterQueueResult;
+
+/**
+ * A consumer of the register-time state snapshot. Called once per
+ * successful (re-)register — at startup and again after a
+ * `BAD_EVENT_QUEUE_ID` recovery — *before* any events from the new
+ * queue are dispatched. The contract is "hydrate (or re-hydrate) from
+ * the snapshot, then apply the event stream on top".
+ */
+export type InitialStateListener = (state: InitialState) => void;
 
 /** Notified whenever {@link RealtimeConnection.getStatus} would change. */
 export type StatusListener = (status: ConnectionStatus) => void;
@@ -114,6 +148,8 @@ export class RealtimeConnection {
 
   /** Event-stream subscribers, notified in insertion order per event. */
   readonly #eventListeners = new Set<EventListener>();
+  /** Initial-state subscribers, notified on every (re-)register. */
+  readonly #initialStateListeners = new Set<InitialStateListener>();
   /** Status subscribers, notified on every status transition. */
   readonly #statusListeners = new Set<StatusListener>();
 
@@ -196,6 +232,24 @@ export class RealtimeConnection {
   }
 
   /**
+   * Subscribe to the register-time state snapshot. The listener is
+   * called once per successful (re-)register — at startup and again
+   * after a `BAD_EVENT_QUEUE_ID` recovery — before any events from the
+   * new queue are dispatched. Returns an unsubscribe function; calling
+   * it more than once is harmless.
+   *
+   * The listener is not replayed with the most recent snapshot on
+   * subscribe: like `subscribe()`, consumers are expected to register
+   * at module load, before `start()` runs.
+   */
+  onInitialState(listener: InitialStateListener): Unsubscribe {
+    this.#initialStateListeners.add(listener);
+    return () => {
+      this.#initialStateListeners.delete(listener);
+    };
+  }
+
+  /**
    * Subscribe to connection-status changes. Returns an unsubscribe
    * function. The listener is not called with the current status on
    * subscribe — read {@link getStatus} for that.
@@ -238,6 +292,18 @@ export class RealtimeConnection {
   }
 
   /**
+   * Deliver the register-time snapshot to every initial-state
+   * subscriber, in subscription order. Called after each successful
+   * (re-)register, before the loop polls the new queue — so stores
+   * hydrate from the snapshot before any event is applied on top.
+   */
+  #broadcastInitialState(state: InitialState): void {
+    for (const listener of this.#initialStateListeners) {
+      listener(state);
+    }
+  }
+
+  /**
    * The connection's whole lifetime: register a queue, then poll until
    * something goes wrong, recovering as appropriate. Bound to `runId`;
    * every `await` boundary is followed by an `#isCurrent` check so a
@@ -257,8 +323,14 @@ export class RealtimeConnection {
       if (queueId === null) {
         this.#setStatus(failureCount === 0 ? "connecting" : "reconnecting");
         try {
+          // `fetchEventTypes` mirrors `eventTypes`, so the response
+          // carries an initial-state snapshot for exactly the event
+          // types the queue subscribes to. `slimPresence` asks for the
+          // modern keyed-by-id presence format the domain types model.
           const result = await this.#client.registerQueue({
             eventTypes: [...this.#eventTypes],
+            fetchEventTypes: [...this.#eventTypes],
+            slimPresence: true,
           });
           if (!this.#isCurrent(runId)) {
             return;
@@ -272,6 +344,12 @@ export class RealtimeConnection {
           queueId = result.queueId;
           lastEventId = result.lastEventId;
           failureCount = 0;
+          // Broadcast the snapshot before polling the new queue: stores
+          // hydrate (or, on re-register, re-hydrate) from it, then the
+          // event stream below applies on top. This runs on every
+          // successful register, including `BAD_EVENT_QUEUE_ID`
+          // recovery.
+          this.#broadcastInitialState(result);
         } catch {
           // `registerQueue` failed (transport error, or no queue id).
           // There is no queue to keep, so every failure here is

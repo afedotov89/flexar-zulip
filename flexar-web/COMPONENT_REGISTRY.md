@@ -108,6 +108,19 @@
 | Стор | Статус | Путь | Назначение |
 |---|---|---|---|
 | `useAuthStore` | ✅ | `src/stores/authStore.ts` | Сессия аутентификации. State: `session: AuthSession\|null`, `status: "unknown"\|"unauthenticated"\|"authenticated"`, `isLoggingIn`, `error`. Actions: `initialize()` (резолвит `"unknown"` — зовётся из `App` на маунте), `login(email,password)`, `logout()`. `persist` (ключ `flexar-hub-auth`, `partialize` → только `session`). Экспорты: `AuthSession`, `AuthStatus`, `AuthState`. |
+| `useRealmStore` | ✅ | `src/stores/realmStore.ts` | `realm: Realm\|null`. Только гидрация из register-снапшота (realm-update события — в long-tail, пока не типизированы). |
+| `useUsersStore` | ✅ | `src/stores/usersStore.ts` | `users: Record<UserId,User>`; `getUser(id)`. Гидрация + `realm_user` add/remove/update. |
+| `useStreamsStore` | ✅ | `src/stores/streamsStore.ts` | `streams`, `subscriptions` (Record по `StreamId`); `getStream/getSubscription/isSubscribed`. Гидрация + `stream` + `subscription` события. |
+| `useMessagesStore` | ✅ | `src/stores/messagesStore.ts` | `messages: Record<MessageId,Message>`, `flags: Record<MessageId,MessageFlag[]>`; `getMessage/getFlags`, `ingest(messages, flagsById?)` — **сюда пишет history-fetch Фазы 1.6**. Гидрация = пусто (снапшот без тел сообщений); re-register чистит кэш. События: message/update_message/delete_message/reaction/update_message_flags. |
+| `usePresenceStore` | ✅ | `src/stores/presenceStore.ts` | `presences: PresenceMap`; `getPresence(id)`. Гидрация + `presence` события. |
+| `useUnreadStore` | ✅ | `src/stores/unreadStore.ts` | `unread: Record<MessageId,true>`; `isUnread(id)`, `getUnreadCount()`. Гидрация + message/update_message_flags(`read`)/delete. |
+
+**Без `persist`** (в отличие от `authStore`): server-state пере-фетчится
+из `register` при каждом коннекте, не должен переживать релоад.
+**Внутренние хелперы `src/stores/`** (не общие примитивы): `wireStore`
+(контракт «подписка на `module-load`: hydrate из снапшота + applyEvent»),
+`eventGuards` (нарроуинг `ServerEvent` мимо `UnknownEvent`), `*Reducer.ts`
+(чистые редьюсеры, отдельно unit-покрыты).
 
 ---
 
@@ -181,16 +194,14 @@ Query-хуки поверх клиента — позже, с фичами.
 | Артефакт | Статус | Путь | Назначение |
 |---|---|---|---|
 | `realtimeConnection` | ✅ | `src/realtime/lifecycle.ts` | App-wide синглтон `RealtimeConnection`. Сторы 1.3 зовут `.subscribe()` на нём. |
-| `RealtimeConnection` | ✅ | `src/realtime/connection.ts` | register queue → long-poll `getEvents` → диспатч; reconnect (exp backoff+jitter), re-register на `BAD_EVENT_QUEUE_ID`; `start/stop` (generation-token, чистый стоп). `subscribe(listener)` → событийный поток (без heartbeat, по порядку); `onStatusChange`/`getStatus` (`idle\|connecting\|connected\|reconnecting`). |
+| `RealtimeConnection` | ✅ | `src/realtime/connection.ts` | register queue (с `fetchEventTypes`+`slimPresence`) → long-poll `getEvents` → диспатч; reconnect (exp backoff+jitter), re-register на `BAD_EVENT_QUEUE_ID`; `start/stop` (generation-token, чистый стоп). `subscribe(listener)` → событийный поток (без heartbeat, по порядку); `onInitialState(listener)` → register-снапшот (`InitialState`), шлётся на каждый (ре-)register **до** событий новой очереди; `onStatusChange`/`getStatus` (`idle\|connecting\|connected\|reconnecting`). |
 | `wireRealtimeToAuth()` | ✅ | `src/realtime/lifecycle.ts` | Бинд lifecycle к `authStore.status` (start на `authenticated`, stop на logout). Зовётся из `App` на маунте. |
 | `backoff.ts` / `events.ts` | ✅ | `src/realtime/` | Чистые хелперы: `backoffDelay`/`backoffBaseDelay`; `maxEventId`/`isHeartbeat`/`dropHeartbeats`. Unit-покрыты. |
 
-**Контракт для 1.3:** (1) **нет буфера/replay** — подписываться на
-`module-load`, до `start()`; (2) **initial state из `register` НЕ
-потребляется** — 1.2 хранит только `queueId`/`lastEventId`. Сторам 1.3
-начальное состояние брать отдельными REST-вызовами (`getSubscriptions`,
-`getUsers`, …) ИЛИ через оркестратора расширить API connection, чтобы
-отдавать register-payload. **Решить до старта 1.3.**
+**Контракт (закрыт в 1.3):** нет буфера/replay — подписываться на
+`module-load` до `start()` (см. `wireStore`); initial state — через
+`onInitialState` (вариант «б», решение оркестратора): register тянет
+снапшот, сторы гидрируются из него и ре-гидрируются на re-register.
 
 ---
 

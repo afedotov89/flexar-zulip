@@ -107,16 +107,22 @@ class FakeApiClient {
   }
 }
 
-/** A successful `registerQueue` result with the given queue/cursor. */
+/**
+ * A successful `registerQueue` result with the given queue/cursor.
+ * Extra initial-state keys (mirroring the register response's index
+ * signature) can be supplied to exercise `onInitialState`.
+ */
 function registerResult(
   queueId: string | null,
   lastEventId: number,
+  extra: Record<string, unknown> = {},
 ): RegisterQueueResult {
   return {
     queueId,
     lastEventId,
     zulipFeatureLevel: 0,
     zulipVersion: "test",
+    ...extra,
   };
 }
 
@@ -537,6 +543,126 @@ describe("RealtimeConnection — subscriptions", () => {
 
     // No id 2 — the listener was removed.
     expect(received).toEqual([1]);
+    conn.stop();
+  });
+
+  it("notifies initial-state listeners with the register snapshot", async () => {
+    const client = new FakeApiClient();
+    const reg = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    const snapshots: RegisterQueueResult[] = [];
+    conn.onInitialState((state) => snapshots.push(state));
+
+    conn.start();
+    // The register call fetches initial state for the queue's event
+    // types and asks for the modern presence format.
+    expect(client.registerQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fetchEventTypes: expect.arrayContaining(["message", "presence"]),
+        slimPresence: true,
+      }),
+    );
+
+    // Nothing broadcast until register resolves.
+    expect(snapshots).toEqual([]);
+
+    reg.resolve(registerResult("q1", 5, { realm_users: [{ user_id: 1 }] }));
+    await flush();
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      queueId: "q1",
+      lastEventId: 5,
+      realm_users: [{ user_id: 1 }],
+    });
+
+    poll1.resolve({ events: [] });
+    await flush();
+    conn.stop();
+  });
+
+  it("re-broadcasts a fresh snapshot on BAD_EVENT_QUEUE_ID re-register", async () => {
+    const client = new FakeApiClient();
+    const reg1 = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    const snapshots: RegisterQueueResult[] = [];
+    conn.onInitialState((state) => snapshots.push(state));
+
+    conn.start();
+    reg1.resolve(registerResult("q1", 10, { realm_users: [{ user_id: 1 }] }));
+    await flush();
+    expect(snapshots).toHaveLength(1);
+
+    // The queue expires; the connection re-registers from scratch and
+    // must re-broadcast the new snapshot so stores re-hydrate.
+    const reg2 = client.nextRegister();
+    poll1.reject(
+      new ApiError("Bad event queue id", "BAD_EVENT_QUEUE_ID", 400),
+    );
+    await flush();
+
+    reg2.resolve(registerResult("q2", 0, { realm_users: [{ user_id: 2 }] }));
+    client.nextGetEvents();
+    await flush();
+
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots[1]).toMatchObject({
+      queueId: "q2",
+      realm_users: [{ user_id: 2 }],
+    });
+
+    conn.stop();
+  });
+
+  it("does not broadcast initial state when register fails", async () => {
+    const client = new FakeApiClient();
+    const reg1 = client.nextRegister();
+    const conn = makeConnection(client);
+
+    const snapshots: RegisterQueueResult[] = [];
+    conn.onInitialState((state) => snapshots.push(state));
+
+    conn.start();
+    reg1.reject(new ApiError("net", "NETWORK_ERROR", 0));
+    await flush();
+
+    // A failed register has no snapshot to broadcast.
+    expect(snapshots).toEqual([]);
+
+    conn.stop();
+  });
+
+  it("stops delivering to an initial-state listener after it unsubscribes", async () => {
+    const client = new FakeApiClient();
+    const reg1 = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    const snapshots: RegisterQueueResult[] = [];
+    const unsubscribe = conn.onInitialState((state) => snapshots.push(state));
+
+    conn.start();
+    reg1.resolve(registerResult("q1", 0));
+    await flush();
+    expect(snapshots).toHaveLength(1);
+
+    unsubscribe();
+
+    // Force a re-register; the unsubscribed listener must not be called.
+    const reg2 = client.nextRegister();
+    poll1.reject(
+      new ApiError("Bad event queue id", "BAD_EVENT_QUEUE_ID", 400),
+    );
+    await flush();
+    reg2.resolve(registerResult("q2", 0));
+    client.nextGetEvents();
+    await flush();
+
+    expect(snapshots).toHaveLength(1);
     conn.stop();
   });
 

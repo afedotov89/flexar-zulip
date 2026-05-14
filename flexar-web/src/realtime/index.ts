@@ -3,7 +3,9 @@
 // This layer keeps a live Zulip event queue and fans events out to
 // subscribers — the *pipe*. The *stores* that reduce events into
 // server state are Phase 1.3 and plug in here via
-// `realtimeConnection.subscribe(...)`.
+// `realtimeConnection.subscribe(...)` (the event stream) and
+// `realtimeConnection.onInitialState(...)` (the register-time
+// snapshot they hydrate from).
 //
 // Consumers import `realtimeConnection` (the app-wide instance) and the
 // listener/status types from `src/realtime` — not from the individual
@@ -14,6 +16,8 @@ export { RealtimeConnection, DEFAULT_EVENT_TYPES } from "./connection";
 export type {
   ConnectionStatus,
   EventListener,
+  InitialState,
+  InitialStateListener,
   StatusListener,
   Unsubscribe,
   RealtimeConnectionOptions,

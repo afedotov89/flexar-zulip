@@ -570,7 +570,7 @@ keyboard-driven).
 ### Фаза 1 — Базовый путь чтения
 - [~] 1.1 Аутентификация — ✅И (`authStore`+`persist`, `LoginPage`, `RequireAuth`, autologin, logout; 199 unit-тестов) · [~] П (экран логина + редирект + фикс бага гидрации протыканы; **живой вход на стенд ждёт ввода пароля владельцем**) · [ ] E (логин на стенд)
 - [~] 1.2 Цикл событий — ✅И (`RealtimeConnection`: register→long-poll→диспатч, reconnect/backoff, queue-expiry re-register, чистый stop; `wireRealtimeToAuth`; 236 unit-тестов) · [ ] П (события приходят, reconnect — **ждёт живой сессии владельца**)
-- [ ] 1.3 Сторы server-state — И · unit
+- [x] 1.3 Сторы server-state — ✅И (6 сторов realm/users/streams/messages/presence/unread + чистые редьюсеры; `RealtimeConnection` расширен `onInitialState`; 337 unit-тестов) · unit ✅
 - [ ] 1.4 Роутинг/narrow + парсер — И · [ ] П · unit на парсер
 - [ ] 1.5 Левый сайдбар — И · [ ] П (секции, счётчики, фильтр, свет/тёмная, overflow имён)
 - [ ] 1.6 Лента сообщений — И · [ ] П (recipient-бары, дата-разделители, группировка, дозагрузка, loading/empty)
