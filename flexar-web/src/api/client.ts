@@ -160,6 +160,11 @@ export class ApiClient {
    * `GET /api/v1/events`. Returns once events newer than `lastEventId`
    * are available or the server sends a heartbeat. The realtime layer
    * is responsible for the polling loop and acknowledgement bookkeeping.
+   *
+   * This request blocks server-side by design, so it raises the
+   * transport timeout well past the default — the heartbeat (~60s)
+   * bounds it in practice; the long `timeoutMs` only guards against a
+   * connection the server never answers at all.
    */
   async getEvents(
     queueId: string,
@@ -173,6 +178,7 @@ export class ApiClient {
         method: "GET",
         path: "/events",
         params: { queue_id: queueId, last_event_id: lastEventId },
+        timeoutMs: 120_000,
       },
       this.#credentials,
     );

@@ -15,6 +15,17 @@ import { ApiError, type ApiErrorBody } from "./errors";
 /** Base path every request is relative to; the Vite dev-proxy forwards it. */
 const API_BASE = "/api/v1";
 
+/**
+ * Default per-request timeout, in milliseconds. A wedged or unreachable
+ * server can leave `fetch` pending forever; bounding it means callers
+ * always get an `ApiError` to react to instead of a stuck `loading`
+ * state. 30s is generous for ordinary REST calls yet short enough that
+ * a hung request surfaces promptly. The realtime long-poll
+ * (`GET /events`) blocks server-side by design and opts out via
+ * `RequestSpec.timeoutMs` — see `client.ts`.
+ */
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 /** HTTP methods the client issues. */
 type HttpMethod = "GET" | "POST" | "DELETE";
 
@@ -47,6 +58,13 @@ export interface RequestSpec {
    * only the bootstrap `fetch_api_key` call sets this to `false`.
    */
   authenticated?: boolean;
+  /**
+   * Per-request timeout in milliseconds; defaults to
+   * `DEFAULT_TIMEOUT_MS`. The realtime long-poll (`GET /events`) blocks
+   * server-side by design, so it raises this to a much longer bound
+   * instead of being killed mid-poll.
+   */
+  timeoutMs?: number;
 }
 
 /** Credentials used to build the HTTP Basic auth header. */
@@ -145,7 +163,12 @@ export async function sendRequest<T>(
 
   const params = spec.params ?? {};
   let url = `${API_BASE}${spec.path}`;
-  const init: RequestInit = { method: spec.method, headers };
+  const controller = new AbortController();
+  const init: RequestInit = {
+    method: spec.method,
+    headers,
+    signal: controller.signal,
+  };
 
   if (spec.method === "GET") {
     const query = toSearchParams(params).toString();
@@ -157,15 +180,35 @@ export async function sendRequest<T>(
     init.body = toSearchParams(params).toString();
   }
 
+  // Bound the request: on timeout, abort the `fetch` and remember that
+  // we did, so the resulting `AbortError` is reported as a `TIMEOUT`
+  // rather than mistaken for an unrelated cancellation. The timer is
+  // cleared in `finally` so it never fires late on a fast response.
+  const timeoutMs = spec.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
   let response: Response;
   try {
     response = await fetch(url, init);
   } catch (cause) {
+    if (timedOut) {
+      throw new ApiError(
+        `Request to ${spec.path} timed out after ${timeoutMs}ms.`,
+        "TIMEOUT",
+        0,
+      );
+    }
     throw new ApiError(
       cause instanceof Error ? cause.message : "Network request failed.",
       "NETWORK_ERROR",
       0,
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const body = await parseJsonBody(response);

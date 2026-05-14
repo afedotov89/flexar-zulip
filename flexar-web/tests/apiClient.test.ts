@@ -411,3 +411,73 @@ describe("response handling", () => {
     expect(error.message).toBe("Failed to fetch");
   });
 });
+
+describe("request timeout", () => {
+  const client = () =>
+    createApiClient({ email: "iago@zulip.com", apiKey: "secret-key" });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * Queue a `fetch` that never settles on its own and only rejects with
+   * an `AbortError` once the request's `AbortController` fires — the
+   * behaviour the real `fetch` exhibits when the transport aborts it.
+   */
+  function mockHangingResponse(): void {
+    responseQueue.push(
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = calls[calls.length - 1].init.signal;
+          signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        }),
+    );
+  }
+
+  it("throws ApiError with TIMEOUT when a request exceeds the timeout", async () => {
+    mockHangingResponse();
+
+    const promise = client()
+      .getStreams()
+      .catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(30_000);
+    const error = (await promise) as ApiError;
+
+    expect(error.code).toBe("TIMEOUT");
+    expect(error.httpStatus).toBe(0);
+  });
+
+  it("clears the timeout on a fast success so it never fires late", async () => {
+    mockJsonResponse({ result: "success", msg: "", streams: [] });
+
+    await client().getStreams();
+    // Advancing well past the default timeout must not abort or throw:
+    // a settled request has already cleared its timer.
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(calls[0].init.signal?.aborted).toBe(false);
+  });
+
+  it("getEvents opts out of the default timeout with a long bound", async () => {
+    mockHangingResponse();
+
+    const promise = client()
+      .getEvents("q-1", 0)
+      .catch((e: unknown) => e);
+    // The default 30s bound has passed; the long-poll is still pending.
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(calls[0].init.signal?.aborted).toBe(false);
+
+    // Its own 120s bound still applies, so it is not unbounded.
+    await vi.advanceTimersByTimeAsync(90_000);
+    const error = (await promise) as ApiError;
+    expect(error.code).toBe("TIMEOUT");
+  });
+});
