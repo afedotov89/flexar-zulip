@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import { App } from "../src/app/App";
 
-describe("App scaffold", () => {
-  it("renders the scaffold placeholder screen", () => {
+describe("App", () => {
+  it("renders the token showcase inside the theme provider", () => {
     render(<App />);
-    expect(screen.getByText("Flexar Hub Web — scaffold OK")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Flexar Hub — Design Tokens" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /switch to .* theme/i }),
+    ).toBeInTheDocument();
   });
 });

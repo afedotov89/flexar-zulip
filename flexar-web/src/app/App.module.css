@@ -1,9 +1,0 @@
-/* Minimal scaffold-only styling. Real layout/tokens come in a later phase. */
-.scaffoldScreen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  font-family: system-ui, sans-serif;
-  font-size: 1.25rem;
-}

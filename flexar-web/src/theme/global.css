@@ -1,0 +1,75 @@
+/*
+ * Flexar Hub Web — global base CSS (Phase 0.2 token pipeline).
+ *
+ * This is the ONLY allowed global stylesheet per ENGINEERING_GUIDE.md §4.
+ * It is a minimal modern reset plus the document-level defaults that
+ * consume the token variables. The `--token` custom properties
+ * themselves are generated from `tokens.ts` and injected by
+ * `ThemeProvider` (see `cssVariables.ts`), so this file stays free of
+ * hardcoded design values — everything below is `var(--token)` or a
+ * pure-layout value allowed by the guide.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  /* Smooth the colour-role swap when the theme toggles. */
+  transition:
+    background-color var(--duration-base),
+    color var(--duration-base);
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizelegibility;
+}
+
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-family-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

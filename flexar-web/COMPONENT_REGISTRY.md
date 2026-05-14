@@ -11,13 +11,34 @@
 
 ## Токены и тема (`src/theme/`)
 
+**Импортировать из `src/theme/` (`src/theme/index.ts`).** Сырой
+`tokens.ts` в компонентах напрямую НЕ импортируется.
+
 | Артефакт | Статус | Описание / экспорт |
 |---|---|---|
-| `tokens.ts` — Flexar-слой | ✅ | Бренд-цвета (light/dark): `brandColors`, `brandColorsDark`, `projectBaseTokens`, `sharedTokens`, `lightOverrides`, `darkOverrides`, `designTokensLight`, `designTokensDark`, `componentTokens`. |
-| `tokens.ts` — `scales` | ✅ | Semantic-шкалы Flexar Hub: `space`, `radius`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `controlHeight`, `duration`, `shadow`, `zIndex`, `fontFamily`. Заданы оркестратором. |
-| **`tokens.ts` в компонентах не импортируется напрямую** | — | Потребляется только через токен-пайплайн (CSS-переменные / TS-тема). |
-| CSS-переменные | 🚧 | Конвенция имён — в `ENGINEERING_GUIDE.md` §2; конкретный список цветовых ролей `--color-*` зафиксирует пайплайн (Фаза 0.2) |
-| `ThemeProvider` + хук темы | 🚧 | Фаза 0.2 |
+| `tokens.ts` (источник) | ✅ | Flexar-слой (бренд-цвета light/dark) + `scales` (semantic-шкалы). Не импортируется компонентами напрямую. |
+| `ThemeProvider` | ✅ `src/theme/ThemeProvider.tsx` | Оборачивает приложение; инжектит сгенерированный стайлшит в `<head>`, ставит `data-theme` на `<html>`, persist в `localStorage`, на старте — `prefers-color-scheme`. |
+| `useTheme()` | ✅ `src/theme/useTheme.ts` | `{ theme: 'light'\|'dark'; setTheme(t); toggleTheme() }`. Бросает вне провайдера. |
+| `theme.ts` | ✅ `src/theme/theme.ts` | Типизированная тема: `ColorRoles`, `lightTheme`, `darkTheme`, `themes`, ре-экспорт `scales`. |
+| `cssVariables.ts` | ✅ `src/theme/cssVariables.ts` | Генерация CSS-переменных: `scaleVariableDeclarations()`, `colorVariableDeclarations(theme)`, `buildThemeStylesheet()`. |
+| `global.css` | ✅ `src/theme/global.css` | Единственный разрешённый глобальный CSS: reset + дефолты документа. |
+
+**CSS-переменные (использовать в CSS Modules через `var(--…)`):**
+- Шкалы (в `:root`, тема-независимые): `--space-{0,1,2,3,4,5,6,8,10,12}`,
+  `--radius-{sm,md,lg,xl,full}`, `--font-size-{xs,sm,md,lg,xl,2xl}`,
+  `--font-weight-{regular,medium,semibold,bold}`,
+  `--line-height-{tight,normal,relaxed}`,
+  `--letter-spacing-{normal,wide}`, `--control-height-{sm,md,lg}`,
+  `--duration-{fast,base,slow}`, `--shadow-{sm,md,lg}`,
+  `--z-{base,dropdown,sticky,overlay,modal,popover,tooltip,toast}`,
+  `--font-family-{base,mono}`.
+- Цветовые роли (16, значения свет/тёмная — в `:root` / `:root[data-theme="dark"]`):
+  `--color-accent`, `--color-accent-hover`, `--color-accent-active`,
+  `--color-bg`, `--color-surface`, `--color-surface-raised`,
+  `--color-text`, `--color-text-muted`, `--color-text-on-accent`,
+  `--color-border`, `--color-border-strong`,
+  `--color-danger`, `--color-danger-hover`,
+  `--color-hover`, `--color-active`, `--color-focus-ring`.
 
 ---
 

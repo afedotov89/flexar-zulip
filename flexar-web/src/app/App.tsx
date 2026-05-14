@@ -1,7 +1,10 @@
-import styles from "./App.module.css";
+import { ThemeProvider } from "../theme";
+import { TokenShowcase } from "../pages/TokenShowcase";
 
 export function App() {
   return (
-    <div className={styles.scaffoldScreen}>Flexar Hub Web — scaffold OK</div>
+    <ThemeProvider>
+      <TokenShowcase />
+    </ThemeProvider>
   );
 }
