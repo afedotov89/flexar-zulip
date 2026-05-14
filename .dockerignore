@@ -15,12 +15,15 @@ node_modules
 # Zulip-specific build artifacts
 var/
 zulip-py3-venv/
-static/generated/
 static/min/
 static/webpack-bundles/
 prod-static/
 build/
 dist/
+# NOTE: do NOT exclude static/generated/ or web/generated/ — they're tracked
+# placeholder directories that tools/setup/emoji/build_emoji uses as
+# symlink targets at provision time. Excluding them causes os.symlink to
+# fail with ENOENT (missing parent dir).
 
 # IDE / editor
 .idea
