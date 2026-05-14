@@ -64,5 +64,10 @@ import "../../styles/animate.css";
 import "@uppy/core/css/style.min.css";
 import "@uppy/image-editor/css/style.min.css";
 
+// Flexar Hub branding — imported after all upstream styles so its
+// :root overrides win by source order.
+import "@fontsource-variable/inter";
+import "../../styles/flexar_branding.css";
+
 // This should be last.
 import "../ui_init.js";

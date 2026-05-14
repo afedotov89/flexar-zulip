@@ -1,0 +1,418 @@
+/* Flexar Hub branding overrides.
+ *
+ * Re-themes the Zulip web app and the logged-out (portico) pages to
+ * match the Flexar design system: the Inter typeface, the Flexar blue
+ * accent (hsl(215deg 100% 54%)), Flexar's neutral background and
+ * border palette, and Flexar's softer corner radii. Values are taken
+ * from Flexar's design tokens (web/src/theme/tokens.ts in the Flexar
+ * repo); the accent and borders are identical in light and dark mode
+ * there.
+ *
+ * Imported last in web/src/bundles/app.ts and
+ * web/src/bundles/legacy_portico_bundle.ts so its declarations win by
+ * source order. It is override-only — no structural changes — but it
+ * does reach into component selectors (inputs, buttons, panels), so
+ * upstream restyles of those components may need a re-check here.
+ *
+ * --- Flexar tokens ---------------------------------------------------
+ *   accent          hsl(215deg 100% 54%)   accent-hover  +9% L
+ *   accent-active   hsl(215deg 88% 45%)
+ *   background      light hsl(0 0% 97%)    dark hsl(0 0% 8%)
+ *   surface (card)  light hsl(0 0% 100%)   dark hsl(0 0% 12%)
+ *   border          light hsl(214 32% 91%) dark hsl(216 34% 17%)
+ *   radius          surfaces 12px / controls 8px
+ * -------------------------------------------------------------------- */
+
+:root {
+    /* --- Accent: Flexar blue --- */
+    --color-text-link: hsl(215deg 100% 54%);
+    --color-text-url: hsl(215deg 100% 54%);
+    --color-text-url-hover: hsl(215deg 88% 45%);
+    --color-text-sender-name-hover: hsl(215deg 100% 54%);
+    --color-text-link-banner: hsl(215deg 100% 54%);
+    --color-outline-focus: hsl(215deg 100% 54%);
+    --color-tab-picker-icon: hsl(215deg 100% 54%);
+    --color-fill-hover-copy-icon: hsl(215deg 100% 54%);
+
+    /* Brand action buttons & icons. Upstream's brand hue is violet
+     * (~hsl(254deg)); re-point the whole family to Flexar blue. The
+     * subtle/text variants are low-opacity washes of the accent. */
+    --color-background-brand-solid-action-button: hsl(215deg 100% 54%);
+    --color-background-brand-solid-action-button-hover: hsl(215deg 100% 63%);
+    --color-background-brand-solid-action-button-active: hsl(215deg 88% 45%);
+    --color-text-brand-subtle-action-button: hsl(215deg 100% 54%);
+    --color-background-brand-subtle-action-button: hsl(215deg 100% 54% / 12%);
+    --color-background-brand-subtle-action-button-hover: hsl(
+        215deg 100% 54% / 18%
+    );
+    --color-background-brand-subtle-action-button-active: hsl(
+        215deg 100% 54% / 24%
+    );
+    --color-text-brand-text-action-button: hsl(215deg 100% 54%);
+    --color-background-brand-text-action-button-hover: hsl(
+        215deg 100% 54% / 12%
+    );
+    --color-background-brand-text-action-button-active: hsl(
+        215deg 100% 54% / 18%
+    );
+    --color-text-brand-icon-button: hsl(215deg 100% 54%);
+    --color-text-brand-icon-button-hover: hsl(215deg 100% 45%);
+    --color-text-brand-icon-button-active: hsl(215deg 88% 40%);
+    --color-text-brand-icon-button-square-active: hsl(215deg 100% 54%);
+    --color-background-brand-icon-button-square-hover: hsl(
+        215deg 100% 54% / 12%
+    );
+    --color-background-brand-icon-button-square-active: hsl(
+        215deg 100% 54% / 18%
+    );
+    --color-text-brand-banner: hsl(215deg 100% 54%);
+    --color-border-brand-banner: hsl(215deg 100% 54% / 40%);
+    --color-background-brand-banner: hsl(215deg 100% 54% / 8%);
+
+    /* --- Backgrounds: Flexar neutral greys --- */
+    --color-background: light-dark(hsl(0deg 0% 97%), hsl(0deg 0% 8%));
+    --color-background-navbar: light-dark(hsl(0deg 0% 97%), hsl(0deg 0% 8%));
+
+    /* Roomier .input-element components (sidebar search, dropdowns).
+     * Upstream's row height reads cramped; bumping the variable is the
+     * clean way in — padding on .input-element loses on specificity to
+     * .input-element-wrapper .input-element. */
+    --input-element-row-height: 2.25em;
+
+    /* --- Borders & input outlines: Flexar border palette --- */
+    /* Soften the hard 1px lines Zulip draws between message groups,
+     * around recipient bars and the message list — modern UIs lean on
+     * subtle elevation, not heavy borders. */
+    --color-message-list-border: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-message-header-contents-border: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-message-header-contents-border-bottom: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-sidebar: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-legacy-input: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-legacy-input-focus: hsl(215deg 100% 54%);
+    --color-outline-input: light-dark(hsl(214deg 32% 91%), hsl(216deg 34% 17%));
+    --color-outline-input-hover: light-dark(
+        hsl(214deg 25% 80%),
+        hsl(216deg 34% 28%)
+    );
+    --color-outline-input-focus: hsl(215deg 100% 54%);
+    --color-border-pill-container: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-compose-content: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-inbox-search: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-dropdown-widget: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-dropdown-widget-button: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-zulip-button: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+    --color-border-rendered-markdown-table: light-dark(
+        hsl(214deg 32% 91%),
+        hsl(216deg 34% 17%)
+    );
+
+    /* --- Buttons: clean Flexar neutral surfaces --- */
+    --color-background-zulip-button: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 12%)
+    );
+    --color-background-neutral-subtle-action-button: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 15%)
+    );
+    --color-background-neutral-solid-action-button: light-dark(
+        hsl(0deg 0% 96%),
+        hsl(0deg 0% 18%)
+    );
+    --color-background-neutral-solid-action-button-hover: light-dark(
+        hsl(0deg 0% 92%),
+        hsl(0deg 0% 22%)
+    );
+
+    /* --- Portico (logged-out) pages: login, registration, etc. --- */
+    --color-link: hsl(215deg 100% 54%);
+    --color-link-hover: hsl(215deg 100% 63%);
+    --color-link-portico-auth: hsl(215deg 100% 54%);
+    --color-link-portico-auth-hover: hsl(215deg 88% 45%);
+    --color-action-button: hsl(215deg 100% 54%);
+    --color-action-button-hover: hsl(215deg 100% 63%);
+    --color-action-button-active: hsl(215deg 88% 45%);
+}
+
+/* --- Typeface: Inter ---
+ * Upstream sets "Source Sans 3 VF" on the .app container and on portico
+ * bodies; form controls do not inherit font-family, so they are listed
+ * explicitly. */
+body,
+.app,
+input,
+button,
+textarea,
+select {
+    font-family: "Inter Variable", "Source Sans 3 VF", sans-serif;
+}
+
+/* --- Controls: softer 8px radius ---
+ * Upstream uses 4px on inputs, pills, dropdown buttons and most
+ * buttons. Flexar uses an 8px radius on controls. */
+.input-element,
+.filter-input,
+.pill-container,
+.dropdown-widget-button,
+.inbox-search input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+textarea,
+select,
+.zulip-button,
+.button,
+.modal__button,
+.action-button {
+    border-radius: 8px;
+}
+
+/* --- Surfaces: rounded, elevated cards instead of hard panels ---
+ * Modals, popovers and the compose box read as elevated cards in
+ * Flexar: larger radius, soft shadow, no heavy outline. */
+.modal__container {
+    border-radius: 12px;
+    box-shadow:
+        0 12px 48px hsl(0deg 0% 0% / 18%),
+        0 2px 8px hsl(0deg 0% 0% / 10%);
+}
+
+.tippy-box,
+.popover-menu-list,
+.dropdown-widget-popover .popover-menu-list {
+    border-radius: 10px;
+    box-shadow:
+        0 8px 28px hsl(0deg 0% 0% / 16%),
+        0 1px 4px hsl(0deg 0% 0% / 10%);
+}
+
+/* The compose box reads as an elevated card rather than a
+ * hard-outlined panel. */
+#compose-content {
+    border-color: transparent;
+    border-radius: 12px 12px 0 0;
+    box-shadow:
+        0 -1px 3px hsl(0deg 0% 0% / 6%),
+        0 -10px 28px hsl(0deg 0% 0% / 9%);
+}
+
+/* Modal buttons: neutral surface for cancel, Flexar blue for the
+ * primary submit action. Upstream hardcodes hsl(0deg 0% 90%). */
+.modal__button {
+    background-color: light-dark(hsl(0deg 0% 96%), hsl(0deg 0% 18%));
+    color: var(--color-text-default);
+}
+
+.modal__button.dialog_submit_button {
+    background-color: hsl(215deg 100% 54%);
+    color: hsl(0deg 0% 100%);
+}
+
+/* --- Modernization: crisp focus, more air ---
+ * Upstream's blurry 5px focus glow and tight control padding read as
+ * dated; replace them with a crisp focus ring and a bit more room. */
+.input-element:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+.has-input-pills .pill-container:has(.input:focus) {
+    box-shadow: 0 0 0 3px hsl(215deg 100% 54% / 18%);
+}
+
+/* Roomier text inputs — upstream's are cramped. Padding-block only,
+ * so inputs with icon-driven horizontal padding stay intact. Covers
+ * both the modern .input-element component and the many legacy
+ * per-purpose input classes. */
+.input-element,
+.filter_text_input,
+.settings_text_input,
+.settings_url_input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+input[type="tel"],
+textarea {
+    padding-block: 0.5em;
+}
+
+/* Rounder avatars — upstream uses a tight 4px. */
+.inline_profile_picture,
+.information-settings .user-profile-picture,
+.user_sidebar_entry.with_avatar .user-profile-picture {
+    border-radius: 8px;
+}
+
+/* Recipient bars share the soft radius of other surfaces, with
+ * breathing room between message groups. */
+.message_header .message-header-contents {
+    border-radius: 10px 10px 0 0;
+}
+
+/* Breathing room *between* message groups only — the adjacent-sibling
+ * selector skips the first recipient bar, so the feed's top padding
+ * still lines up with the left sidebar's top gap. */
+.recipient_row + .recipient_row .message_header {
+    margin-top: 1.25em;
+}
+
+/* Lighter heading weight — Inter at 600 reads heavier than Source
+ * Sans did, so recipient bars are toned to a medium weight. */
+.message_header,
+.message_header .message-header-contents {
+    font-weight: 500;
+}
+
+/* Drop the gimmicky zoom-on-hover on modal buttons. */
+.modal__button:hover,
+.modal__button:focus {
+    transform: none;
+}
+
+/* --- Left sidebar: separated nav blocks, modern micro-labels ---
+ * Upstream packs the ВИДЫ / DM / КАНАЛЫ sections flush against each
+ * other with a heavy 16px section title. Give the sections real
+ * vertical separation and shrink the titles to quiet tracked
+ * micro-labels, the way current chat sidebars do it. */
+.left-sidebar-section-header {
+    margin-top: 1.15em;
+}
+
+#views-label-container {
+    margin-top: 0;
+}
+
+.left-sidebar-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    /* Mute the dark navy title colour to a quiet label tone. */
+    opacity: 0.6;
+}
+
+/* --- Message area: a little vertical air per message ---
+ * Upstream packs message boxes with almost no block padding. */
+.messagebox {
+    padding-block: 0.4em;
+}
+
+/* --- Navbar: soft divider instead of a hard 1px #ccc line ---
+ * .header is the full-width bar; #message_view_header is the channel
+ * title bar layered over the message column and carries its own hard
+ * #ccc inset line. Drop the inner one so the soft divider is uniform
+ * across the whole navbar width. */
+.header {
+    box-shadow: 0 1px 3px hsl(0deg 0% 0% / 6%);
+}
+
+#message_view_header {
+    box-shadow: none;
+}
+
+/* --- Right sidebar: same quiet micro-label as the left sidebar ---
+ * Restyle the whole .buddy-list-heading (an h5), not just its inner
+ * text span — otherwise the h5 keeps upstream's 16px box and the (N)
+ * user-count stays 16px, leaving label and count mismatched and off
+ * the baseline. align-items centres the label and count together. */
+.right-sidebar-title,
+.buddy-list-heading {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    opacity: 0.6;
+    align-items: center;
+    /* The heading is a flex row; restore the space between the label
+     * and the (N) count that flex strips out. */
+    gap: 0.3em;
+}
+
+/* The (N) count inherits the shrunk heading size instead of 16px. */
+[class*="buddy-list-heading-user-count"] {
+    font-size: inherit;
+}
+
+/* --- Compose box: roomier textarea --- */
+.new_message_textarea {
+    padding-block: 0.5em;
+}
+
+/* --- Message feed: drop the off-brand Zulip-logo flourish ---
+ * The decorative Zulip "Z" markers at the top and bottom of the feed
+ * are upstream branding and add visual noise; hide them. */
+.top-messages-logo,
+.bottom-messages-logo {
+    display: none;
+}
+
+/* Trim the feed's top padding so the visible recipient bar
+ * (.message-header-contents, which sits 10px below .message_header
+ * via its own margin, plus a ~10px intrinsic feed offset) lands at
+ * the same y (50px) as the left/right sidebar search rows. */
+#message_feed_container {
+    padding-top: 30px;
+}
+
+/* --- Left-sidebar search row: align the input and the +-button ---
+ * Upstream leaves the search input and the adjacent add-channel
+ * button mismatched in size. Size them to a matching pair, and align
+ * them to the top of the row so the search wrapper starts at the
+ * same y as the right sidebar's filter wrapper. */
+#left-sidebar-search {
+    align-items: start;
+}
+
+.left-sidebar-search-input {
+    border-radius: 8px;
+}
+
+.add-stream-icon-container {
+    width: 1.75em;
+    height: 1.75em;
+    border-radius: 8px;
+}
+
+.add-stream-icon-container:hover {
+    background-color: var(--color-background-sidebar-action-hover);
+}
