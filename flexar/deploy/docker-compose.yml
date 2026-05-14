@@ -138,6 +138,11 @@ services:
       SETTING_EMAIL_PORT: "${SETTING_EMAIL_PORT:-587}"
       SETTING_EMAIL_USE_TLS: "${SETTING_EMAIL_USE_TLS:-True}"
       SETTING_NOREPLY_EMAIL_ADDRESS: "${SETTING_NOREPLY_EMAIL_ADDRESS:-noreply@flexar.local}"
+      # Consumer mailboxes (mail.ru/Yandex/Gmail) reject any sender that
+      # isn't exactly the authenticated address, so the per-message token
+      # suffix on the noreply address (noreply-{token}@...) must be off.
+      # Revisit once we move to a real domain + transactional provider.
+      SETTING_ADD_TOKENS_TO_NOREPLY_ADDRESS: "False"
 
       # Auth backends (comma-separated). EmailAuthBackend is the simplest;
       # for production add GoogleAuthBackend / GitHubAuthBackend / etc.
