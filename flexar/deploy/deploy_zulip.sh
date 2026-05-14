@@ -133,23 +133,27 @@ EOF
 mv "${TMP_ENV}" "${ENV_FILE_PATH}"
 
 # ------------------------------------------------------------
-# Place docker-compose.yml in deploy dir.
-# We carry one canonical copy in the image; for now embed a
-# minimal compose that references $ZULIP_IMAGE from env.
+# Refresh docker-compose.yml from the freshly-pulled image — every
+# deploy. The image is the source of truth; if we kept the old compose
+# file, hostname/port/env changes that landed in the repo would never
+# take effect on the server (compose would see no config diff and skip
+# recreating sidecars). This bit me on the memcached SASL fix.
 # ------------------------------------------------------------
 COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
-if [ ! -f "${COMPOSE_FILE}" ]; then
-  echo "===> No docker-compose.yml in ${DEPLOY_DIR} — fetching from the image..."
-  # Use the image itself as the source of truth: it contains the same compose
-  # file we shipped from the repo at flexar/deploy/docker-compose.yml. We
-  # extract it by running a one-shot container.
-  if ! docker run --rm --entrypoint cat "${FULL_IMAGE_NAME}" \
-      /root/zulip/flexar/deploy/docker-compose.yml > "${COMPOSE_FILE}" 2>/dev/null; then
-    echo "WARNING: could not extract docker-compose.yml from image."
-    echo "  Place flexar/deploy/docker-compose.yml manually at ${COMPOSE_FILE}"
-    exit 1
-  fi
+TMP_COMPOSE="$(mktemp)"
+echo "===> Refreshing docker-compose.yml from image..."
+if ! docker run --rm --entrypoint cat "${FULL_IMAGE_NAME}" \
+    /root/zulip/flexar/deploy/docker-compose.yml > "${TMP_COMPOSE}" 2>/dev/null; then
+  echo "ERROR: could not extract docker-compose.yml from image."
+  rm -f "${TMP_COMPOSE}"
+  exit 1
 fi
+if [ ! -s "${TMP_COMPOSE}" ]; then
+  echo "ERROR: extracted docker-compose.yml is empty."
+  rm -f "${TMP_COMPOSE}"
+  exit 1
+fi
+mv "${TMP_COMPOSE}" "${COMPOSE_FILE}"
 
 # ------------------------------------------------------------
 # Bring up the stack.
