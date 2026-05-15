@@ -30,7 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
-- `09d6fcf1a2` 3.4 — управление непрочитанным (mark-as-read on scroll + mark-all-read), live ✅
+- `0fd37adc0c` 3.4 — управление непрочитанным (mark-as-read on scroll + mark-all-read), live ✅
 - `1fb0da3b55` 3.3 — действия над сообщением (меню+edit+delete+star+copy+mark-unread), live ✅
 - `36b79f1131` 3.2 — реакции (чипы + `ReactionPicker` + optimistic, live-протык ✅)
 - `43c5fd6cad` 2.4 — драфты (`useDraftsStore` + автосохранение + восстановление + `/drafts`-страница, +фикс ререндера destination-лейбла), live-протык ✅
