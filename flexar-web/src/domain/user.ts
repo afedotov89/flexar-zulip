@@ -82,7 +82,13 @@ export interface UserStatus {
   status_text?: string;
   emoji_name?: string;
   emoji_code?: string;
-  reaction_type?: ReactionType;
+  /**
+   * Emoji namespace. The wire form admits `""` as a "clear" signal —
+   * both on `POST /users/me/status` requests and on the realtime
+   * `user_status` event the server emits in response. The reducer
+   * treats `""` (alongside `emoji_name === ""`) as a clear.
+   */
+  reaction_type?: ReactionType | "";
 }
 
 /**

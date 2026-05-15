@@ -23,6 +23,7 @@ import type {
   TypingEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
+  UserStatusEvent,
 } from "../domain";
 
 export function isMessageEvent(event: ServerEvent): event is MessageEvent {
@@ -79,4 +80,10 @@ export function isScheduledMessagesEvent(
   event: ServerEvent,
 ): event is ScheduledMessagesEvent {
   return event.type === "scheduled_messages";
+}
+
+export function isUserStatusEvent(
+  event: ServerEvent,
+): event is UserStatusEvent {
+  return event.type === "user_status";
 }

@@ -318,6 +318,25 @@ export interface GetUsersResult {
 export type GetOwnUserResult = User;
 
 /**
+ * Parameters for `updateOwnUserStatus`
+ * (`POST /api/v1/users/me/status`). Every field is optional and the
+ * server only changes the parameters supplied — pass just
+ * `statusText` to change the text, just the three emoji fields to
+ * change the emoji. Passing the empty string clears the corresponding
+ * piece (Zulip's documented signal).
+ */
+export interface UpdateOwnUserStatusParams {
+  /** Status text; up to 60 Unicode code points. `""` clears it. */
+  statusText?: string;
+  /** Status emoji name; `""` clears the emoji. */
+  emojiName?: string;
+  /** Server emoji code matching `emojiName`. */
+  emojiCode?: string;
+  /** Emoji namespace (`unicode_emoji` / `realm_emoji` / `zulip_extra_emoji`). */
+  reactionType?: string;
+}
+
+/**
  * Parameters for `createScheduledMessage`
  * (`POST /api/v1/scheduled_messages`). Discriminated on `type`: a
  * channel-bound scheduled message carries the destination channel id

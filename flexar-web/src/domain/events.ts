@@ -323,7 +323,8 @@ export interface UserStatusEvent extends EventBase {
   emoji_name?: string;
   /** Status emoji code; `""` when no emoji was selected. */
   emoji_code?: string;
-  reaction_type?: ReactionType;
+  /** Emoji namespace; the wire admits `""` as a clear signal. */
+  reaction_type?: ReactionType | "";
   /** Legacy mirror of the user's `presence_enabled` setting. */
   away?: boolean;
 }

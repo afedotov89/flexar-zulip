@@ -47,6 +47,7 @@ export type {
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
+  UpdateOwnUserStatusParams,
   UpdateScheduledMessageParams,
 } from "./types";
 

@@ -9,6 +9,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/Button";
 import { SearchBar } from "../../features/search";
+import { StatusButton } from "../../features/userStatus";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../theme";
 import styles from "./Navbar.module.css";
@@ -48,6 +49,7 @@ export function Navbar(): React.JSX.Element {
         </button>
         {session != null && (
           <div className={styles.account}>
+            <StatusButton />
             <span className={styles.accountEmail} title={session.email}>
               {session.email}
             </span>

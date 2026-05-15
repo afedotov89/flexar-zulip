@@ -34,10 +34,39 @@
   bottom: 0;
 }
 
+/* Two-line slot: name (with optional status emoji) over status text. */
+.identity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
 /* The name takes the remaining width and truncates rather than wraps. */
 .name {
   flex: 1;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusEmoji {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.statusText {
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

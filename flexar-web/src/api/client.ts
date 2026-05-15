@@ -55,6 +55,7 @@ import type {
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
+  UpdateOwnUserStatusParams,
   UpdateScheduledMessageParams,
 } from "./types";
 
@@ -453,6 +454,34 @@ export class ApiClient {
       this.#credentials,
     );
     return body.raw_content;
+  }
+
+  // --- User status --------------------------------------------------
+
+  /**
+   * Update the authenticated user's status text and/or status emoji.
+   * `POST /api/v1/users/me/status`.
+   *
+   * Only the supplied parameters change — passing just `statusText`
+   * leaves the emoji untouched. Pass an empty string for `statusText`
+   * to clear the text; pass `emojiName: ""` to clear the emoji
+   * (Zulip's documented signal). Server emits a `user_status` event
+   * to all sessions so the store updates everywhere.
+   */
+  async updateOwnUserStatus(params: UpdateOwnUserStatusParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/users/me/status",
+        params: {
+          status_text: params.statusText,
+          emoji_name: params.emojiName,
+          emoji_code: params.emojiCode,
+          reaction_type: params.reactionType,
+        },
+      },
+      this.#credentials,
+    );
   }
 
   // --- Typing -------------------------------------------------------

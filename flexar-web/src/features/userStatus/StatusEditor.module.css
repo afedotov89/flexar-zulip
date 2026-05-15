@@ -1,0 +1,55 @@
+/*
+ * Status editor popover (Phase 4.4). Token-only design values.
+ */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 22rem;
+  padding: var(--space-3);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.emojiPreview {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-md);
+  background-color: var(--color-hover);
+  border-radius: var(--radius-md);
+}
+
+.textInput {
+  flex: 1;
+}
+
+.charCount {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.charCount[data-overflow] {
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}

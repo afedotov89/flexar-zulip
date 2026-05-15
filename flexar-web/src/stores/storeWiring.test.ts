@@ -75,10 +75,11 @@ const { useTopicsStore } = await import("./topicsStore");
 const { useRealmEmojiStore } = await import("./realmEmojiStore");
 const { useTypingStore } = await import("./typingStore");
 const { useScheduledMessagesStore } = await import("./scheduledMessagesStore");
+const { useUserStatusesStore } = await import("./userStatusesStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 11;
+const STORE_COUNT = 12;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -100,6 +101,7 @@ describe("server-state stores — wiring", () => {
       scheduledMessages: {},
       loadStatus: "idle",
     });
+    useUserStatusesStore.setState({ statuses: {} });
   });
 
   it("every store subscribes at module load", () => {
@@ -366,6 +368,49 @@ describe("server-state stores — wiring", () => {
       scheduled_message_id: 7,
     });
     expect(useScheduledMessagesStore.getState().get(7)).toBeUndefined();
+  });
+
+  it("hydrates user statuses from the user_status snapshot", () => {
+    emitInitialState({
+      user_status: {
+        "5": { status_text: "ooo" },
+        "6": { emoji_name: "rocket", emoji_code: "1f680", reaction_type: "unicode_emoji" },
+      },
+    });
+    expect(useUserStatusesStore.getState().getStatus(5)?.status_text).toBe("ooo");
+    expect(useUserStatusesStore.getState().getStatus(6)?.emoji_name).toBe("rocket");
+  });
+
+  it("folds user_status events and clears empty statuses", () => {
+    useUserStatusesStore.setState({
+      statuses: { 5: { status_text: "ooo" } },
+    });
+    emitEvent({
+      id: 14,
+      type: "user_status",
+      user_id: 5,
+      status_text: "back",
+      emoji_name: "wave",
+      emoji_code: "1f44b",
+      reaction_type: "unicode_emoji",
+    });
+    expect(useUserStatusesStore.getState().getStatus(5)?.status_text).toBe(
+      "back",
+    );
+    expect(useUserStatusesStore.getState().getStatus(5)?.emoji_name).toBe(
+      "wave",
+    );
+
+    emitEvent({
+      id: 15,
+      type: "user_status",
+      user_id: 5,
+      status_text: "",
+      emoji_name: "",
+      emoji_code: "",
+      reaction_type: "",
+    });
+    expect(useUserStatusesStore.getState().getStatus(5)).toBeUndefined();
   });
 
   it("clears the scheduled-messages store on re-register", () => {

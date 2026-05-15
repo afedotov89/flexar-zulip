@@ -1,0 +1,45 @@
+/*
+ * Navbar status-trigger styles (Phase 4.4). Token-only design values.
+ */
+
+.trigger {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  background-color: var(--color-hover);
+  outline: none;
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+}
+
+.value {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: 14rem;
+}
+
+.emoji {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
