@@ -1,4 +1,4 @@
-// Flexar Hub Web — feed message row (Phase 1.6).
+// Flexar Hub Web — feed message row (Phase 1.6 + 3.2).
 //
 // One message in the feed. Two layouts, chosen by `isGroupStart`:
 //
@@ -10,11 +10,17 @@
 //                     conventional chat-grouping treatment).
 //
 // Every row carries a hover toolbar of action controls (react, reply,
-// more). The *actions themselves* are Phase 2 — the buttons are wired
-// to no-ops here — but the hover affordance and layout belong to the
-// feed and so are built now. The toolbar is also keyboard-reachable:
-// it is in the DOM (not `display:none`), just visually revealed on
-// `:hover` / `:focus-within`, so tabbing into it works.
+// more). Phase 3.2 wires the "Add reaction" affordance to the reaction
+// picker; the other buttons remain Phase 2 placeholders for now. The
+// toolbar is in the DOM at all times (visually revealed on `:hover` /
+// `:focus-within`) so tabbing into it works.
+//
+// Phase 3.2 also adds a `ReactionsRow` beneath the message body when
+// the message has reactions (or a reaction-related error to surface).
+// `useReactionToggle` lives on the row (not inside `ReactionsRow`) so
+// the same `toggle` callback drives both the chip clicks and the
+// hover-toolbar picker — the optimistic update / REST call / error
+// handling lives in exactly one place per message.
 //
 // The row is a focusable `article` in the feed's `log`, so the message
 // list is keyboard-navigable item by item with a visible focus ring.
@@ -23,9 +29,16 @@
 // seam: Phase 1.6 shows plain text, Phase 1.7 swaps in sanitized HTML
 // hydration (see `MessageContent`).
 
+import { useCallback } from "react";
 import { Avatar } from "../../components/Avatar";
 import { IconButton } from "../../components/IconButton";
-import type { Message } from "../../domain";
+import type { EmojiIdentity, Message } from "../../domain";
+import { useAuthStore } from "../../stores/authStore";
+import {
+  ReactionPickerButton,
+  ReactionsRow,
+  useReactionToggle,
+} from "../reactions";
 import { MessageContent } from "./MessageContent";
 import { formatMessageTime } from "./formatting";
 import styles from "./MessageRow.module.css";
@@ -40,21 +53,18 @@ export interface MessageRowProps {
   isGroupStart: boolean;
 }
 
-// The hover toolbar. The actions are Phase 2 — the handlers are no-ops
-// for now — but the controls are real, labelled, and keyboard-reachable
-// so the layout and affordance are verifiable.
-function HoverActions(): React.JSX.Element {
+interface HoverActionsProps {
+  /** Picker handler — opens the reaction picker and adds the picked emoji. */
+  onPickReaction: (identity: EmojiIdentity) => void;
+}
+
+// The hover toolbar. The reply/more actions remain Phase 2 placeholders
+// (no-op handlers); the "Add reaction" control is wired in Phase 3.2.
+// Controls are real, labelled, and keyboard-reachable.
+function HoverActions({ onPickReaction }: HoverActionsProps): React.JSX.Element {
   return (
     <div className={styles.actions}>
-      <IconButton
-        icon="smile"
-        size="sm"
-        variant="ghost"
-        aria-label="Add reaction"
-        onClick={() => {
-          // Phase 2: open the emoji picker.
-        }}
-      />
+      <ReactionPickerButton variant="toolbar" onPick={onPickReaction} />
       <IconButton
         icon="paperclip"
         size="sm"
@@ -86,6 +96,25 @@ export function MessageRow({
     ? styles.row
     : `${styles.row} ${styles.follower}`;
 
+  const viewerId = useAuthStore((state) => state.session?.userId);
+  const { toggle, errorMessage } = useReactionToggle(message.id);
+
+  // The toolbar's picker may pick an emoji the viewer already reacted
+  // with — honour it as a toggle (remove), matching the chip-row's
+  // picker handler in `ReactionsRow`.
+  const handleToolbarPick = useCallback(
+    (identity: EmojiIdentity) => {
+      const existing = message.reactions.find(
+        (reaction) =>
+          reaction.user_id === viewerId &&
+          reaction.reaction_type === identity.reaction_type &&
+          reaction.emoji_code === identity.emoji_code,
+      );
+      void toggle(identity, existing !== undefined);
+    },
+    [message.reactions, toggle, viewerId],
+  );
+
   return (
     <article
       className={rowClass}
@@ -116,9 +145,15 @@ export function MessageRow({
           </div>
         )}
         <MessageContent content={message.content} />
+        <ReactionsRow
+          message={message}
+          viewerId={viewerId}
+          toggle={toggle}
+          errorMessage={errorMessage}
+        />
       </div>
 
-      <HoverActions />
+      <HoverActions onPickReaction={handleToolbarPick} />
     </article>
   );
 }

@@ -24,6 +24,7 @@
 
 import type {
   DeleteMessageEvent,
+  EmojiIdentity,
   Message,
   MessageEvent,
   MessageFlag,
@@ -31,6 +32,7 @@ import type {
   ReactionEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
+  UserId,
 } from "../domain";
 
 /** The message cache, keyed by `id`. */
@@ -332,6 +334,71 @@ export function applyReactionEvent(
     messages: {
       ...snapshot.messages,
       [event.message_id]: { ...message, reactions },
+    },
+  };
+}
+
+/** A pending optimistic reaction the UI wants to apply (Phase 3.2). */
+export interface OptimisticReaction {
+  message_id: MessageId;
+  op: "add" | "remove";
+  user_id: UserId;
+  emoji: EmojiIdentity;
+}
+
+/**
+ * Optimistically add or remove a reaction in the cache (Phase 3.2). The
+ * UI calls this immediately on click — before the REST request — so the
+ * chip updates without a round-trip; the realtime `reaction` event
+ * arrives shortly after and `applyReactionEvent` is idempotent on the
+ * same `(user, type, code)` triple, so the optimistic state harmonizes
+ * with the event-delivered state without a flicker. On REST failure the
+ * caller flips `op` and runs the same reducer to revert.
+ *
+ * The behaviour mirrors `applyReactionEvent` exactly — same identity,
+ * same idempotency, same no-op-for-uncached-message handling — so the
+ * two paths cannot diverge.
+ */
+export function applyOptimisticReaction(
+  snapshot: MessagesSnapshot,
+  pending: OptimisticReaction,
+): MessagesSnapshot {
+  const message = snapshot.messages[pending.message_id];
+  if (message === undefined) {
+    return snapshot;
+  }
+  const isSame = (r: Message["reactions"][number]): boolean =>
+    r.user_id === pending.user_id &&
+    r.emoji_code === pending.emoji.emoji_code &&
+    r.reaction_type === pending.emoji.reaction_type;
+
+  let reactions: Message["reactions"];
+  if (pending.op === "add") {
+    if (message.reactions.some(isSame)) {
+      return snapshot;
+    }
+    reactions = [
+      ...message.reactions,
+      {
+        user_id: pending.user_id,
+        emoji_name: pending.emoji.emoji_name,
+        emoji_code: pending.emoji.emoji_code,
+        reaction_type: pending.emoji.reaction_type,
+      },
+    ];
+  } else {
+    const filtered = message.reactions.filter((r) => !isSame(r));
+    if (filtered.length === message.reactions.length) {
+      return snapshot;
+    }
+    reactions = filtered;
+  }
+
+  return {
+    ...snapshot,
+    messages: {
+      ...snapshot.messages,
+      [pending.message_id]: { ...message, reactions },
     },
   };
 }

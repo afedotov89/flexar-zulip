@@ -1,0 +1,18 @@
+/*
+ * Reactions row layout (Phase 3.2). Sits beneath the message body in
+ * `MessageRow`. A wrapping flex row of chips + the inline "+" picker
+ * trigger; an `error` line appears alongside on failure.
+ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  margin-top: var(--space-1);
+}
+
+.error {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}

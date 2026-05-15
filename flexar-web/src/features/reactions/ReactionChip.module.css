@@ -1,0 +1,55 @@
+/*
+ * Reaction chip styles (Phase 3.2). Pill-shaped clickable chip used in
+ * `ReactionsRow`. Two visual states: default (surface) and active (the
+ * viewer is among the reactors — accent border + tinted background).
+ */
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: var(--control-height-sm);
+  padding: var(--space-0) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.chip:hover {
+  background-color: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.chipActive {
+  color: var(--color-accent);
+  background-color: var(--color-active);
+  border-color: var(--color-accent);
+}
+
+.chipActive:hover {
+  background-color: var(--color-active);
+  border-color: var(--color-accent-hover);
+}
+
+.glyph {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-tight);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}

@@ -240,6 +240,7 @@ Query-хуки поверх клиента — позже, с фичами.
 | Провайдер-стек / `App` | ✅ | `src/app/App.tsx` | `ThemeProvider` → `QueryClientProvider` → `RouterProvider`; на маунте зовёт `authStore.initialize()` (резолвит `"unknown"`-статус). |
 | `Feed` (страница) | ✅ | `src/pages/Feed/` | Центр-колонка для narrow/index-роутов: монтирует `MessageFeed` (index `/` → Combined feed); Drafts-вид → `Drafts`; Inbox/Recent — плейсхолдер. |
 | `Drafts` (страница) | ✅ | `src/pages/Drafts/` | Список драфтов (2.4): destination-лейбл (`# канал > топик` / DM), preview, timestamp, X-удаление; клик → `goToNarrow` (compose восстанавливает текст). Empty-state. **Live-протык на стенде — ✅ (драфт сохранён → переход → восстановлен).** |
+| `Reactions` | ✅ | `src/features/reactions/` | Реакции (Фаза 3.2): чипы под сообщением (группировка по `(reactionType,emojiCode)`, count, tooltip с именами реактовавших, viewer-active accent, click-toggle), `ReactionPicker` (`Popover` + `Input`-поиск + grid-навигация по 8 колонкам, Enter/Escape) на toolbar-кнопке `smile` и на «+» в конце ряда. Optimistic-update через `applyOptimisticReaction` (mirrors `applyReactionEvent`, идемпотентно с приходящим event-ом), revert + error-text при сбое. Глифы — bundled corpus; non-unicode — как `:shortcode:`. **Live ✅: добавил 🚀 — чип появился с viewer-active подсветкой.** |
 | `NotFound` (страница) | ✅ | `src/pages/NotFound/` | Плейсхолдер catch-all роута. |
 
 **Зависимости, добавленные оркестратором:** `react-router-dom` (v7),

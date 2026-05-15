@@ -17,6 +17,7 @@ import type {
 import {
   applyDeleteMessageEvent,
   applyMessageEvent,
+  applyOptimisticReaction,
   applyReactionEvent,
   applyUpdateMessageEvent,
   applyUpdateMessageFlagsEvent,
@@ -515,5 +516,125 @@ describe("optimistic-echo helpers (Phase 2.2)", () => {
   it("removeOptimisticMessage is a no-op for an unknown id", () => {
     const snapshot = emptyMessagesSnapshot();
     expect(removeOptimisticMessage(snapshot, -99)).toBe(snapshot);
+  });
+});
+
+describe("applyOptimisticReaction (Phase 3.2)", () => {
+  it("add appends the reaction to the cached message", () => {
+    const snapshot = withMessages(1);
+    const next = applyOptimisticReaction(snapshot, {
+      message_id: 1,
+      op: "add",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(next.messages[1].reactions).toEqual([
+      {
+        user_id: 7,
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    ]);
+  });
+
+  it("add is idempotent on the same (user, type, code) triple", () => {
+    // The realtime `reaction` event arriving after the optimistic add
+    // would otherwise insert a duplicate; the same idempotency that
+    // `applyReactionEvent` enforces must hold here.
+    const seeded = applyOptimisticReaction(withMessages(1), {
+      message_id: 1,
+      op: "add",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    const next = applyOptimisticReaction(seeded, {
+      message_id: 1,
+      op: "add",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(next).toBe(seeded);
+  });
+
+  it("remove drops the matching reaction", () => {
+    const snapshot = withMessages(1);
+    snapshot.messages[1] = makeMessage({
+      id: 1,
+      reactions: [
+        makeReaction({ user_id: 7, emoji_code: "1f389", emoji_name: "tada" }),
+        makeReaction({ user_id: 8, emoji_code: "1f389", emoji_name: "tada" }),
+      ],
+    });
+    const next = applyOptimisticReaction(snapshot, {
+      message_id: 1,
+      op: "remove",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(next.messages[1].reactions).toEqual([
+      makeReaction({ user_id: 8, emoji_code: "1f389", emoji_name: "tada" }),
+    ]);
+  });
+
+  it("remove of an absent reaction is a no-op (revert tolerates double-revert)", () => {
+    const snapshot = withMessages(1);
+    const next = applyOptimisticReaction(snapshot, {
+      message_id: 1,
+      op: "remove",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("a reaction for an uncached message is a no-op", () => {
+    const snapshot = emptyMessagesSnapshot();
+    const next = applyOptimisticReaction(snapshot, {
+      message_id: 999,
+      op: "add",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("does not mutate the input snapshot", () => {
+    const snapshot = withMessages(1);
+    applyOptimisticReaction(snapshot, {
+      message_id: 1,
+      op: "add",
+      user_id: 7,
+      emoji: {
+        emoji_name: "tada",
+        emoji_code: "1f389",
+        reaction_type: "unicode_emoji",
+      },
+    });
+    expect(snapshot.messages[1].reactions).toEqual([]);
   });
 });

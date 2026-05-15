@@ -35,6 +35,7 @@ import {
 import {
   applyDeleteMessageEvent,
   applyMessageEvent,
+  applyOptimisticReaction,
   applyReactionEvent,
   applyUpdateMessageEvent,
   applyUpdateMessageFlagsEvent,
@@ -45,6 +46,7 @@ import {
   removeOptimisticMessage,
   type FlagMap,
   type MessageMap,
+  type OptimisticReaction,
 } from "./messagesReducer";
 import { wireStore } from "./wireStore";
 
@@ -89,6 +91,15 @@ export interface MessagesState {
    * remove the message that never made it.
    */
   removeOptimistic: (localId: MessageId) => void;
+  /**
+   * Optimistically add or remove a reaction in the cache (Phase 3.2).
+   * The reactions UI calls this immediately on click — before the REST
+   * call — so the chip updates without a round-trip; the realtime
+   * `reaction` event arrives shortly after, and the event reducer is
+   * idempotent on the same `(user, type, code)` triple. On REST failure
+   * the caller flips `op` and runs this same action to revert.
+   */
+  applyOptimisticReaction: (pending: OptimisticReaction) => void;
 }
 
 const EMPTY_FLAGS: MessageFlag[] = [];
@@ -129,6 +140,14 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
       removeOptimisticMessage(
         { messages: state.messages, flags: state.flags },
         localId,
+      ),
+    );
+  },
+  applyOptimisticReaction: (pending) => {
+    set((state) =>
+      applyOptimisticReaction(
+        { messages: state.messages, flags: state.flags },
+        pending,
       ),
     );
   },

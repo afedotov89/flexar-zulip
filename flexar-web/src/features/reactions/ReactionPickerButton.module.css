@@ -1,0 +1,45 @@
+/*
+ * Reaction-picker trigger styles (Phase 3.2). The toolbar variant
+ * reuses `IconButton`'s appearance via the primitive itself; this
+ * module styles only the `inline` "+" chip that appears at the end of
+ * the reactions row.
+ *
+ * The inline trigger matches the chip footprint (height, padding,
+ * radius) so it visually belongs to the row.
+ */
+
+.inlineTrigger {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: var(--control-height-sm);
+  padding: var(--space-0) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.inlineTrigger:hover {
+  color: var(--color-text);
+  background-color: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.inlineTrigger:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.inlineGlyph {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}

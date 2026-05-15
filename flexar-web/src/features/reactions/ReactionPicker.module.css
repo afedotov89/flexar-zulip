@@ -1,0 +1,65 @@
+/*
+ * Reaction picker (Phase 3.2). Sits inside `Popover`'s panel surface,
+ * which already supplies background/border/shadow/radius — the picker
+ * adds layout for the search row and the glyph grid. Width is bounded
+ * by `--container-width-xs` so the popover does not balloon.
+ */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: var(--container-width-xs);
+  max-width: var(--container-width-sm);
+}
+
+.searchRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-1);
+  max-height: calc(var(--space-12) * 4);
+  padding: var(--space-1);
+  overflow-y: auto;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: var(--space-0);
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast);
+}
+
+.cell:hover {
+  background-color: var(--color-hover);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.glyph {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.empty {
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
