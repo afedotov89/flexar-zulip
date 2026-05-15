@@ -103,7 +103,7 @@ describe("ReactionsRow", () => {
       />,
     );
     const chip = screen.getByRole("button", {
-      name: /reacted with :thumbs_up:/,
+      name: /реакция :thumbs_up:/,
     });
     expect(chip).toHaveTextContent("👍");
     expect(chip).toHaveTextContent("2");
@@ -124,7 +124,7 @@ describe("ReactionsRow", () => {
       />,
     );
     const chip = screen.getByRole("button", {
-      name: /reacted with :octocat:/,
+      name: /реакция :octocat:/,
     });
     expect(chip).toHaveTextContent(":octocat:");
   });
@@ -222,7 +222,7 @@ describe("ReactionsRow", () => {
       />,
     );
     const chip = screen.getByRole("button", {
-      name: "Alice and You reacted with :thumbs_up:",
+      name: "Alice и Вы — реакция :thumbs_up:",
     });
     expect(chip).toBeInTheDocument();
   });

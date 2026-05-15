@@ -29,8 +29,8 @@ export function StatusButton(): React.JSX.Element | null {
       className={styles.trigger}
       aria-label={
         status === undefined
-          ? "Set your status"
-          : "Edit your status"
+          ? "Установить статус"
+          : "Изменить статус"
       }
     >
       {renderInline(status)}
@@ -43,7 +43,7 @@ export function StatusButton(): React.JSX.Element | null {
       placement="bottom"
       open={open}
       onOpenChange={setOpen}
-      aria-label="Status editor"
+      aria-label="Редактор статуса"
     >
       <StatusEditor current={status} onClose={() => setOpen(false)} />
     </Popover>

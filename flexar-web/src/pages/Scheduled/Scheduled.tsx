@@ -104,7 +104,7 @@ export function Scheduled(): React.JSX.Element {
           Список мог устареть — обновление не удалось.
         </Banner>
       )}
-      <ul className={styles.list} aria-label="Scheduled messages">
+      <ul className={styles.list} aria-label="Отложенные сообщения">
         {messages.map((message) => (
           <ScheduledRow
             key={message.scheduled_message_id}
@@ -191,17 +191,17 @@ function describeDestination(
   if (message.type === "stream") {
     const streamId =
       typeof message.to === "number" ? message.to : message.to[0] ?? 0;
-    const channelName = getStreamName(streamId) ?? `Channel ${streamId}`;
+    const channelName = getStreamName(streamId) ?? `Канал ${streamId}`;
     const topic = message.topic ?? "";
     const displayedTopic =
-      topic === "" ? (emptyTopicDisplayName ?? "(no topic)") : topic;
+      topic === "" ? (emptyTopicDisplayName ?? "(без темы)") : topic;
     return `# ${channelName} > ${displayedTopic}`;
   }
   const recipients = Array.isArray(message.to) ? message.to : [message.to];
   const names = recipients.map(
     (id) => getUserName(id) ?? `User ${id}`,
   );
-  return `Direct message to: ${names.join(", ")}`;
+  return `Личное сообщение: ${names.join(", ")}`;
 }
 
 /** Trim multi-line content to a single-line preview. */

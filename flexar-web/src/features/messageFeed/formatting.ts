@@ -56,10 +56,10 @@ export function formatDateSeparator(
   );
 
   if (diffDays === 0) {
-    return "Today";
+    return "Сегодня";
   }
   if (diffDays === 1) {
-    return "Yesterday";
+    return "Вчера";
   }
   return day.getFullYear() === now.getFullYear()
     ? DAY_FORMAT.format(day)

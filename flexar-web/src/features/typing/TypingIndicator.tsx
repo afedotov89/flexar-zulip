@@ -44,9 +44,9 @@ export function TypingIndicator({
 
 /**
  * Build the human-readable phrase for an active-typer list:
- *   ["Alice"]                 → "Alice is typing…"
- *   ["Alice", "Bob"]          → "Alice and Bob are typing…"
- *   ["Alice", "Bob", "Carol"] → "Alice and 2 others are typing…"
+ *   ["Alice"]                 → "Alice печатает…"
+ *   ["Alice", "Bob"]          → "Alice и Bob печатают…"
+ *   ["Alice", "Bob", "Carol"] → "Alice и ещё 2 печатают…"
  *
  * Cap at three names rendered explicitly so the row stays single-line
  * even with a chatty thread.
@@ -56,11 +56,11 @@ export function formatTypingNames(names: readonly string[]): string {
     return "";
   }
   if (names.length === 1) {
-    return `${names[0]} is typing…`;
+    return `${names[0]} печатает…`;
   }
   if (names.length === 2) {
-    return `${names[0]} and ${names[1]} are typing…`;
+    return `${names[0]} и ${names[1]} печатают…`;
   }
   const others = names.length - 1;
-  return `${names[0]} and ${others} others are typing…`;
+  return `${names[0]} и ещё ${others} печатают…`;
 }

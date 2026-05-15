@@ -107,7 +107,7 @@ function HoverActions({
         icon="paperclip"
         size="sm"
         variant="ghost"
-        aria-label="Reply in thread"
+        aria-label="Ответить в теме"
         onClick={() => {
           // Phase 2: start a reply.
         }}

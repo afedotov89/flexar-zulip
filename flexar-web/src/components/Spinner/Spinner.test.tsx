@@ -7,7 +7,7 @@ import { Spinner } from ".";
 describe("Spinner", () => {
   it("exposes role=status with a default accessible label", () => {
     render(<Spinner />);
-    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+    expect(screen.getByRole("status")).toHaveTextContent("Загрузка");
   });
 
   it("uses a custom accessible label", () => {

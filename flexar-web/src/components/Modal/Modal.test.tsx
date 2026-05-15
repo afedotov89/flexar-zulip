@@ -42,7 +42,7 @@ describe("Modal", () => {
         <p>Body</p>
       </Modal>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -105,7 +105,7 @@ describe("Modal", () => {
     // First tabbable in the dialog is the Close button (it precedes the
     // body in DOM order).
     rerender(<Harness open />);
-    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Закрыть" })).toHaveFocus();
 
     rerender(<Harness open={false} />);
     expect(outside).toHaveFocus();
@@ -121,7 +121,7 @@ describe("Modal", () => {
     // Tabbable order is [Close, First, Last]. Tab from the last wraps
     // to the first tabbable (the Close button); Shift+Tab from the
     // first wraps back to the last.
-    const close = screen.getByRole("button", { name: "Close" });
+    const close = screen.getByRole("button", { name: "Закрыть" });
     const last = screen.getByRole("button", { name: "Last" });
     last.focus();
     fireEvent.keyDown(document, { key: "Tab" });

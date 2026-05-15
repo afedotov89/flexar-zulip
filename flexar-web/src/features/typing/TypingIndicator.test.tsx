@@ -9,21 +9,21 @@ describe("formatTypingNames", () => {
   });
 
   it("formats a single typer", () => {
-    expect(formatTypingNames(["Alice"])).toBe("Alice is typing…");
+    expect(formatTypingNames(["Alice"])).toBe("Alice печатает…");
   });
 
   it("joins two typers with `and`", () => {
     expect(formatTypingNames(["Alice", "Bob"])).toBe(
-      "Alice and Bob are typing…",
+      "Alice и Bob печатают…",
     );
   });
 
   it("collapses three or more typers to `Alice and N others`", () => {
     expect(formatTypingNames(["Alice", "Bob", "Carol"])).toBe(
-      "Alice and 2 others are typing…",
+      "Alice и ещё 2 печатают…",
     );
     expect(formatTypingNames(["Alice", "Bob", "Carol", "Dave"])).toBe(
-      "Alice and 3 others are typing…",
+      "Alice и ещё 3 печатают…",
     );
   });
 });

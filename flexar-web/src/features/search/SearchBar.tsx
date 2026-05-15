@@ -47,8 +47,8 @@ export function SearchBar(): React.JSX.Element {
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Search (try from:, channel:, topic:, is:starred, …)"
-        aria-label="Search messages"
+        placeholder="Поиск (например from:, channel:, topic:, is:starred, …)"
+        aria-label="Поиск сообщений"
         iconLeft="search"
         autoComplete="off"
       />

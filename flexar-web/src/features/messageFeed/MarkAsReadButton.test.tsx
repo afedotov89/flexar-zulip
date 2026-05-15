@@ -86,7 +86,7 @@ describe("MarkAsReadButton", () => {
     const narrow: Narrow = [{ operator: "dm", operand: [5, 6] }];
     render(withTheme(<MarkAsReadButton narrow={narrow} />));
     expect(
-      screen.queryByRole("button", { name: /mark/i }),
+      screen.queryByRole("button", { name: /прочитать/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe("MarkAsReadButton", () => {
     const narrow: Narrow = [{ operator: "channel", operand: 11 }];
     render(withTheme(<MarkAsReadButton narrow={narrow} />));
     expect(
-      screen.queryByRole("button", { name: /mark/i }),
+      screen.queryByRole("button", { name: /прочитать/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -104,7 +104,7 @@ describe("MarkAsReadButton", () => {
 
     render(withTheme(<MarkAsReadButton narrow={[]} />));
     fireEvent.click(
-      screen.getByRole("button", { name: "Mark all as read" }),
+      screen.getByRole("button", { name: "Прочитать всё" }),
     );
 
     expect(markAllAsReadMock).toHaveBeenCalledTimes(1);
@@ -123,7 +123,7 @@ describe("MarkAsReadButton", () => {
       ),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Mark channel as read" }),
+      screen.getByRole("button", { name: "Прочитать канал" }),
     );
 
     expect(markStreamAsReadMock).toHaveBeenCalledWith(11);
@@ -145,7 +145,7 @@ describe("MarkAsReadButton", () => {
       ),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Mark topic as read" }),
+      screen.getByRole("button", { name: "Прочитать тему" }),
     );
 
     expect(markTopicAsReadMock).toHaveBeenCalledWith(11, "release");
@@ -162,7 +162,7 @@ describe("MarkAsReadButton", () => {
       ),
     );
     expect(
-      screen.queryByRole("button", { name: /mark/i }),
+      screen.queryByRole("button", { name: /прочитать/i }),
     ).not.toBeInTheDocument();
   });
 });

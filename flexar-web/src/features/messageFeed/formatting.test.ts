@@ -49,14 +49,14 @@ describe("formatDateSeparator", () => {
 
   it("labels the current day as Today", () => {
     const today = startOfLocalDay(Math.floor(now.getTime() / 1000));
-    expect(formatDateSeparator(today, now)).toBe("Today");
+    expect(formatDateSeparator(today, now)).toBe("Сегодня");
   });
 
   it("labels the previous day as Yesterday", () => {
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
     const yesterday = Math.floor(todayStart.getTime() / 1000) - 24 * 60 * 60;
-    expect(formatDateSeparator(yesterday, now)).toBe("Yesterday");
+    expect(formatDateSeparator(yesterday, now)).toBe("Вчера");
   });
 
   it("uses a full date for an older day in the same year", () => {
@@ -64,8 +64,8 @@ describe("formatDateSeparator", () => {
     todayStart.setHours(0, 0, 0, 0);
     const older = Math.floor(todayStart.getTime() / 1000) - 5 * 24 * 60 * 60;
     const label = formatDateSeparator(older, now);
-    expect(label).not.toBe("Today");
-    expect(label).not.toBe("Yesterday");
+    expect(label).not.toBe("Сегодня");
+    expect(label).not.toBe("Вчера");
     expect(label.length).toBeGreaterThan(0);
   });
 

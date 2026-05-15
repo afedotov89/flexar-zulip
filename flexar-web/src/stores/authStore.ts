@@ -158,7 +158,7 @@ export const useAuthStore = create<AuthState>()(
           const message =
             cause instanceof ApiError
               ? cause.message
-              : "Could not sign in. Please try again.";
+              : "Не удалось войти. Попробуйте снова.";
           set({
             session: null,
             status: "unauthenticated",

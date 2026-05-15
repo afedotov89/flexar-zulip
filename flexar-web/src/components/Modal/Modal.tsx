@@ -175,7 +175,7 @@ export function Modal({
             <span className={styles.closeSlot}>
               <IconButton
                 icon="close"
-                aria-label="Close"
+                aria-label="Закрыть"
                 variant="ghost"
                 onClick={onClose}
               />

@@ -47,8 +47,9 @@
 // hiding one it would have included (see `matchesNarrow`'s header).
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { MessageId, Narrow } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { matchesNarrow } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
 import {
@@ -129,10 +130,7 @@ export interface FeedWindow extends FeedWindowState {
 
 // Convert an `unknown` thrown by the API client into a readable string.
 function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Unknown error";
+  return describeApiError(error, "Не удалось загрузить сообщения.");
 }
 
 /**

@@ -15,7 +15,7 @@ export type SpinnerSize = "sm" | "md" | "lg";
 export interface SpinnerProps {
   /** Token-driven footprint. Defaults to `md`. */
   size?: SpinnerSize;
-  /** Accessible status label. Defaults to `"Loading"`. */
+  /** Accessible status label. Defaults to `"Загрузка"`. */
   "aria-label"?: string;
   className?: string;
 }
@@ -28,7 +28,7 @@ const sizeClass: Record<SpinnerSize, string> = {
 
 export function Spinner({
   size = "md",
-  "aria-label": ariaLabel = "Loading",
+  "aria-label": ariaLabel = "Загрузка",
   className,
 }: SpinnerProps): React.JSX.Element {
   const classes = [styles.spinner, sizeClass[size], className]

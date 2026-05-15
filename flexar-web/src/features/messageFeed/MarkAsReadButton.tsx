@@ -145,11 +145,11 @@ function idsInScope(buckets: UnreadBuckets, scope: ReadScope): number[] {
 function labelFor(scope: ReadScope): string {
   switch (scope.kind) {
     case "all":
-      return "Mark all as read";
+      return "Прочитать всё";
     case "channel":
-      return "Mark channel as read";
+      return "Прочитать канал";
     case "topic":
-      return "Mark topic as read";
+      return "Прочитать тему";
   }
 }
 

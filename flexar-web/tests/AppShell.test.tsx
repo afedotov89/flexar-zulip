@@ -49,10 +49,10 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
     expect(
-      screen.getByRole("complementary", { name: "Channels and navigation" }),
+      screen.getByRole("complementary", { name: "Каналы и навигация" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("complementary", { name: "Conversation details" }),
+      screen.getByRole("complementary", { name: "О беседе" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
@@ -63,15 +63,17 @@ describe("AppShell", () => {
     // The index route renders the message feed into the center column;
     // with an empty history window it settles on its empty state.
     const main = screen.getByRole("main");
-    expect(await screen.findByText("No messages here yet")).toBeInTheDocument();
-    expect(main).toContainElement(screen.getByText("No messages here yet"));
+    expect(await screen.findByText("Здесь пока нет сообщений")).toBeInTheDocument();
+    expect(main).toContainElement(screen.getByText("Здесь пока нет сообщений"));
   });
 
   it("toggles the theme via the navbar toggle button", () => {
     render(<App />);
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    const toggle = screen.getByRole("button", { name: "Switch to dark theme" });
+    const toggle = screen.getByRole("button", {
+      name: "Переключить на тёмную тему",
+    });
 
     act(() => {
       toggle.click();
@@ -79,7 +81,7 @@ describe("AppShell", () => {
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
     expect(
-      screen.getByRole("button", { name: "Switch to light theme" }),
+      screen.getByRole("button", { name: "Переключить на светлую тему" }),
     ).toBeInTheDocument();
   });
 });

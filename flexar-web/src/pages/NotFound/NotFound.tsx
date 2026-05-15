@@ -9,9 +9,9 @@ import styles from "./NotFound.module.css";
 export function NotFound() {
   return (
     <div className={styles.notFound}>
-      <p className={styles.title}>Page not found</p>
+      <p className={styles.title}>Страница не найдена</p>
       <Link to="/" className={styles.homeLink}>
-        Back to feed
+        Вернуться к ленте
       </Link>
     </div>
   );

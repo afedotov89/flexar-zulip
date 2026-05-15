@@ -64,11 +64,11 @@ export function LoginPage(): React.JSX.Element {
       <main className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.brand}>Flexar Hub</h1>
-          <p className={styles.subtitle}>Sign in to your workspace</p>
+          <p className={styles.subtitle}>Войдите в своё рабочее пространство</p>
         </div>
 
         {error != null && (
-          <Banner tone="danger" title="Sign-in failed">
+          <Banner tone="danger" title="Не удалось войти">
             {error}
           </Banner>
         )}
@@ -94,7 +94,7 @@ export function LoginPage(): React.JSX.Element {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="login-password">
-              Password
+              Пароль
             </label>
             <Input
               id="login-password"
@@ -115,7 +115,7 @@ export function LoginPage(): React.JSX.Element {
             loading={isLoggingIn}
             disabled={!canSubmit}
           >
-            Sign in
+            Войти
           </Button>
         </form>
       </main>

@@ -62,15 +62,15 @@ describe("LoginPage", () => {
   it("renders the email and password fields and submit button", () => {
     renderLogin();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("Пароль")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Sign in" }),
+      screen.getByRole("button", { name: "Войти" }),
     ).toBeInTheDocument();
   });
 
   it("keeps submit disabled until both fields are filled", () => {
     renderLogin();
-    const submit = screen.getByRole("button", { name: "Sign in" });
+    const submit = screen.getByRole("button", { name: "Войти" });
     expect(submit).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Email"), {
@@ -78,7 +78,7 @@ describe("LoginPage", () => {
     });
     expect(submit).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText("Пароль"), {
       target: { value: "pw" },
     });
     expect(submit).toBeEnabled();
@@ -89,10 +89,10 @@ describe("LoginPage", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "  a.fedotov@friflex.com  " },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText("Пароль"), {
       target: { value: "secret" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
 
     expect(login).toHaveBeenCalledWith("a.fedotov@friflex.com", "secret");
   });
@@ -108,10 +108,10 @@ describe("LoginPage", () => {
     storeState = { ...baseState(), isLoggingIn: true };
     renderLogin();
 
-    expect(screen.getByRole("button", { name: /Sign in/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Войти/ })).toBeDisabled();
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeDisabled();
-    expect(screen.getByLabelText("Password")).toBeDisabled();
+    expect(screen.getByLabelText("Пароль")).toBeDisabled();
   });
 
   it("shows the error banner when login failed", () => {
@@ -121,7 +121,7 @@ describe("LoginPage", () => {
     };
     renderLogin();
 
-    expect(screen.getByText("Sign-in failed")).toBeInTheDocument();
+    expect(screen.getByText("Не удалось войти")).toBeInTheDocument();
     expect(
       screen.getByText("Your username or password is incorrect."),
     ).toBeInTheDocument();

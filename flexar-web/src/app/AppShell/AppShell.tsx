@@ -21,7 +21,7 @@ export function AppShell() {
       <Navbar />
 
       <div className={styles.body}>
-        <aside className={styles.leftSidebar} aria-label="Channels and navigation">
+        <aside className={styles.leftSidebar} aria-label="Каналы и навигация">
           <LeftSidebar />
         </aside>
 
@@ -29,7 +29,7 @@ export function AppShell() {
           <Outlet />
         </main>
 
-        <aside className={styles.rightSidebar} aria-label="Conversation details">
+        <aside className={styles.rightSidebar} aria-label="О беседе">
           <RightSidebar />
         </aside>
       </div>

@@ -106,16 +106,16 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
         <div className={styles.notice}>
           <Banner
             tone="danger"
-            title="Couldn't load messages"
+            title="Не удалось загрузить сообщения"
             onDismiss={undefined}
           >
-            {window.error ?? "Something went wrong fetching this view."}{" "}
+            {window.error ?? "Что-то пошло не так при загрузке."}{" "}
             <button
               type="button"
               className={styles.retryButton}
               onClick={window.retry}
             >
-              Try again
+              Попробовать снова
             </button>
           </Banner>
         </div>
@@ -129,9 +129,9 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
     return (
       <div className={styles.feed}>
         <div className={styles.empty}>
-          <p className={styles.emptyTitle}>No messages here yet</p>
+          <p className={styles.emptyTitle}>Здесь пока нет сообщений</p>
           <p className={styles.emptyHint}>
-            Messages sent to this view will show up here.
+            Сообщения, отправленные в этот вид, появятся здесь.
           </p>
         </div>
         <TypingIndicator narrow={narrow} />
@@ -146,7 +146,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
       {window.historyLimited && (
         <div className={styles.notice}>
           <Banner tone="info">
-            Older message history isn't available on this plan.
+            Более ранняя история сообщений недоступна на этом тарифе.
           </Banner>
         </div>
       )}

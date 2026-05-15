@@ -23,7 +23,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banner } from "../../components/Banner";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
+import { describeApiError } from "../../lib/errors";
 import { sanitizeRenderedContent } from "../../lib/renderedContent";
 import styles from "./ComposePreview.module.css";
 
@@ -65,9 +66,10 @@ export function ComposePreview({
           if (cancelled) {
             return;
           }
-          const message = isApiError(cause)
-            ? (cause.body?.msg ?? cause.message)
-            : "Could not render preview.";
+          const message = describeApiError(
+            cause,
+            "Не удалось показать превью.",
+          );
           setState((current) => ({ html: current.html, error: message }));
         });
     }, PREVIEW_DEBOUNCE_MS);
@@ -88,7 +90,7 @@ export function ComposePreview({
   if (trimmed === "") {
     return (
       <div className={styles.preview}>
-        <p className={styles.placeholder}>Nothing to preview.</p>
+        <p className={styles.placeholder}>Нечего показывать.</p>
       </div>
     );
   }

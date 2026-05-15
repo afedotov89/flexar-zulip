@@ -122,7 +122,7 @@ describe("authStore — login", () => {
     await useAuthStore.getState().login("e@x.com", "pw");
 
     expect(useAuthStore.getState().error).toBe(
-      "Could not sign in. Please try again.",
+      "Не удалось войти. Попробуйте снова.",
     );
   });
 

@@ -16,7 +16,7 @@ import styles from "./Navbar.module.css";
 
 export function Navbar(): React.JSX.Element {
   const { theme, toggleTheme } = useTheme();
-  const nextTheme = theme === "light" ? "dark" : "light";
+  const nextThemeLabel = theme === "light" ? "тёмную" : "светлую";
 
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
@@ -43,9 +43,9 @@ export function Navbar(): React.JSX.Element {
           type="button"
           className={styles.themeToggle}
           onClick={toggleTheme}
-          aria-label={`Switch to ${nextTheme} theme`}
+          aria-label={`Переключить на ${nextThemeLabel} тему`}
         >
-          {theme === "light" ? "Dark" : "Light"} theme
+          {theme === "light" ? "Тёмная" : "Светлая"} тема
         </button>
         {session != null && (
           <div className={styles.account}>
@@ -61,7 +61,7 @@ export function Navbar(): React.JSX.Element {
               Настройки
             </Button>
             <Button variant="secondary" size="sm" onClick={handleLogout}>
-              Log out
+              Выйти
             </Button>
           </div>
         )}

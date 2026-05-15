@@ -45,7 +45,7 @@ export function Feed() {
     }
     return (
       <div className={styles.feed}>
-        <span className={styles.placeholderLabel}>View coming soon</span>
+        <span className={styles.placeholderLabel}>Раздел скоро появится</span>
       </div>
     );
   }

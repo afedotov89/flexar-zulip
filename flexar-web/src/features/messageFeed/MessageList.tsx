@@ -218,7 +218,7 @@ export function MessageList({
     <div ref={scrollRef} className={styles.scroll} role="log" tabIndex={0}>
       {loadingOlder && (
         <div className={styles.edgeSpinner}>
-          <Spinner size="sm" aria-label="Loading earlier messages" />
+          <Spinner size="sm" aria-label="Загрузка более ранних сообщений" />
         </div>
       )}
 
@@ -247,7 +247,7 @@ export function MessageList({
 
       {loadingNewer && (
         <div className={styles.edgeSpinner}>
-          <Spinner size="sm" aria-label="Loading later messages" />
+          <Spinner size="sm" aria-label="Загрузка более поздних сообщений" />
         </div>
       )}
     </div>

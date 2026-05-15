@@ -218,7 +218,7 @@ describe("MessageFeed — data states", () => {
     renderFeed();
 
     expect(
-      await screen.findByText("No messages here yet"),
+      await screen.findByText("Здесь пока нет сообщений"),
     ).toBeInTheDocument();
   });
 
@@ -227,14 +227,14 @@ describe("MessageFeed — data states", () => {
     renderFeed();
 
     expect(
-      await screen.findByText("Couldn't load messages"),
+      await screen.findByText("Не удалось загрузить сообщения"),
     ).toBeInTheDocument();
 
     // The retry re-runs the fetch; this time it succeeds.
     getMessagesMock.mockResolvedValueOnce(
       fetchResult([channelMessage({ id: 1, content: "<p>recovered</p>" })]),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать снова" }));
 
     expect(await screen.findByText("recovered")).toBeInTheDocument();
   });
@@ -249,7 +249,7 @@ describe("MessageFeed — data states", () => {
     renderFeed();
 
     expect(
-      await screen.findByText(/Older message history isn't available/),
+      await screen.findByText(/Более ранняя история сообщений/),
     ).toBeInTheDocument();
   });
 });

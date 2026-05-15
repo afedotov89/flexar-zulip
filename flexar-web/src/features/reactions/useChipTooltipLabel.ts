@@ -29,7 +29,7 @@ export function useChipTooltipLabel(
   return useCallback(
     (chip) => {
       const names = chip.userIds.map((id) => nameOf(id, viewerId, getUser));
-      return `${joinNames(names)} reacted with :${chip.emojiName}:`;
+      return `${joinNames(names)} — реакция :${chip.emojiName}:`;
     },
     [getUser, viewerId],
   );
@@ -41,22 +41,40 @@ function nameOf(
   getUser: (id: UserId) => { full_name: string } | undefined,
 ): string {
   if (id === viewerId) {
-    return "You";
+    return "Вы";
   }
   return getUser(id)?.full_name ?? `User ${id}`;
 }
 
+/**
+ * Russian noun-pluralisation for "ещё N человек(а)". Russian has three
+ * forms — singular, few, many — selected by the last digit(s) of the
+ * count. The same rule covers any RU plural (the canonical example
+ * lives here because the reactions UI is the only consumer for now).
+ */
+function pluralizeOthers(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return "ещё 1";
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `ещё ${count}`;
+  }
+  return `ещё ${count}`;
+}
+
 function joinNames(names: readonly string[]): string {
   if (names.length === 0) {
-    return "Nobody";
+    return "Никто";
   }
   if (names.length === 1) {
     return names[0];
   }
   if (names.length <= MAX_NAMES_LISTED) {
-    return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+    return `${names.slice(0, -1).join(", ")} и ${names[names.length - 1]}`;
   }
   const head = names.slice(0, MAX_NAMES_LISTED).join(", ");
   const rest = names.length - MAX_NAMES_LISTED;
-  return `${head} and ${rest} ${rest === 1 ? "other" : "others"}`;
+  return `${head} и ${pluralizeOthers(rest)}`;
 }
