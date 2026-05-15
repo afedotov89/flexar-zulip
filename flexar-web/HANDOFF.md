@@ -4,10 +4,12 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **bug-sweep + 2nd RU i18n sweep + согласован план 5.2/5.3/5.4**:
-- Все 15 багов из сплошного live-протыка пофикшены архитектурно (apply_markdown=true в register/getMessages, peer_add fold subscribers list, useOverlayPosition flip+clamp, lightbox `overlayScrimStrong` token, единый `describeApiError` + RU i18n sweep). Re-protyk на стенде: всё LIVE ✅.
-- 2-й RU i18n sweep (commit `9c1d2167d3`): Navbar/AppShell/MarkAsRead/feed empty&error/dates/Spinner/Login/ComposePreview/typing/Modal/NotFound/Feed/Scheduled/StatusButton/SearchBar — все user-facing строки RU, тесты в lock-step.
-- **План Фазы 5 (5.2/5.3/5.4) согласован с владельцем — см. ниже.**
+**Последнее обновление:** 2026-05-16, **Фаза 5.2/5.3/5.4 фиче-комплит**:
+- 5 коммитов закрыли всю админку: shared infra → 18 apiClient методов
+  → 5.4 пользователи + 5.3 каналы → 5.4 invites + 5.2 организация.
+- **1096 unit-тестов** (+72 за Фазу 5). Все гейты зелёные.
+- **Live-протык — ⏳ ждёт владельца** (паролем на стенд).
+- Предыдущее: 2-й RU i18n sweep (`9c1d2167d3`); полная bug-sweep ревизия — все 15 багов из сплошного live-протыка пофикшены архитектурно.
 
 ---
 
@@ -29,10 +31,18 @@
 - **Репозиторий:** `/Users/alexander/projects/flexar-zulip`, ветка
   `flexar-web` (от `origin/main`, запушена).
 - **Каталог проекта:** `flexar-web/`. Менеджер пакетов — **npm**.
-- **Фаза:** Фаза 0 завершена. Фаза 1 — **1.1–1.8 сделаны (фиче-комплит)**.
-  **Следующее — гейт Фазы 1** (см. «Следующее действие»).
+- **Фаза:** Фазы 0, 1, 2, 3, 4 — фиче-комплит. Фаза 5 — **5.1, 5.2, 5.3,
+  5.4, 5.5 сделаны (фиче-комплит)**. Следующая — Фаза 6 (полировка) или
+  гейты Фаз 1-5 (Playwright e2e). Live-протык всех Фаза 5 фич — ⏳
+  ждёт владельца на стенде (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `b791359aac` 5.4 invites + 5.2 organization settings (8 + 20 unit-тестов; +28)
+- `faeafbf00e` 5.4 admin users + 5.3 channel management (11 + 15 unit-тестов; +26)
+- `72b24d0b00` 5.x apiClient — 18 admin methods (realm/channels/users/invites; +18 unit)
+- `96b9c1a312` 5.x shared infra — admin entry, RequireAdmin, isAdmin, realm/default_streams events
+- `1c8317faf5` HANDOFF — план 5.2/5.3/5.4 (minimal-set, не копируем legacy)
+- `9c1d2167d3` 2nd i18n RU sweep across the shell, feed, and primitives
 - `f323087681` 4.5-fix — scheduled topic display (empty-topic fallback) + /scheduled hydrate-race fix (live-протык)
 - `a9c0a25623` 4.7-fix — POST /submessage (singular path; live-протык 404→200)
 - `013d7fe263` HANDOFF — 5.5 заметка
@@ -161,6 +171,45 @@
 ---
 
 ## Следующее действие
+
+**Live-протык всей админки на стенде (5.2/5.3/5.4) + Navbar dropdown.**
+Залогиниться `a.fedotov@friflex.com` → проверить:
+
+1. **Navbar dropdown** (5.x shared infra): кликнуть на email-кнопку в
+   правом верхнем углу — должен открыться DropdownMenu с пунктами
+   Настройки / Администрирование (admin-only) / Выйти. Иконки user +
+   chevron-down + settings + shield + log-out. Свет/тёмная тема.
+2. **`/admin/users`** (5.4): три таба (Активные / Деактивированные /
+   Боты). Search + role-filter. Per-row Edit (modal с full_name +
+   role) / Deactivate (confirm + optional comment) / Reactivate.
+   Self-actions скрыты. Realtime `realm_user` event обновляет роль/
+   статус в списке без рефреша.
+3. **`/admin/invites`** (5.4): пустой список или существующие invites.
+   Send Invite (Textarea + role + expiry + ChannelPicker), Create
+   Reusable Link (returns URL с copy button), Revoke (confirm,
+   optimistic removal), Resend (per-email only).
+4. **`/admin/organization`** (5.2): 4 секции (Профиль / Сообщения /
+   Доступ / Каналы по умолчанию). Toggle autosave → realtime `realm`
+   event → store updated. Text inputs explicit save (Save button
+   появляется при dirty). Add/Remove default stream через modal.
+5. **`/channels`** (5.3 расширение): новая кнопка «Создать канал» →
+   CreateChannelModal. Name каждого канала — Link на `/channels/:id`.
+6. **`/channels/:id`** (5.3): rename → updateChannel. Admin toggles
+   privacy/history. Add subscriber через typeahead. Archive в danger
+   zone (admin only).
+
+Все мутации должны попадать на стенд (DevTools Network: 200 от
+`/api/v1/realm`, `/streams/:id`, `/users/:id`, `/invites`, и т.д.).
+Realtime events (`realm`, `default_streams`, `realm_user`, `stream`,
+`subscription`) должны отражаться в UI без refresh.
+
+Найдены баги — фиксить **архитектурно, без костылей** (см. memory
+`live-protyk-mandatory.md`). После каждой пачки фиксов — перепротык.
+
+После полного протыка обновить чек-лист в PRD §10 (Фаза 5) на ✅П
+для каждого пункта и закрыть HANDOFF с финальным сводом.
+
+---
 
 **Гейт Фазы 1 — пройден.** Live-протык на стенде (`a.fedotov@friflex.com`)
 прошёл сквозным сценарием: вход → register → события → 3 живые
@@ -359,8 +408,44 @@ unicode emoji (коммит `2723e343a2`).
   «+» в `ChannelsSection` теперь навигирует на `/channels` (был
   no-op). Out of scope: per-channel settings (5.3), admin remove
   others (5.4). Гейты зелёные.
-- ⏳ **5.2** настройки организации; **5.3** управление каналами;
-  **5.4** управление пользователями
+- ✅ **5.2 Настройки организации** (commit `b791359aac`) — 5 секций
+  (Профиль / Сообщения / Доступ / Каналы по умолчанию), autosave per-
+  toggle, explicit save для текстовых полей. `apiClient.updateRealm`,
+  `getDefaultStreams/add/remove`. Расширены `Realm` тип + `realmReducer`
+  (`applyRealmEvent` для `op:"update"` / `update_dict`); `realmStore`
+  фолдит `realm`-event (был no-op). Новый `defaultStreamsStore` с
+  lazy-fetch и фолдом `default_streams`. 20 unit-тестов. Out of scope:
+  icon/logo upload (нет API метода), group-permissions конструктор
+  (упрощено до простых toggles/selects).
+- ✅ **5.3 Управление каналами** (commit `faeafbf00e`) — `/channels`
+  расширен кнопкой «Создать канал» (`CreateChannelModal` с
+  name/description/privacy); name каждого канала — Link на
+  `/channels/:id`. Новая страница `ChannelDetail` с rename,
+  description, admin-only «Доступ» (private toggle, history toggle,
+  retention select), «Подписчики» (count, add via
+  `AddSubscriberInput`, list с per-row remove via
+  `RemoveSubscriberConfirmModal`; non-admin видит только Subscribe/
+  Unsubscribe для себя), admin-only «Опасная зона» с
+  `ArchiveChannelModal`. 15 unit-тестов.
+- ✅ **5.4 Управление пользователями** (commit `faeafbf00e`) —
+  `/admin/users`: один список с табами Активные / Деактивированные /
+  Боты, search + role dropdown, per-row Edit / Deactivate /
+  Reactivate. `EditUserModal`, `DeactivateUserModal`,
+  `ReactivateConfirmModal` — все с optimistic + restore-on-fail
+  через `setState` к `usersStore`. Self-actions скрыты. Боты read-
+  only. 11 unit-тестов.
+- ✅ **5.4 Приглашения** (commit `b791359aac`) — `/admin/invites`:
+  список pending invites с табами Все / По email / Ссылки. Per-row
+  Resend (email-only) / Скопировать ссылку (link-only) / Revoke.
+  `SendInviteModal` (emails Textarea + role + expiry + ChannelPicker
+  Checkbox-список), `CreateReusableInviteLinkModal` (та же форма
+  минус emails; success-view с копируемым URL),
+  `RevokeInviteConfirmModal` с optimistic removal. Refetch после
+  каждой мутации (нет realtime event для invites). 8 unit-тестов.
+
+**🎯 Фаза 5 фиче-комплит** — 5.1+5.2+5.3+5.4+5.5 закрыты. **1096 unit-
+тестов; гейты зелёные.** Live-протык всей админки на стенде — ⏳ ждёт
+владельца (паролем).
 
 #### План 5.2/5.3/5.4 (согласован 2026-05-15)
 

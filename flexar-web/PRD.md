@@ -608,11 +608,13 @@ keyboard-driven).
 
 ### Фаза 5 — Настройки и управление
 - [x] 5.1 Личные настройки — ✅И (`apiClient.updateOwnSettings(...)` PATCH /settings, подмножество ~6 полей; domain `UserSettingsUpdateEvent` + `user_settings` event subscription; `useUserSettingsStore` с `getBoolean/getNumber/getString` + hydrate snapshot + fold update events; `/settings` страница: Профиль/Предпочтения/Уведомления, toggle-row autosave + display-name explicit-save; navbar-кнопка «Настройки») · ✅П (live на стенде: PATCH /settings 200 на 24-h toggle → realtime user_settings event → toggle перевернулся). **Note:** account-level (пароль / API key / аватар) намеренно out-of-scope (safety + Zulip account screen).
-- [ ] 5.2 Настройки организации (админ) — И · [ ] П
-- [ ] 5.3 Управление каналами — И · [ ] П
-- [ ] 5.4 Управление пользователями — И · [ ] П
+- [x] 5.2 Настройки организации (админ) — ✅И (commit `b791359aac`; `/admin/organization` с 4 секциями: Профиль / Сообщения / Доступ / Каналы по умолчанию; autosave per-toggle, explicit save для text-полей; `apiClient.updateRealm` + `getDefaultStreams/add/remove`; `Realm` extended + `applyRealmEvent` reducer (op:update + op:update_dict); `defaultStreamsStore` с lazy-fetch и фолдом `default_streams` event; 20 unit-тестов) · [~] П (gates green; live ⏳ ждёт владельца). **Out of scope:** icon/logo upload (нет API метода), group-permissions конструктор (упрощено).
+- [x] 5.3 Управление каналами — ✅И (commit `faeafbf00e`; `/channels` расширен `CreateChannelModal`, name → Link на `/channels/:id`; `ChannelDetail` страница с rename/description/admin-toggles privacy+history+retention/subscribers list+add+remove/archive danger zone; `apiClient.createChannel/updateChannel/archiveChannel/getChannelSubscribers`; 15 unit-тестов) · [~] П (gates green; live ⏳ ждёт владельца).
+- [x] 5.4 Управление пользователями — ✅И (commit `faeafbf00e` + `b791359aac`; `/admin/users`: единый список с табами Активные/Деактивированные/Боты, search + role-filter, per-row Edit/Deactivate/Reactivate, optimistic+restore через `usersStore.setState`, self-actions скрыты; `/admin/invites`: список с фильтром Все/По email/Ссылки, SendInviteModal/CreateReusableInviteLinkModal/RevokeInviteConfirmModal, refetch после мутаций; `apiClient.updateUser/deactivateUser/reactivateUser/getInvites/sendInvites/createReusableInviteLink/revokeInvite/resendInvite`; 11+8=19 unit-тестов) · [~] П (gates green; live ⏳ ждёт владельца). **Note:** Bots — read-only (создание ботов отдельная итерация); imported users — не делаем (legacy migration tool).
 - [x] 5.5 Подписки — ✅И (`apiClient.subscribe({subscriptions: [{name, description?}], principals?, ...})` POST + `unsubscribe({subscriptions: [name], principals?})` DELETE `/users/me/subscriptions`; `/channels` browse-page subscribed-first sort + search filter + per-row Subscribe/Unsubscribe; sidebar `+` в `ChannelsSection` навигирует на `/channels` вместо no-op; realtime sub events уже фолдят) · ✅П (live на стенде: DELETE 200 на #песочница → выпала из sidebar; POST 200 → вернулась с топиками; фильтр работает)
-- [ ] **Гейт Фазы 5:** общий протык
+- [ ] **Гейт Фазы 5:** общий протык — ⏳ ждёт владельца на стенде (admin dropdown в navbar, /admin/organization, /admin/users, /admin/invites, /channels с создать-каналом, /channels/:id с rename+permissions+subscribers+archive; см. HANDOFF «Следующее действие»).
+
+**🎯 Фаза 5 фиче-комплит** — все 5 разделов имплементированы, гейты зелёные, live-протык всей админки ждёт владельца.
 
 ### Фаза 6 — Сквозное и полировка
 - [ ] 6.1 Клавиатурная навигация — И · [ ] П
