@@ -476,7 +476,9 @@ export class ApiClient {
     await sendRequest<unknown>(
       {
         method: "POST",
-        path: "/submessages",
+        // Note: the server endpoint is singular `/submessage`, not
+        // plural — `zproject/urls.py` registers `rest_path("submessage", …)`.
+        path: "/submessage",
         params: {
           message_id: params.messageId,
           msg_type: params.msgType,
