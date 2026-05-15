@@ -79,6 +79,7 @@ export type {
   ScheduledMessagesRemoveEvent,
   ScheduledMessagesUpdateEvent,
   ServerEvent,
+  SubmessageEvent,
   StreamCreateEvent,
   StreamDeleteEvent,
   StreamEvent,

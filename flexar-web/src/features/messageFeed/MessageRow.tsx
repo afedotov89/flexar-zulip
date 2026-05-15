@@ -53,6 +53,7 @@ import {
   useReactionToggle,
 } from "../reactions";
 import { MessageContent } from "./MessageContent";
+import { detectPoll, PollWidget } from "../widgets";
 import { formatMessageTime } from "./formatting";
 import styles from "./MessageRow.module.css";
 
@@ -236,7 +237,15 @@ export function MessageRow({
           />
         ) : (
           <>
-            <MessageContent content={message.content} />
+            {detectPoll(message.submessages) !== null && viewerId !== undefined ? (
+              <PollWidget
+                messageId={message.id}
+                submessages={message.submessages}
+                viewerUserId={viewerId}
+              />
+            ) : (
+              <MessageContent content={message.content} />
+            )}
             <ReactionsRow
               message={message}
               viewerId={viewerId}

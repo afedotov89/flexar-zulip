@@ -19,6 +19,7 @@ import type {
   ScheduledMessagesEvent,
   ServerEvent,
   StreamEvent,
+  SubmessageEvent,
   SubscriptionEvent,
   TypingEvent,
   UpdateMessageEvent,
@@ -86,4 +87,10 @@ export function isUserStatusEvent(
   event: ServerEvent,
 ): event is UserStatusEvent {
   return event.type === "user_status";
+}
+
+export function isSubmessageEvent(
+  event: ServerEvent,
+): event is SubmessageEvent {
+  return event.type === "submessage";
 }

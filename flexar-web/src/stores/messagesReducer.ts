@@ -30,6 +30,7 @@ import type {
   MessageFlag,
   MessageId,
   ReactionEvent,
+  SubmessageEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
   UserId,
@@ -280,6 +281,49 @@ export function applyDeleteMessageEvent(
     }
   }
   return changed ? { messages, flags } : snapshot;
+}
+
+/**
+ * Fold a `submessage` event into the cache by appending the new
+ * submessage to the target message's `submessages` array (Phase 4.7
+ * widgets). Returns a new snapshot; inputs are never mutated.
+ *
+ * Idempotent on submessage id — the realtime queue can re-deliver a
+ * submessage after a `BAD_EVENT_QUEUE_ID` recovery, and the optimistic
+ * "I just voted" path may have already inserted the same id locally.
+ * A submessage for a message not in the cache is a no-op (the parent
+ * message hasn't been fetched yet; widget UI only renders for cached
+ * messages anyway).
+ */
+export function applySubmessageEvent(
+  snapshot: MessagesSnapshot,
+  event: SubmessageEvent,
+): MessagesSnapshot {
+  const message = snapshot.messages[event.message_id];
+  if (message === undefined) {
+    return snapshot;
+  }
+  const existing = message.submessages;
+  if (existing.some((s) => s.id === event.submessage_id)) {
+    return snapshot;
+  }
+  const updated: Message = {
+    ...message,
+    submessages: [
+      ...existing,
+      {
+        id: event.submessage_id,
+        message_id: event.message_id,
+        sender_id: event.sender_id,
+        msg_type: event.msg_type,
+        content: event.content,
+      },
+    ],
+  };
+  return {
+    ...snapshot,
+    messages: { ...snapshot.messages, [event.message_id]: updated },
+  };
 }
 
 /**

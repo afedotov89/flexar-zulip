@@ -318,6 +318,20 @@ export interface GetUsersResult {
 export type GetOwnUserResult = User;
 
 /**
+ * Parameters for `sendSubmessage` (`POST /api/v1/submessages`). Used
+ * by widget messages (poll / todo) to record votes, add options, etc.
+ * `content` is widget-specific JSON the server validates against the
+ * parent message's widget type.
+ */
+export interface SendSubmessageParams {
+  messageId: number;
+  /** Always `"widget"` in the current widget protocol. */
+  msgType: string;
+  /** JSON string carrying the widget-specific event payload. */
+  content: string;
+}
+
+/**
  * Parameters for `updateOwnUserStatus`
  * (`POST /api/v1/users/me/status`). Every field is optional and the
  * server only changes the parameters supplied — pass just

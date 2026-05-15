@@ -375,6 +375,21 @@ export type ScheduledMessagesEvent =
   | ScheduledMessagesUpdateEvent
   | ScheduledMessagesRemoveEvent;
 
+/**
+ * A new submessage was added to a widget message. Mirrors the
+ * `Submessage` shape stored on `Message.submessages` so the reducer
+ * can append the event payload directly.
+ */
+export interface SubmessageEvent extends EventBase {
+  type: "submessage";
+  submessage_id: number;
+  message_id: MessageId;
+  sender_id: UserId;
+  msg_type: string;
+  /** Widget-specific JSON payload as a string. */
+  content: string;
+}
+
 /** Periodic keepalive sent when the queue has no events to deliver. */
 export interface HeartbeatEvent extends EventBase {
   type: "heartbeat";
@@ -412,5 +427,6 @@ export type ServerEvent =
   | UserStatusEvent
   | UserTopicEvent
   | ScheduledMessagesEvent
+  | SubmessageEvent
   | HeartbeatEvent
   | UnknownEvent;

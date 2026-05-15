@@ -52,6 +52,7 @@ import type {
   RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
+  SendSubmessageParams,
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
@@ -454,6 +455,33 @@ export class ApiClient {
       this.#credentials,
     );
     return body.raw_content;
+  }
+
+  // --- Widgets / submessages ---------------------------------------
+
+  /**
+   * Append a submessage to a widget message.
+   * `POST /api/v1/submessages`.
+   *
+   * Used by the poll / todo widgets (Phase 4.7) to record votes,
+   * add options, etc. `content` is the widget-specific JSON
+   * payload as a string — the server validates it against the
+   * parent widget's type before broadcasting it via the
+   * `submessage` realtime event.
+   */
+  async sendSubmessage(params: SendSubmessageParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/submessages",
+        params: {
+          message_id: params.messageId,
+          msg_type: params.msgType,
+          content: params.content,
+        },
+      },
+      this.#credentials,
+    );
   }
 
   // --- User status --------------------------------------------------

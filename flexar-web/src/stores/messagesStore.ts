@@ -34,6 +34,7 @@ import {
   isDeleteMessageEvent,
   isMessageEvent,
   isReactionEvent,
+  isSubmessageEvent,
   isUpdateMessageEvent,
   isUpdateMessageFlagsEvent,
 } from "./eventGuards";
@@ -45,6 +46,7 @@ import {
   applyOptimisticFlag,
   applyOptimisticReaction,
   applyReactionEvent,
+  applySubmessageEvent,
   applyUpdateMessageEvent,
   applyUpdateMessageFlagsEvent,
   emptyMessagesSnapshot,
@@ -320,6 +322,15 @@ wireStore({
     if (isUpdateMessageFlagsEvent(event)) {
       useMessagesStore.setState((state) =>
         applyUpdateMessageFlagsEvent(
+          { messages: state.messages, flags: state.flags },
+          event,
+        ),
+      );
+      return;
+    }
+    if (isSubmessageEvent(event)) {
+      useMessagesStore.setState((state) =>
+        applySubmessageEvent(
           { messages: state.messages, flags: state.flags },
           event,
         ),
