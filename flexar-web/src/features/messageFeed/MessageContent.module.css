@@ -360,4 +360,86 @@
     height: auto;
     border-radius: var(--radius-sm);
   }
+
+  /*
+   * Zulip's renderer wraps every standalone image-URL preview in
+   * `<div class="message_inline_image">`, with an `<a>` around the
+   * `<img>` (the anchor links to the raw image). The default block
+   * margin keeps a gap from the surrounding paragraph; thumbnail
+   * width is bounded so a wide image does not blow out the row.
+   * (Phase 4.8.)
+   */
+  & :global(.message_inline_image) {
+    display: inline-block;
+    max-width: 100%;
+    margin: var(--space-2) 0;
+  }
+
+  & :global(.message_inline_image) :global(img) {
+    max-height: 18rem;
+    cursor: zoom-in;
+  }
+
+  /*
+   * Open Graph link-preview cards (Zulip's `<div class="message_embed">`
+   * with a thumbnail anchor + title + description). Lays out as
+   * thumbnail-left / text-right; the thumbnail's `background-image`
+   * is set inline by the renderer and (when it survives the CSS
+   * sanitiser) shows an OG image.
+   */
+  & :global(.message_embed) {
+    display: flex;
+    gap: var(--space-3);
+    margin: var(--space-2) 0;
+    padding: var(--space-2);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  & :global(.message_embed_image) {
+    display: block;
+    flex-shrink: 0;
+    width: 6rem;
+    height: 6rem;
+    background-position: center;
+    background-size: cover;
+    border-radius: var(--radius-sm);
+  }
+
+  & :global(.message_embed) :global(.data-container) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  & :global(.message_embed_title) {
+    overflow: hidden;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & :global(.message_embed_title) :global(a) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  & :global(.message_embed_title) :global(a):hover {
+    text-decoration: underline;
+  }
+
+  & :global(.message_embed_description) {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
 }

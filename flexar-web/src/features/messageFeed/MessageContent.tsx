@@ -97,6 +97,24 @@ export function MessageContent({
     (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement;
 
+      // Click on an inline image — open the lightbox (Phase 4.2). Done
+      // BEFORE the anchor check because Zulip wraps inline-image
+      // previews in an `<a href=…>`; without precedence the click
+      // would always navigate, never open the overlay. Emoji `<img>`s
+      // (Zulip marks them with the `emoji` class) are tiny inline
+      // tokens, not media — exclude them.
+      if (
+        target instanceof HTMLImageElement &&
+        !target.classList.contains("emoji")
+      ) {
+        event.preventDefault();
+        // The server may emit relative `/user_uploads/...` URLs;
+        // `target.src` resolves them against the document, which is
+        // what the `<img>` in the lightbox needs.
+        openLightbox(target.src, target.alt);
+        return;
+      }
+
       // Links inside a spoiler header must behave as links, not toggle
       // the spoiler — so check for an enclosing anchor first.
       const anchor = target.closest("a");
@@ -109,22 +127,6 @@ export function MessageContent({
           event.preventDefault();
           goToNarrow(narrow);
         }
-        return;
-      }
-
-      // Click on an inline image — open the lightbox (Phase 4.2). Skip
-      // emoji `<img>`s rendered in message bodies (custom realm emoji
-      // and the inline emoji decorator) — these are tiny inline tokens,
-      // not media. Zulip's renderer marks them with the `emoji` class.
-      if (
-        target instanceof HTMLImageElement &&
-        !target.classList.contains("emoji")
-      ) {
-        event.preventDefault();
-        // The server may emit relative `/user_uploads/...` URLs;
-        // `target.src` resolves them against the document, which is
-        // what the `<img>` in the lightbox needs.
-        openLightbox(target.src, target.alt);
         return;
       }
 
