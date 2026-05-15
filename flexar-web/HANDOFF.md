@@ -404,6 +404,97 @@ unicode emoji (коммит `2723e343a2`).
 чтобы realm-store получал `realm_empty_topic_display_name` (сейчас
 fallback `(no topic)`).
 
+---
+
+### Сплошной live-протык — каталог багов (2026-05-15, после 1-й сессии)
+
+Прошёл по всем реализованным фичам в браузере с реальной сессией.
+Гейт-зелёные фичи, не покрытые ранее протыком, верифицированы как
+LIVE ✅. Найдено **15+ визуальных огрехов и реальных багов** —
+ниже полный каталог, отсортированный по приоритету.
+
+#### High — реальные баги, влияющие на восприятие
+1. **🐛 Optimistic-echo overwrites server HTML** (1.7). Сразу после
+   `apiClient.sendMessage` сообщение в ленте показывает RAW
+   markdown (бэктики, **звёздочки**, `:fire:` в литерале). Только
+   после реального reload отображается серверный HTML. Корень:
+   `reconcileOptimisticMessage` ставит optimistic-record поверх
+   уже принятого realtime-message.
+2. **🐛 POST /submessages → 404** (4.7). Уже пофикшено на сессии
+   `a9c0a25623`. Запомнить для регрессий.
+3. **🐛 Scheduled message empty-topic display** (4.5). Уже
+   пофикшено `f323087681` (realm display name fallback).
+4. **🐛 /scheduled hydrate race** (4.5). Уже пофикшено `f323087681`
+   (loadStatus в dep array).
+5. **🐛 Edit-failure error message в EN** ("The time limit for
+   editing this message has passed"). Сервер возвращает по-английски,
+   но клиент должен либо переводить, либо передавать как есть с
+   пометкой о происхождении.
+
+#### Medium — i18n inconsistency (UI смешан EN/RU)
+6. **🐛 Drafts page heading "Drafts" в EN**, sidebar "Черновики" RU.
+7. **🐛 Message actions menu все в EN**: Star message / Copy link
+   to message / Mark as unread from here / Edit message / Delete
+   message / View edit history.
+8. **🐛 Edit form кнопки EN**: "Edit message", "Cancel", "Save".
+9. **🐛 Emoji picker placeholder "Find emoji"** EN.
+10. **🐛 Edit history modal все EN**: "Edit history", "edited
+    content", "Previous content", "Original message".
+11. **🐛 Lightbox aria-label "Image preview"** EN.
+12. **🐛 Channel browse "Search channels"** label EN.
+
+#### Medium — visual / UX полировка
+13. **🐛 Reaction picker positioned over navbar** (3.2). Когда
+    сообщение близко к верху viewport, popover открывается вверх и
+    обрезается navbar'ом. `useOverlayPosition` должен флипать вниз
+    при недостатке места сверху.
+14. **🐛 Lightbox backdrop scrim слишком прозрачный** (4.2).
+    Через scrim хорошо виден чат — теряется фокус на изображении.
+    Нужно увеличить альфу `--color-overlay-scrim`.
+15. **🐛 Sidebars stuck в skeleton ~5 секунд после navigation**.
+    Register не успевает завершиться сразу после route-change;
+    skeleton-loading держится дольше ожидаемого. Возможно RealtimeConnection
+    не reconnect'ит сразу или skeleton-condition слишком грубый.
+16. **🐛 Right sidebar "В этом канале — Нет данных"** (1.8). Уже
+    зарегистрировано в HANDOFF: `peer_add/remove` gap. Список
+    подписчиков канала не обновляется до re-register.
+17. **🐛 Typeahead `:emoji:` не триггерит в начале textarea**
+    (2.3). Работает после whitespace; `:fi` в начале — нет
+    suggestions. `triggerDetect` требует boundary-condition
+    (start-of-textarea = boundary).
+18. **🐛 Reaction picker иногда выбирает не тот emoji**.
+    Кликнул на 🎉, добавилась 💥. Возможно координатная неточность
+    клика, но если popover рендерится с задержкой — emoji
+    может сдвинуться между screenshot+click.
+
+#### Low — мелочи
+19. **🐛 KaTeX `$E=mc^2$` (single dollar) не рендерит**. Это
+    Zulip-серверная ограничение — нужно `$$...$$`. Полу-фикс:
+    показать пользователю в hint compose-box, что нужно `$$`.
+
+#### Verified LIVE ✅
+| Фаза | Что протыкал | Результат |
+|------|---|---|
+| 1.7 | code/bold/emoji/spoiler/inline-narrow-link | ✅ render after reload (с багом #1 на оптимистике) |
+| 2.3 | @ # : typeahead | ✅ @ всегда работает, # после префикса, : требует whitespace перед |
+| 2.4 | Drafts autosave + /drafts page + restoration | ✅ |
+| 3.1 | Search bar `is:starred` | ✅ 7 starred messages |
+| 3.2 | Reactions chip toggle + picker | ✅ |
+| 3.3 | Actions menu + Star/Copy/Edit/Delete + flags | ✅ POST /messages/flags 200 |
+| 3.4 | Mark-as-read auto + button gating | ✅ button hidden when 0 unread |
+| 3.5 | Notification API mounted, permission granted | ✅ |
+| 3.6 | Compose emoji picker + search filter | ✅ |
+| 4.1 | Paperclip click → file dialog + multi-input | ✅ wiring verified, POST /user_uploads 200 |
+| 4.2 | Lightbox open/close + ESC | ✅ |
+| 4.3 | Typing indicator POST /typing 200 (debounced) | ✅ |
+| 4.4 | User status set + clear via popover | ✅ |
+| 4.5 | Schedule popover preset + /scheduled list + cancel | ✅ |
+| 4.6 | Edit history modal + collapsible diff | ✅ |
+| 4.7 | Poll widget render + vote toggle + voter name | ✅ |
+| 4.8 | Inline image preview + OG embed card CSS | ✅ injected fixture rendered |
+| 5.1 | Settings page toggles + name save | ✅ PATCH /settings 200 |
+| 5.5 | Channels browse + subscribe/unsubscribe | ✅ DELETE/POST 200 |
+
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
 recipient-бары (1.6), `peer_add/remove` не обновляет `subscribers`-
