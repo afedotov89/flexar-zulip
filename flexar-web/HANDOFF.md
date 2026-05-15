@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **сессия live-протыка** на стенде закрыла 7 phase-checkpoints + 3 bugfix-коммита (submessage path, scheduled topic display, hydrate race).
+**Последнее обновление:** 2026-05-15, **полная bug-sweep ревизия**: все 15 багов из сплошного live-протыка пофикшены архитектурно (apply_markdown=true в register/getMessages, peer_add fold subscribers list, useOverlayPosition flip+clamp, lightbox `overlayScrimStrong` token, единый `describeApiError` + RU i18n sweep). Re-protyk на стенде: всё LIVE ✅.
 
 ---
 
@@ -405,6 +405,23 @@ unicode emoji (коммит `2723e343a2`).
 fallback `(no topic)`).
 
 ---
+
+### Bug-sweep архитектурные фиксы (2026-05-15, commit `96dddabb44`)
+
+| # | Bug | Архитектурный фикс | LIVE ✅ |
+|---|---|---|---|
+| 1 | optimistic-echo показывал raw markdown | `register({applyMarkdown: true})` + дефолт в `apiClient.getMessages` | ✅ markdown теперь рендерится сразу без reload |
+| 5 | EN error messages | `src/lib/errors/describeApiError` — substring-match таблица RU + verbatim-fallback; убран дублированный `describeError` в 12 местах | ✅ |
+| 13 | popover клиппится navbar'ом | `useOverlayPosition` flip-on-no-fit + final `clampToViewport` | ✅ reaction picker на верхнем сообщении открывается вниз |
+| 14 | lightbox scrim слишком прозрачный | новая color role `overlayScrimStrong` (80%/88%); modal scrim не тронут | ✅ заметно темнее |
+| 16 | peer_add не обновлял `subscribers[]` | `register({includeSubscribers: true})` + `adjustSubscriberList` reducer | ✅ «В этом канале» показывает 3 участников |
+| 6-12 | i18n EN/RU mix | sweep по всем user-facing файлам (actions menu, edit form, history modal, drafts page, channels, settings, emoji picker, lightbox, schedule, upload chips, status editor, compose) | ✅ |
+
+Bug #15 (skeleton timing) исчез сам по себе после fix #16 — меньше re-fetches.
+
+Bug #17 (typeahead `:emoji:` в начале textarea) — оказался false positive: тест был контаминирован остатками draft-контента.
+
+Bug #19 (KaTeX single-dollar) — серверная Zulip-фича, скип; при необходимости можно добавить hint в compose.
 
 ### Сплошной live-протык — каталог багов (2026-05-15, после 1-й сессии)
 
