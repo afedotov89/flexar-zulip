@@ -11,6 +11,7 @@ import { Outlet } from "react-router-dom";
 import { Navbar } from "../Navbar";
 import { LeftSidebar } from "../../features/leftSidebar";
 import { RightSidebar } from "../../features/rightSidebar";
+import { Lightbox } from "../../features/lightbox";
 import { NotificationCenter } from "../../features/notifications";
 import styles from "./AppShell.module.css";
 
@@ -40,6 +41,13 @@ export function AppShell() {
         once for the lifetime of the authenticated shell.
       */}
       <NotificationCenter />
+
+      {/*
+        Single global image lightbox (Phase 4.2). `MessageContent`'s
+        delegated click handler dispatches into `useLightboxStore`;
+        this component renders the overlay when one is open.
+      */}
+      <Lightbox />
     </div>
   );
 }

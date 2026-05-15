@@ -39,6 +39,7 @@ import {
   parseNarrowLink,
   sanitizeRenderedContent,
 } from "../../lib/renderedContent";
+import { useLightboxStore } from "../lightbox";
 import { useRealmStore } from "../../stores/realmStore";
 import { decorateEmojis } from "./renderedContent/emoji";
 import { decorateLinks } from "./renderedContent/links";
@@ -63,6 +64,7 @@ export function MessageContent({
   const containerRef = useRef<HTMLDivElement>(null);
   const realmUrl = useRealmStore((state) => state.realm?.realm_url);
   const { goToNarrow } = useNarrowNavigation();
+  const openLightbox = useLightboxStore((s) => s.openImage);
 
   // Sanitise once per content string. This is the XSS boundary: the
   // result, and only the result, is injected into the DOM below.
@@ -110,12 +112,28 @@ export function MessageContent({
         return;
       }
 
+      // Click on an inline image — open the lightbox (Phase 4.2). Skip
+      // emoji `<img>`s rendered in message bodies (custom realm emoji
+      // and the inline emoji decorator) — these are tiny inline tokens,
+      // not media. Zulip's renderer marks them with the `emoji` class.
+      if (
+        target instanceof HTMLImageElement &&
+        !target.classList.contains("emoji")
+      ) {
+        event.preventDefault();
+        // The server may emit relative `/user_uploads/...` URLs;
+        // `target.src` resolves them against the document, which is
+        // what the `<img>` in the lightbox needs.
+        openLightbox(target.src, target.alt);
+        return;
+      }
+
       const spoilerHeader = target.closest(`.${SPOILER_HEADER_CLASS}`);
       if (spoilerHeader instanceof HTMLElement) {
         toggleSpoiler(spoilerHeader);
       }
     },
-    [goToNarrow, realmUrl],
+    [goToNarrow, realmUrl, openLightbox],
   );
 
   // Keyboard activation of spoilers: Enter / Space on a focused spoiler

@@ -1,0 +1,36 @@
+/*
+ * Lightbox styles (Phase 4.2). Token-only design values; the literal
+ * `100vw` / `100vh` are pure layout (full viewport).
+ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background-color: var(--color-overlay-scrim);
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/*
+ * The close button sits inside its own surface chip so it stays
+ * legible against arbitrarily dark or busy images.
+ */
+.closeButton {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
