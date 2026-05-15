@@ -30,7 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
-- `<TBD>` 4.3 — typing indicators (send + receive), live POST /typing ✅
+- `e61e606763` 4.3 — typing indicators (send + receive), live POST /typing ✅
 - `8b8eca0070` HANDOFF — fill in 3.1 commit hash
 - `85b91cda8f` 3.1 — search bar (parser + Navbar input → narrow), live ✅
 - `7a4a3c839b` HANDOFF — fill in 3.5 commit hash
