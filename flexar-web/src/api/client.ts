@@ -24,6 +24,11 @@ import type {
 } from "../domain";
 import { narrowToWire } from "./narrow";
 import { sendRequest, type Params } from "./request";
+import {
+  uploadFile,
+  type UploadFileOptions,
+  type UploadFileResult,
+} from "./upload";
 import type {
   ApiKeyResult,
   CreateScheduledMessageParams,
@@ -693,6 +698,31 @@ export class ApiClient {
       { method: "GET", path: "/users/me" },
       this.#credentials,
     );
+  }
+
+  // --- Uploads ------------------------------------------------------
+
+  /**
+   * Upload one file to `POST /api/v1/user_uploads`. Goes through the
+   * dedicated `XMLHttpRequest`-based transport in `./upload` so the
+   * caller gets per-byte progress events (the shared `fetch` transport
+   * cannot surface upload progress).
+   *
+   * Pass `signal` to cancel an in-flight upload (the compose box wires
+   * an `AbortController` per pending upload so the user can drop one
+   * before it completes).
+   */
+  uploadFile(
+    options: Omit<UploadFileOptions, "credentials">,
+  ): Promise<UploadFileResult> {
+    if (this.#credentials === undefined) {
+      // Mirror the `MISSING_CREDENTIALS` thrown by `request.ts`. The
+      // import would create a cycle; replicate the shape directly.
+      return Promise.reject(
+        new Error("Cannot upload a file without credentials."),
+      );
+    }
+    return uploadFile({ ...options, credentials: this.#credentials });
   }
 }
 

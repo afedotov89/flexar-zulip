@@ -20,6 +20,8 @@ export type { ApiErrorBody } from "./errors";
 
 export type {
   ApiKeyResult,
+  CreateScheduledMessageParams,
+  CreateScheduledMessageResult,
   Credentials,
   DeleteMessageResult,
   EditMessageParams,
@@ -45,4 +47,12 @@ export type {
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
+  UpdateScheduledMessageParams,
 } from "./types";
+
+export {
+  isImageType,
+  sanitiseLinkText,
+  uploadToMarkdown,
+} from "./upload";
+export type { UploadFileOptions, UploadFileResult } from "./upload";

@@ -1,0 +1,76 @@
+/*
+ * Upload chips (Phase 4.1). Token-only design values.
+ */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.chip {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.chip[data-status="error"] {
+  border-color: var(--color-danger);
+}
+
+.chip[data-status="aborted"] {
+  border-color: var(--color-warning);
+}
+
+.chip[data-status="done"] {
+  border-color: var(--color-success);
+}
+
+.chipBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 8rem;
+  max-width: 14rem;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.progressTrack {
+  display: block;
+  height: var(--space-1);
+  overflow: hidden;
+  background-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.progressFill {
+  display: block;
+  width: var(--upload-progress, 0%);
+  height: 100%;
+  background-color: var(--color-primary);
+  transition: width 120ms linear;
+}
+
+.dismiss {
+  flex-shrink: 0;
+}

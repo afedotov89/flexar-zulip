@@ -77,6 +77,11 @@ import {
 import { ComposePreview } from "./ComposePreview";
 import { EmojiPickerButton } from "./EmojiPicker";
 import { ScheduleSendButton } from "./Schedule";
+import {
+  UploadButton,
+  UploadChips,
+  useUploadManager,
+} from "./Upload";
 import { useTypingEmitter } from "./useTypingEmitter";
 import type { CreateScheduledMessageParams } from "../../api/types";
 import {
@@ -620,11 +625,10 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   }, [draftKey, deleteDraftAction, textareaNode, typing]);
 
   // Splice text into the textarea at the current caret (Phase 3.6 — the
-  // emoji picker uses this to insert `:shortcode:`). The cursor lands
-  // just after the inserted text; the textarea autofocuses so the user
-  // can keep typing without a click. Falls back to a plain append when
-  // the textarea node is not yet wired (the picker cannot be opened in
-  // that state, but the guard keeps the call total).
+  // emoji picker uses this to insert `:shortcode:`; Phase 4.1 — the
+  // upload manager uses it to insert `[filename](url)` Markdown). The
+  // cursor lands just after the inserted text; the textarea autofocuses
+  // so the user can keep typing without a click.
   const insertAtCursor = useCallback(
     (text: string): void => {
       const textarea = textareaNode;
@@ -641,6 +645,59 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       }
     },
     [form.content, textareaNode, showRestoredHint],
+  );
+
+  // Upload manager owns in-flight uploads (paperclip, paste, drag-drop)
+  // and emits the resulting Markdown into the textarea via
+  // `insertAtCursor` once each upload completes (Phase 4.1).
+  const uploadManager = useUploadManager({ onInsert: insertAtCursor });
+  const enqueueFiles = useCallback(
+    (files: readonly File[]): void => {
+      for (const file of files) {
+        uploadManager.enqueue(file);
+      }
+    },
+    [uploadManager],
+  );
+
+  // Paste handler: pull any `File` items from the clipboard and enqueue
+  // them. Common case is screenshots (image/png) pasted into the
+  // textarea. We do NOT preventDefault unless we actually consumed
+  // files — otherwise text paste should still work.
+  const onTextareaPaste = useCallback(
+    (event: React.ClipboardEvent<HTMLTextAreaElement>): void => {
+      const files = Array.from(event.clipboardData.files);
+      if (files.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      enqueueFiles(files);
+    },
+    [enqueueFiles],
+  );
+
+  // Drag-and-drop on the whole compose form. `dragover` must
+  // preventDefault for `drop` to fire; `drop` reads the files off
+  // `dataTransfer`. Highlighting the drop zone is left to a later
+  // polish pass — the bare functionality is what Phase 4.1 ships.
+  const onDragOver = useCallback(
+    (event: React.DragEvent<HTMLFormElement>): void => {
+      if (event.dataTransfer.types.includes("Files")) {
+        event.preventDefault();
+      }
+    },
+    [],
+  );
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLFormElement>): void => {
+      const files = Array.from(event.dataTransfer.files);
+      if (files.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      enqueueFiles(files);
+    },
+    [enqueueFiles],
   );
 
   // Keyboard model: typeahead first (so Enter/Tab/Arrows/Escape navigate
@@ -692,7 +749,13 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   // role="tab" buttons is enough here and stays consistent with the
   // primitive's visual treatment via the same `secondary` button style.
   return (
-    <form className={styles.compose} onSubmit={onSubmit} aria-label="Send a message">
+    <form
+      className={styles.compose}
+      onSubmit={onSubmit}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      aria-label="Send a message"
+    >
       <div className={styles.recipientRow}>
         {formMode === "channel" ? (
           <>
@@ -850,6 +913,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
               )
             }
             onBlur={textareaTypeahead.close}
+            onPaste={onTextareaPaste}
             placeholder={
               formMode === "channel"
                 ? "Write a message"
@@ -895,7 +959,14 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         </div>
       )}
 
+      <UploadChips
+        uploads={uploadManager.uploads}
+        onCancel={uploadManager.cancel}
+        onDismiss={uploadManager.dismiss}
+      />
+
       <div className={styles.actionsRow}>
+        <UploadButton onFilesChosen={enqueueFiles} disabled={sending} />
         <EmojiPickerButton onPick={insertAtCursor} disabled={sending} />
         <ScheduleSendButton
           buildParams={buildScheduleParams}
