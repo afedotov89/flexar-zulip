@@ -55,6 +55,7 @@ import { DateSeparator } from "./DateSeparator";
 import { MessageRow } from "./MessageRow";
 import { RecipientBar } from "./RecipientBar";
 import type { FeedRow } from "./feedItems";
+import { useMarkVisibleAsRead } from "./useMarkVisibleAsRead";
 import styles from "./MessageList.module.css";
 
 export interface MessageListProps {
@@ -200,6 +201,16 @@ export function MessageList({
     onLoadOlder,
     onLoadNewer,
   ]);
+
+  // Mark unread messages that have actually entered the viewport as read.
+  // The hook owns its own debouncing, batching, and visibility gating —
+  // see `useMarkVisibleAsRead` for the why.
+  useMarkVisibleAsRead({
+    rows,
+    getMessage,
+    virtualizer,
+    scrollRef,
+  });
 
   const virtualRows = virtualizer.getVirtualItems();
 

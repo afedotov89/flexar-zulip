@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 2 фиче-комплит** (read+write live-verified).
+**Последнее обновление:** 2026-05-15, **Фаза 3.4 закрыта** (mark-all-read live-verified).
 
 ---
 
@@ -30,6 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `09d6fcf1a2` 3.4 — управление непрочитанным (mark-as-read on scroll + mark-all-read), live ✅
 - `1fb0da3b55` 3.3 — действия над сообщением (меню+edit+delete+star+copy+mark-unread), live ✅
 - `36b79f1131` 3.2 — реакции (чипы + `ReactionPicker` + optimistic, live-протык ✅)
 - `43c5fd6cad` 2.4 — драфты (`useDraftsStore` + автосохранение + восстановление + `/drafts`-страница, +фикс ререндера destination-лейбла), live-протык ✅
@@ -159,7 +160,17 @@ unicode emoji (коммит `2723e343a2`).
   `getRawContent`. Live ✅: меню открылось, Star→Unstar флип. Out of
   scope (на 3.3-extension): move/resolve topic, view source,
   quote-reply. 902 unit-теста.
-- 🚧 **3.4** управление непрочитанным (mark-as-read on scroll, mark all)
+- ✅ **3.4 Управление непрочитанным** — `apiClient.markAllAsRead`/
+  `markStreamAsRead`/`markTopicAsRead`; `useUnreadStore.markRead`/
+  `markAllRead` + чистый `markIdsRead`-редьюсер; `useMarkVisibleAsRead`
+  (виртуализатор → видимые ряды → дебаунс 600мс → bulk
+  `updateMessageFlags add read`, гейт по `document.visibilityState`,
+  фильтр negative-id); `MarkAsReadButton` контекст-aware («Mark all/
+  channel/topic as read» — показывается только при ненулевом счётчике
+  scope-а, скрывается на DM/search/has/negated narrow). Live ✅:
+  combined-feed → кнопка появилась → клик → unread очищены, кнопка
+  скрылась, ошибок в консоли нет; channel-narrow без unread → кнопки
+  нет (правильно). 915 unit-тестов.
 - ⏳ **3.1** поиск; **3.5** уведомления; **3.6** эмодзи-пикер для compose +
   custom realm emoji
 

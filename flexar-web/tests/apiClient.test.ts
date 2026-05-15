@@ -342,6 +342,44 @@ describe("request encoding", () => {
     expect(JSON.parse(body.get("messages") as string)).toEqual([4, 8, 15]);
   });
 
+  it("markAllAsRead POSTs to /mark_all_as_read and surfaces the job id", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      partially_completed_id: 42,
+    });
+
+    const result = await client().markAllAsRead();
+
+    expect(result).toEqual({ partiallyCompletedId: 42 });
+    expect(calls[0].url).toBe("/api/v1/mark_all_as_read");
+    expect(calls[0].init.method).toBe("POST");
+  });
+
+  it("markStreamAsRead POSTs the stream id as a form param", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    const result = await client().markStreamAsRead(11);
+
+    expect(result).toEqual({ partiallyCompletedId: undefined });
+    expect(calls[0].url).toBe("/api/v1/mark_stream_as_read");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("stream_id")).toBe("11");
+  });
+
+  it("markTopicAsRead POSTs both the stream id and the topic name", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().markTopicAsRead(11, "release planning");
+
+    expect(calls[0].url).toBe("/api/v1/mark_topic_as_read");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("stream_id")).toBe("11");
+    expect(body.get("topic_name")).toBe("release planning");
+  });
+
   it("getRawContent fetches the message with apply_markdown=false and returns raw_content", async () => {
     mockJsonResponse({
       result: "success",

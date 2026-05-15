@@ -138,6 +138,21 @@ export interface MessagesState {
    */
   applyOptimisticFlag: (pending: OptimisticFlag) => void;
   /**
+   * Optimistically add a per-viewer flag (e.g. `"read"`) to many cached
+   * messages in one update (Phase 3.4). The mark-as-read-on-scroll path
+   * batches dozens of ids into one server call; this matching local
+   * update keeps the cache in step in a single store write rather than
+   * one per id. The realtime `update_message_flags` event is idempotent
+   * on the same `(id, flag, op)` triple and reconciles when it arrives.
+   * Ids absent from the cache still receive the flag — the body may
+   * land later via history fetch and the flag must survive until then.
+   */
+  applyOptimisticFlagsBulk: (
+    messageIds: readonly MessageId[],
+    op: "add" | "remove",
+    flag: MessageFlag,
+  ) => void;
+  /**
    * Re-insert a previously-cached `Message` by id (Phase 3.3). Used to
    * revert a failed optimistic edit or delete: the caller snapshotted
    * the original `Message` before the optimistic change.
@@ -223,6 +238,22 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
         pending,
       ),
     );
+  },
+  applyOptimisticFlagsBulk: (messageIds, op, flag) => {
+    if (messageIds.length === 0) {
+      return;
+    }
+    set((state) => {
+      let snapshot = { messages: state.messages, flags: state.flags };
+      for (const id of messageIds) {
+        snapshot = applyOptimisticFlag(snapshot, {
+          message_id: id,
+          op,
+          flag,
+        });
+      }
+      return snapshot;
+    });
   },
   restoreMessage: (message) => {
     set((state) =>

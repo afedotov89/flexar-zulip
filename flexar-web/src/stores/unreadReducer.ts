@@ -546,6 +546,27 @@ function deletedIds(event: DeleteMessageEvent): MessageId[] {
 }
 
 /**
+ * Drop the listed ids from whatever bucket they currently live in
+ * (Phase 3.4). This is the optimistic counterpart to the realtime
+ * `update_message_flags(op:add, flag:read, messages:[…])` event the
+ * mark-as-read paths trigger — applying the same removal locally
+ * before the round-trip lets the sidebar counters update without
+ * waiting. The corresponding realtime event reducer is idempotent on
+ * the same ids, so the two harmonise without a flicker. A no-op
+ * (returns the same reference) when no listed id is currently tracked.
+ */
+export function markIdsRead(
+  buckets: UnreadBuckets,
+  messageIds: readonly MessageId[],
+): UnreadBuckets {
+  let next = buckets;
+  for (const id of messageIds) {
+    next = unfileId(next, id);
+  }
+  return next;
+}
+
+/**
  * Fold a `delete_message` event into the buckets: a deleted message can
  * no longer be unread, so its id is dropped from whatever bucket holds
  * it. Returns new buckets; the input is never mutated. Unknown ids are

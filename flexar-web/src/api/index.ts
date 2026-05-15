@@ -34,6 +34,7 @@ export type {
   GetSubscriptionsResult,
   GetTopicsResult,
   GetUsersResult,
+  MarkAsReadResult,
   MessageAnchor,
   RegisterQueueOptions,
   RegisterQueueResult,

@@ -168,6 +168,23 @@ export interface UpdateMessageFlagsResult {
 }
 
 /**
+ * Response envelope of the bulk mark-as-read endpoints
+ * (`POST /api/v1/mark_all_as_read`, `POST /api/v1/mark_stream_as_read`,
+ * `POST /api/v1/mark_topic_as_read`).
+ *
+ * On modern servers (feature level 153+) the operation is asynchronous:
+ * the server begins a background job and returns the job's identifier.
+ * Older servers complete the work synchronously and return only the
+ * `result: success` envelope. The id is exposed for completeness — the
+ * UI does not need it (a subsequent `update_message_flags` event with
+ * `op:add flag:read all:true` reconciles the state) — and is optional.
+ */
+export interface MarkAsReadResult {
+  /** Background-job id when the server runs the mark asynchronously. */
+  partiallyCompletedId?: number;
+}
+
+/**
  * Response of `GET /api/v1/messages/{message_id}` with
  * `apply_markdown=false`.
  *

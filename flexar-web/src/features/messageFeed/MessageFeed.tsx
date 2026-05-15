@@ -31,6 +31,7 @@ import type { Message, Narrow } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { ComposeBox } from "../compose";
+import { MarkAsReadButton } from "./MarkAsReadButton";
 import { MessageList } from "./MessageList";
 import { buildFeedRows } from "./feedItems";
 import { useFeedWindow } from "./useFeedWindow";
@@ -137,6 +138,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
 
   return (
     <div className={styles.feed}>
+      <MarkAsReadButton narrow={narrow} />
       {window.historyLimited && (
         <div className={styles.notice}>
           <Banner tone="info">

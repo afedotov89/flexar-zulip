@@ -44,6 +44,7 @@ import {
   dmUnreadCount,
   emptyUnreadBuckets,
   isUnread,
+  markIdsRead,
   mentionsCount,
   topicUnreadCount,
   unreadCount,
@@ -73,9 +74,25 @@ export interface UnreadState {
   getDmConversationKeys: () => string[];
   /** The number of unread messages the viewer is mentioned in. */
   getMentionsCount: () => number;
+  /**
+   * Optimistically drop the listed message ids from their unread buckets
+   * (Phase 3.4). Used by the mark-as-read-on-scroll path and the
+   * mark-all-read button so the sidebar counters update immediately;
+   * the realtime `update_message_flags` event with `op:add flag:read`
+   * arrives shortly after and the reducer is idempotent on the same ids.
+   * A no-op for ids that are not currently tracked as unread.
+   */
+  markRead: (messageIds: readonly MessageId[]) => void;
+  /**
+   * Optimistically clear *every* unread bucket (Phase 3.4). Used by the
+   * mark-all-read path so the sidebar empties immediately; the realtime
+   * `update_message_flags` event with `op:add flag:read all:true`
+   * reconciles. A no-op when no unread is tracked.
+   */
+  markAllRead: () => void;
 }
 
-export const useUnreadStore = create<UnreadState>()((_set, get) => ({
+export const useUnreadStore = create<UnreadState>()((set, get) => ({
   unread: emptyUnreadBuckets(),
   isUnread: (messageId) => isUnread(get().unread, messageId),
   getUnreadCount: () => unreadCount(get().unread),
@@ -85,6 +102,20 @@ export const useUnreadStore = create<UnreadState>()((_set, get) => ({
   getDmUnread: (conversationKey) => dmUnreadCount(get().unread, conversationKey),
   getDmConversationKeys: () => dmConversationKeysWithUnread(get().unread),
   getMentionsCount: () => mentionsCount(get().unread),
+  markRead: (messageIds) => {
+    if (messageIds.length === 0) {
+      return;
+    }
+    set((state) => ({
+      unread: markIdsRead(state.unread, messageIds),
+    }));
+  },
+  markAllRead: () => {
+    if (unreadCount(get().unread) === 0) {
+      return;
+    }
+    set({ unread: emptyUnreadBuckets() });
+  },
 }));
 
 /** The viewer's own user id, or `null` when no session is established. */

@@ -27,6 +27,7 @@ import {
   dmUnreadCount,
   emptyUnreadBuckets,
   isUnread,
+  markIdsRead,
   mentionsCount,
   topicUnreadCount,
   unreadCount,
@@ -590,6 +591,82 @@ describe("mentions overlay", () => {
       message_id: 42,
     });
     expect(mentionsCount(next)).toBe(0);
+  });
+});
+
+describe("markIdsRead", () => {
+  it("drops the listed ids from their channel-topic buckets", () => {
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(1, 9, "release"),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      channelMessageEvent(2, 9, "release"),
+      100,
+    );
+
+    buckets = markIdsRead(buckets, [1]);
+
+    expect(isUnread(buckets, 1)).toBe(false);
+    expect(isUnread(buckets, 2)).toBe(true);
+    expect(topicUnreadCount(buckets, 9, "release")).toBe(1);
+  });
+
+  it("drops the listed ids from their DM buckets", () => {
+    let buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      dmMessageEvent(7, [100, 5]),
+      100,
+    );
+    buckets = applyMessageEventToUnread(
+      buckets,
+      dmMessageEvent(8, [100, 5]),
+      100,
+    );
+
+    buckets = markIdsRead(buckets, [7, 8]);
+
+    expect(dmUnreadCount(buckets, "5,100")).toBe(0);
+    expect(dmConversationKeysWithUnread(buckets)).toEqual([]);
+  });
+
+  it("also clears the mentions overlay for marked ids", () => {
+    const event: MessageEvent = {
+      id: 1,
+      type: "message",
+      message: makeMessage({
+        id: 5,
+        type: "stream",
+        stream_id: 9,
+        subject: "release",
+        sender_id: 99,
+      }),
+      flags: ["mentioned"],
+    };
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      event,
+      100,
+    );
+    expect(mentionsCount(buckets)).toBe(1);
+
+    const next = markIdsRead(buckets, [5]);
+
+    expect(mentionsCount(next)).toBe(0);
+    expect(isUnread(next, 5)).toBe(false);
+  });
+
+  it("returns the same reference when nothing changes", () => {
+    const buckets = applyMessageEventToUnread(
+      emptyUnreadBuckets(),
+      channelMessageEvent(1, 9, "release"),
+      100,
+    );
+
+    expect(markIdsRead(buckets, [])).toBe(buckets);
+    expect(markIdsRead(buckets, [42])).toBe(buckets);
   });
 });
 

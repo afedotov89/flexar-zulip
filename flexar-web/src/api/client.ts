@@ -37,6 +37,7 @@ import type {
   GetSubscriptionsResult,
   GetTopicsResult,
   GetUsersResult,
+  MarkAsReadResult,
   RegisterQueueOptions,
   RegisterQueueResult,
   RenderMarkdownResult,
@@ -339,6 +340,66 @@ export class ApiClient {
       this.#credentials,
     );
     return { messages: body.messages };
+  }
+
+  /**
+   * Mark every unread message in the user's account as read.
+   * `POST /api/v1/mark_all_as_read`.
+   *
+   * On modern servers (feature level 153+) the operation runs as an
+   * asynchronous background job and the response carries its id; older
+   * servers complete it synchronously. Either way, the realtime
+   * `update_message_flags` event with `op:add flag:read all:true`
+   * reconciles the local state once the job finishes — callers can
+   * apply optimistic updates without waiting for the response.
+   */
+  async markAllAsRead(): Promise<MarkAsReadResult> {
+    const body = await sendRequest<{ partially_completed_id?: number }>(
+      { method: "POST", path: "/mark_all_as_read" },
+      this.#credentials,
+    );
+    return { partiallyCompletedId: body.partially_completed_id };
+  }
+
+  /**
+   * Mark every unread message in one channel as read.
+   * `POST /api/v1/mark_stream_as_read`.
+   *
+   * Asynchronous on modern servers; reconciliation arrives via the
+   * realtime event stream. See `markAllAsRead` for the result-shape note.
+   */
+  async markStreamAsRead(streamId: number): Promise<MarkAsReadResult> {
+    const body = await sendRequest<{ partially_completed_id?: number }>(
+      {
+        method: "POST",
+        path: "/mark_stream_as_read",
+        params: { stream_id: streamId },
+      },
+      this.#credentials,
+    );
+    return { partiallyCompletedId: body.partially_completed_id };
+  }
+
+  /**
+   * Mark every unread message in one channel-topic as read.
+   * `POST /api/v1/mark_topic_as_read`.
+   *
+   * Asynchronous on modern servers; reconciliation arrives via the
+   * realtime event stream. See `markAllAsRead` for the result-shape note.
+   */
+  async markTopicAsRead(
+    streamId: number,
+    topicName: string,
+  ): Promise<MarkAsReadResult> {
+    const body = await sendRequest<{ partially_completed_id?: number }>(
+      {
+        method: "POST",
+        path: "/mark_topic_as_read",
+        params: { stream_id: streamId, topic_name: topicName },
+      },
+      this.#credentials,
+    );
+    return { partiallyCompletedId: body.partially_completed_id };
   }
 
   /**

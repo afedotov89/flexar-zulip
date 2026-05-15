@@ -1,0 +1,14 @@
+/*
+ * Mark-as-read header bar (Phase 3.4).
+ * The bar sits above the virtualized list, right-aligned to keep the
+ * column's left edge clean, and only renders when there's something to
+ * mark — see `MarkAsReadButton`.
+ */
+
+.bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
