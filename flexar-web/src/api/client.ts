@@ -54,6 +54,8 @@ import type {
   SendMessageResult,
   SendSubmessageParams,
   SendTypingParams,
+  SubscribeParams,
+  UnsubscribeParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
   UpdateOwnSettingsParams,
@@ -729,6 +731,51 @@ export class ApiClient {
       this.#credentials,
     );
     return body.subscriptions;
+  }
+
+  /**
+   * Subscribe the current user (or other principals) to one or more
+   * channels. `POST /api/v1/users/me/subscriptions`.
+   *
+   * `subscriptions` is the list of channel names to subscribe to;
+   * if a name does not exist the server creates the channel with
+   * the supplied description (or none). `principals` lets an admin
+   * subscribe other users — Phase 5.5 only uses the
+   * subscribe-myself path.
+   */
+  async subscribe(params: SubscribeParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/users/me/subscriptions",
+        params: {
+          subscriptions: params.subscriptions,
+          principals: params.principals,
+          authorization_errors_fatal: params.authorizationErrorsFatal,
+          announce: params.announce,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Unsubscribe the current user (or other principals) from one or
+   * more channels by name.
+   * `DELETE /api/v1/users/me/subscriptions`.
+   */
+  async unsubscribe(params: UnsubscribeParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "DELETE",
+        path: "/users/me/subscriptions",
+        params: {
+          subscriptions: params.subscriptions,
+          principals: params.principals,
+        },
+      },
+      this.#credentials,
+    );
   }
 
   /** Fetch all channels the user has access to. `GET /api/v1/streams`. */

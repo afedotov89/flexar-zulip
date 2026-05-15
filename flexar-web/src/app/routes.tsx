@@ -41,6 +41,7 @@ import { RequireAuth } from "./RequireAuth";
 import { Feed } from "../pages/Feed";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFound } from "../pages/NotFound";
+import { Channels } from "../pages/Channels";
 import { Settings } from "../pages/Settings";
 import { TokenShowcase } from "../pages/TokenShowcase";
 import { PrimitivesShowcase } from "../pages/PrimitivesShowcase";
@@ -66,6 +67,8 @@ export const router = createBrowserRouter([
           })),
           // Personal settings (Phase 5.1).
           { path: "settings", element: <Settings /> },
+          // Browse channels (Phase 5.5).
+          { path: "channels", element: <Channels /> },
         ],
       },
     ],

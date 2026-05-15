@@ -344,6 +344,33 @@ export interface UpdateOwnSettingsParams {
 }
 
 /**
+ * Parameters for `subscribe` (`POST /api/v1/users/me/subscriptions`).
+ * Each entry in `subscriptions` carries a channel name and an
+ * optional description (only used when the channel does not yet
+ * exist and the server creates it).
+ */
+export interface SubscribeParams {
+  subscriptions: ReadonlyArray<{ name: string; description?: string }>;
+  /** User ids to subscribe instead of (or in addition to) the caller. */
+  principals?: ReadonlyArray<UserId>;
+  /** Whether private-channel auth errors should fail the request. */
+  authorizationErrorsFatal?: boolean;
+  /** Whether to announce a newly-created channel. */
+  announce?: boolean;
+}
+
+/**
+ * Parameters for `unsubscribe`
+ * (`DELETE /api/v1/users/me/subscriptions`). `subscriptions` is the
+ * list of channel names to unsubscribe; `principals` lets an admin
+ * unsubscribe other users.
+ */
+export interface UnsubscribeParams {
+  subscriptions: readonly string[];
+  principals?: ReadonlyArray<UserId>;
+}
+
+/**
  * Parameters for `sendSubmessage` (`POST /api/v1/submessages`). Used
  * by widget messages (poll / todo) to record votes, add options, etc.
  * `content` is widget-specific JSON the server validates against the

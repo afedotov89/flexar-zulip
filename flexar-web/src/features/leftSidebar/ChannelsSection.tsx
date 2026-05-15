@@ -8,13 +8,11 @@
 // collapse state lives here (a set of expanded channel ids); the filter
 // query is passed down from the sidebar and matches channel names.
 //
-// The section header carries the "+" add-channel control. The
-// create/browse-channels screen is a later phase, so the button is
-// present and operable but its handler is a documented no-op — flagged
-// in HANDOFF. It is a real `IconButton` so it has correct focus and
-// keyboard behaviour for when the target screen lands.
+// The section header carries the "+" add-channel control which
+// navigates to the browse-channels screen (Phase 5.5).
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { StreamId, Subscription } from "../../domain";
 import { narrowToPath, useCurrentNarrow } from "../../lib/narrow";
 import { useStreamsStore } from "../../stores/streamsStore";
@@ -49,6 +47,7 @@ export function ChannelsSection({
   const subscriptions = useStreamsStore((s) => s.subscriptions);
   const getChannelUnread = useUnreadStore((s) => s.getChannelUnread);
   const currentNarrow = useCurrentNarrow();
+  const navigate = useNavigate();
 
   // Channels start expanded; this set holds the ids the user collapsed.
   const [collapsedChannels, setCollapsedChannels] = useState<Set<StreamId>>(
@@ -86,9 +85,7 @@ export function ChannelsSection({
       size="sm"
       variant="ghost"
       aria-label="Добавить канал"
-      // The create/browse-channels screen is a later phase; this is a
-      // deliberate no-op for now (flagged in HANDOFF).
-      onClick={() => {}}
+      onClick={() => void navigate("/channels")}
     />
   );
 

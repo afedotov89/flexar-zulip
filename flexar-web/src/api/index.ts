@@ -45,6 +45,8 @@ export type {
   SendMessageParams,
   SendMessageResult,
   SendTypingParams,
+  SubscribeParams,
+  UnsubscribeParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
   UpdateOwnSettingsParams,
