@@ -587,7 +587,7 @@ keyboard-driven).
 - [~] **🎯 Контрольная точка MVP-каркас:** ✅ фронт логинится в стенд, показывает живые сообщения, отправляет, обновляется в реальном времени (Playwright-набор фазы — отдельной задачей)
 
 ### Фаза 3 — Существенное
-- [ ] 3.1 Поиск — И · [ ] П · [ ] E
+- [x] 3.1 Поиск — ✅И · ✅П (`parseSearchQuery` парсер Zulip-операторов + `SearchBar` в navbar; live ✅: `is:starred` → narrow URL → re-fetch) · [ ] E
 - [x] 3.2 Реакции — ✅И · ✅П (чипы + ReactionPicker + optimistic; live ✅) · [ ] E
 - [x] 3.3 Действия над сообщением — ✅И · ✅П (star/copy-link/mark-unread + edit/delete own only; live ✅; **deferred:** move/resolve topic, view source, quote-reply)
 - [x] 3.4 Управление непрочитанным — ✅И · ✅П (mark-as-read on scroll [виртуализатор → видимые ряды → дебаунс] + `MarkAsReadButton` контекст-aware [combined/channel/topic]; live ✅)

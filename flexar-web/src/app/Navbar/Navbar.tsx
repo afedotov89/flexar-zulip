@@ -8,6 +8,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/Button";
+import { SearchBar } from "../../features/search";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../theme";
 import styles from "./Navbar.module.css";
@@ -33,7 +34,7 @@ export function Navbar(): React.JSX.Element {
       <div className={styles.brand}>Flexar Hub</div>
 
       <div className={styles.search}>
-        <span className={styles.searchPlaceholder}>Search placeholder</span>
+        <SearchBar />
       </div>
 
       <div className={styles.actions}>

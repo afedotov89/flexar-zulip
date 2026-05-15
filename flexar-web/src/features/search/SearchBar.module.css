@@ -1,0 +1,16 @@
+/*
+ * Search bar (Phase 3.1). Lives in the navbar's center slot —
+ * full-width inside its slot so the input fills the available
+ * horizontal space without stretching the navbar layout.
+ */
+
+.bar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+}
+
+.bar > * {
+  width: 100%;
+}

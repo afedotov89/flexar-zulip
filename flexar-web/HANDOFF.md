@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 3.5 закрыта** (notifications mounted; permission + sound + dispatcher).
+**Последнее обновление:** 2026-05-15, **Фаза 3 фиче-комплит** (3.1 search live-verified — последняя из Фазы 3).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `<TBD>` 3.1 — search bar (parser + Navbar input → narrow), live ✅
+- `7a4a3c839b` HANDOFF — fill in 3.5 commit hash
 - `6304de67c0` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
 - `9b3803d07d` HANDOFF — fill in 3.6 commit hash
 - `ded70d7141` 3.6 — эмодзи-пикер для compose + кастомные realm-эмодзи store, live ✅
@@ -199,7 +201,17 @@ unicode emoji (коммит `2723e343a2`).
   смонтирован, Notification API детектится, permission запрашивается
   на маунте (в Chrome-под-управлением промпт не показывается — это
   ограничение автоматизации; будет работать в обычном браузере).
-- ⏳ **3.1** поиск
+- ✅ **3.1 Поиск** — `src/lib/search/parseQuery.ts` (чистый парсер
+  Zulip-flavored синтаксиса: `from:`/`sender:`, `channel:`/`stream:`,
+  `topic:`, `dm:`/`pm-with:`, `dm-including:`, `is:`, `has:`, `near:`,
+  `id:`; шорт-форма `-` для negated; double-quoted значения; numeric
+  user-id list для dm; bare-text → одно `search`-term; неизвестные
+  операторы → free-text); `SearchBar` в navbar (Input + onSubmit →
+  `parseSearchQuery` → `goToNarrow`). 11 unit-тестов. Live ✅:
+  `is:starred` → URL `/narrow/is/starred`, MessageFeed re-fetch,
+  результаты показаны.
+
+**🎯 Фаза 3 фиче-комплит** — 3.1+3.2+3.3+3.4+3.5+3.6 закрыты.
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
