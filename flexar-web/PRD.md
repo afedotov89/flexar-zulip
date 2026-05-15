@@ -603,7 +603,7 @@ keyboard-driven).
 - [x] 4.5 Отложенные сообщения — ✅И (`apiClient.getScheduledMessages`/`createScheduledMessage`/`updateScheduledMessage`/`deleteScheduledMessage`; `useScheduledMessagesStore` с lazy-fetch + realtime add/update/remove; `scheduled_messages` в `DEFAULT_EVENT_TYPES`; `ScheduleSendButton`+`SchedulePopover` в compose actionsRow с 4 пресетами + datetime-local; `/scheduled` спец-вид; failed-сообщения подсвечены) · [~] П (компонент смонтирован, unit ✅, live на стенде ⏳ ждёт владельца)
 - [x] 4.6 История правок — ✅И · ✅П (apiClient.getMessageHistory + EditHistoryModal в actions menu, гейтнут на edited)
 - [ ] 4.7 Виджеты (опросы/todo) — И · [ ] П
-- [ ] 4.8 Превью ссылок — И · [ ] П
+- [x] 4.8 Превью ссылок — ✅И (серверный `rendered_content` уже выдаёт `.message_inline_image` и `.message_embed` — оба проходят через DOMPurify; этот коммит добавил CSS: inline-image cap 18rem + cursor zoom-in, embed-card layout thumbnail-left/text-right с clamp-3 description; click-делегация переупорядочена — image-check до anchor-check, чтобы preview-обёрнутый-в-`<a>` открывал lightbox, а не навигировал) · [~] П (CSS smoke ✅, live на стенде ⏳ ждёт владельца)
 - [ ] **Гейт Фазы 4:** общий протык
 
 ### Фаза 5 — Настройки и управление
