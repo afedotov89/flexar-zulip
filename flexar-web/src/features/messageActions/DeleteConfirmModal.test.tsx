@@ -84,7 +84,7 @@ describe("DeleteConfirmModal — confirm path", () => {
       <DeleteConfirmModal open={true} message={message} onClose={onClose} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
 
     await waitFor(() => {
       expect(deleteMessageMock).toHaveBeenCalledWith(message.id);
@@ -105,7 +105,7 @@ describe("DeleteConfirmModal — confirm path", () => {
       <DeleteConfirmModal open={true} message={message} onClose={onClose} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("forbidden");
@@ -130,7 +130,7 @@ describe("DeleteConfirmModal — dismiss paths", () => {
       <DeleteConfirmModal open={true} message={message} onClose={onClose} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
     expect(onClose).toHaveBeenCalledOnce();
     expect(deleteMessageMock).not.toHaveBeenCalled();
   });

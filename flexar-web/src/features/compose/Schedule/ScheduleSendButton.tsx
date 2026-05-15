@@ -17,6 +17,7 @@ import { IconButton } from "../../../components/IconButton";
 import { Popover } from "../../../components/Popover";
 import { apiClient } from "../../../api";
 import type { CreateScheduledMessageParams } from "../../../api/types";
+import { describeApiError } from "../../../lib/errors";
 import { SchedulePopover } from "./SchedulePopover";
 import { toUnixSeconds } from "./schedulePresets";
 
@@ -64,7 +65,7 @@ export function ScheduleSendButton({
         onScheduled();
       } catch (cause) {
         setBusy(false);
-        onError(describeError(cause));
+        onError(describeApiError(cause, "Не удалось запланировать сообщение."));
       }
     },
     [buildParams, onScheduled, onError],
@@ -75,7 +76,7 @@ export function ScheduleSendButton({
       icon="schedule"
       size="sm"
       variant="ghost"
-      aria-label="Schedule send"
+      aria-label="Запланировать отправку"
       disabled={!canSchedule}
     />
   );
@@ -86,7 +87,7 @@ export function ScheduleSendButton({
       placement="top"
       open={open}
       onOpenChange={setOpen}
-      aria-label="Schedule send"
+      aria-label="Запланировать отправку"
     >
       <SchedulePopover
         onSchedule={handleSchedule}
@@ -97,9 +98,3 @@ export function ScheduleSendButton({
   );
 }
 
-function describeError(cause: unknown): string {
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось запланировать сообщение.";
-}

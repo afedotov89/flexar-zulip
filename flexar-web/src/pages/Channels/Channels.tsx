@@ -17,8 +17,9 @@ import { useMemo, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { Stream, StreamId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useStreamsStore } from "../../stores/streamsStore";
 import styles from "./Channels.module.css";
 
@@ -57,7 +58,7 @@ export function Channels(): React.JSX.Element {
     try {
       await apiClient.subscribe({ subscriptions: [{ name: stream.name }] });
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить подписку."));
     } finally {
       setBusyStreamId(null);
     }
@@ -69,7 +70,7 @@ export function Channels(): React.JSX.Element {
     try {
       await apiClient.unsubscribe({ subscriptions: [stream.name] });
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить подписку."));
     } finally {
       setBusyStreamId(null);
     }
@@ -80,7 +81,7 @@ export function Channels(): React.JSX.Element {
       <header className={styles.header}>
         <h1 className={styles.heading}>Каналы</h1>
         <Input
-          aria-label="Search channels"
+          aria-label="Поиск канала"
           type="search"
           iconLeft="search"
           value={filter}
@@ -103,7 +104,7 @@ export function Channels(): React.JSX.Element {
             : "По запросу ничего не найдено."}
         </p>
       ) : (
-        <ul className={styles.list} aria-label="Channels">
+        <ul className={styles.list} aria-label="Каналы">
           {list.map((stream) => {
             const subscribed = stream.stream_id in subscriptions;
             const busy = busyStreamId === stream.stream_id;
@@ -139,12 +140,3 @@ export function Channels(): React.JSX.Element {
   );
 }
 
-function describeError(cause: unknown): string {
-  if (isApiError(cause)) {
-    return cause.body?.msg ?? cause.message;
-  }
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось обновить подписку.";
-}

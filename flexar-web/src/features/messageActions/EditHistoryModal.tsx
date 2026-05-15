@@ -14,8 +14,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { Modal } from "../../components/Modal";
 import { Spinner } from "../../components/Spinner";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { Message, MessageEdit, StreamId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import styles from "./EditHistoryModal.module.css";
@@ -27,13 +28,6 @@ export interface EditHistoryModalProps {
   open: boolean;
   /** Called when the user requests to close (Esc, scrim, X). */
   onClose: () => void;
-}
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Failed to load history.";
 }
 
 export function EditHistoryModal({
@@ -72,7 +66,7 @@ export function EditHistoryModal({
         if (cancelled) {
           return;
         }
-        setError(describeError(cause));
+        setError(describeApiError(cause, "Не удалось загрузить историю."));
       })
       .finally(() => {
         if (!cancelled) {
@@ -108,14 +102,14 @@ export function EditHistoryModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit history"
+      title="История правок"
       size="md"
       dismissable
     >
       <div className={styles.body}>
         {loading && (
           <div className={styles.loading} role="status">
-            <Spinner size="sm" aria-label="Loading edit history" /> Loading…
+            <Spinner size="sm" aria-label="Загрузка истории правок" /> Загрузка…
           </div>
         )}
         {error !== null && (
@@ -124,13 +118,13 @@ export function EditHistoryModal({
           </Banner>
         )}
         {!loading && error === null && history !== null && (
-          <ul className={styles.list} aria-label="Edit history">
+          <ul className={styles.list} aria-label="История правок">
             {ordered.map((entry) => (
               <li key={entry.timestamp} className={styles.row}>
                 <div className={styles.rowHead}>
                   <span className={styles.rowAuthor}>
                     {entry.user_id === null
-                      ? "Unknown"
+                      ? "Неизвестно"
                       : (getUser(entry.user_id)?.full_name ?? `User ${entry.user_id}`)}
                   </span>
                   <span className={styles.rowTime}>
@@ -143,7 +137,7 @@ export function EditHistoryModal({
                 {entry.prev_content !== undefined && (
                   <details className={styles.diff}>
                     <summary className={styles.diffSummary}>
-                      Previous content
+                      Предыдущая версия
                     </summary>
                     <pre className={styles.diffPre}>{entry.prev_content}</pre>
                   </details>
@@ -151,7 +145,7 @@ export function EditHistoryModal({
               </li>
             ))}
             {ordered.length === 0 && (
-              <li className={styles.empty}>This message has no edit history.</li>
+              <li className={styles.empty}>У этого сообщения нет истории правок.</li>
             )}
           </ul>
         )}
@@ -167,20 +161,20 @@ export function summariseEntry(
 ): string {
   const parts: string[] = [];
   if (entry.prev_content !== undefined) {
-    parts.push("edited content");
+    parts.push("изменено содержимое");
   }
   if (entry.prev_topic !== undefined) {
     parts.push(
-      `moved from topic "${entry.prev_topic}" to "${entry.topic ?? ""}"`,
+      `тема перемещена из «${entry.prev_topic}» в «${entry.topic ?? ""}»`,
     );
   }
   if (entry.prev_stream !== undefined) {
     const fromName = channelName(entry.prev_stream);
     const toName = channelName(entry.stream);
-    parts.push(`moved from #${fromName} to #${toName}`);
+    parts.push(`канал перенесён с #${fromName} на #${toName}`);
   }
   if (parts.length === 0) {
-    return "Original message";
+    return "Исходное сообщение";
   }
   return parts.join(" · ");
 }

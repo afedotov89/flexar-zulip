@@ -8,7 +8,7 @@ import { ReactionPicker } from "./ReactionPicker";
 describe("ReactionPicker", () => {
   it("renders a search input and the full corpus by default", () => {
     render(<ReactionPicker onPick={() => {}} />);
-    expect(screen.getByLabelText("Find emoji")).toBeInTheDocument();
+    expect(screen.getByLabelText("Поиск эмодзи")).toBeInTheDocument();
     // Sanity: a known popular emoji from the corpus is offered.
     expect(
       screen.getByRole("gridcell", { name: ":thumbs_up:" }),
@@ -20,7 +20,7 @@ describe("ReactionPicker", () => {
 
   it("filters the grid by substring on shortcode", () => {
     render(<ReactionPicker onPick={() => {}} />);
-    const input = screen.getByLabelText("Find emoji");
+    const input = screen.getByLabelText("Поиск эмодзи");
     fireEvent.change(input, { target: { value: "thumbs" } });
     expect(
       screen.getByRole("gridcell", { name: ":thumbs_up:" }),
@@ -32,7 +32,7 @@ describe("ReactionPicker", () => {
 
   it("shows an empty-state when nothing matches", () => {
     render(<ReactionPicker onPick={() => {}} />);
-    fireEvent.change(screen.getByLabelText("Find emoji"), {
+    fireEvent.change(screen.getByLabelText("Поиск эмодзи"), {
       target: { value: "zzz_no_such_emoji_zzz" },
     });
     expect(screen.queryAllByRole("gridcell")).toHaveLength(0);
@@ -52,7 +52,7 @@ describe("ReactionPicker", () => {
 
   it("ArrowDown from the search input moves focus into the grid", () => {
     render(<ReactionPicker onPick={() => {}} />);
-    const input = screen.getByLabelText("Find emoji");
+    const input = screen.getByLabelText("Поиск эмодзи");
     input.focus();
     fireEvent.keyDown(input, { key: "ArrowDown" });
     const cells = screen.getAllByRole("gridcell");
@@ -72,6 +72,6 @@ describe("ReactionPicker", () => {
     const cells = screen.getAllByRole("gridcell");
     cells[0].focus();
     fireEvent.keyDown(cells[0], { key: "ArrowUp" });
-    expect(document.activeElement).toBe(screen.getByLabelText("Find emoji"));
+    expect(document.activeElement).toBe(screen.getByLabelText("Поиск эмодзи"));
   });
 });

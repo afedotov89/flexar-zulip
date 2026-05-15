@@ -109,7 +109,7 @@ describe("ReactionsRow", () => {
     expect(chip).toHaveTextContent("2");
     // Picker affordance appears once at least one chip is shown.
     expect(
-      screen.getByRole("button", { name: "Add reaction" }),
+      screen.getByRole("button", { name: "Добавить реакцию" }),
     ).toBeInTheDocument();
   });
 
@@ -182,7 +182,7 @@ describe("ReactionsRow", () => {
         errorMessage={null}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Add reaction" }));
+    fireEvent.click(screen.getByRole("button", { name: "Добавить реакцию" }));
     fireEvent.click(screen.getByRole("gridcell", { name: ":thumbs_up:" }));
     expect(toggle).toHaveBeenCalledWith(
       {

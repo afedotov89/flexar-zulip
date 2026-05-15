@@ -35,7 +35,15 @@ interface UseOverlayPositionArgs {
   enabled: boolean;
 }
 
-function computePosition(
+/** Opposite-side fallback used when the requested placement does not fit. */
+const OPPOSITE: Record<OverlayPlacement, OverlayPlacement> = {
+  top: "bottom",
+  bottom: "top",
+  left: "right",
+  right: "left",
+};
+
+function placeOnSide(
   anchorRect: DOMRect,
   floatingRect: DOMRect,
   placement: OverlayPlacement,
@@ -64,6 +72,93 @@ function computePosition(
   }
 }
 
+/** Whether the floating panel fits inside the viewport at `(x, y)`. */
+function fitsInViewport(
+  x: number,
+  y: number,
+  floatingRect: DOMRect,
+  viewportWidth: number,
+  viewportHeight: number,
+): boolean {
+  return (
+    x >= 0 &&
+    y >= 0 &&
+    x + floatingRect.width <= viewportWidth &&
+    y + floatingRect.height <= viewportHeight
+  );
+}
+
+/**
+ * Compute the on-screen `(x, y)` for `floating` against `anchor` with
+ * the requested `placement`, flipping to the opposite side when the
+ * preferred side does not fit. As a final guard the result is clamped
+ * inside the viewport so the panel never anchors off-screen — better
+ * a slightly-shifted overlay than one whose close button is invisible.
+ */
+function computePosition(
+  anchorRect: DOMRect,
+  floatingRect: DOMRect,
+  placement: OverlayPlacement,
+  viewportWidth: number,
+  viewportHeight: number,
+): { x: number; y: number } {
+  const preferred = placeOnSide(anchorRect, floatingRect, placement);
+  if (
+    fitsInViewport(
+      preferred.x,
+      preferred.y,
+      floatingRect,
+      viewportWidth,
+      viewportHeight,
+    )
+  ) {
+    return clampToViewport(
+      preferred,
+      floatingRect,
+      viewportWidth,
+      viewportHeight,
+    );
+  }
+  // The requested side does not fit. Try the opposite side; if it
+  // also does not fit we fall through to the clamp below — the panel
+  // sits at whichever side has more room.
+  const flipped = placeOnSide(anchorRect, floatingRect, OPPOSITE[placement]);
+  if (
+    fitsInViewport(
+      flipped.x,
+      flipped.y,
+      floatingRect,
+      viewportWidth,
+      viewportHeight,
+    )
+  ) {
+    return clampToViewport(
+      flipped,
+      floatingRect,
+      viewportWidth,
+      viewportHeight,
+    );
+  }
+  return clampToViewport(preferred, floatingRect, viewportWidth, viewportHeight);
+}
+
+function clampToViewport(
+  pos: { x: number; y: number },
+  floatingRect: DOMRect,
+  viewportWidth: number,
+  viewportHeight: number,
+): { x: number; y: number } {
+  const x = Math.max(
+    OFFSET,
+    Math.min(pos.x, viewportWidth - floatingRect.width - OFFSET),
+  );
+  const y = Math.max(
+    OFFSET,
+    Math.min(pos.y, viewportHeight - floatingRect.height - OFFSET),
+  );
+  return { x, y };
+}
+
 /**
  * Positions `floating` against `anchor`. Recomputes on mount and on
  * window scroll/resize while `enabled`. Writes `--overlay-x` /
@@ -88,7 +183,13 @@ export function useOverlayPosition({
     }
     const anchorRect = anchor.getBoundingClientRect();
     const floatingRect = floating.getBoundingClientRect();
-    const { x, y } = computePosition(anchorRect, floatingRect, placement);
+    const { x, y } = computePosition(
+      anchorRect,
+      floatingRect,
+      placement,
+      window.innerWidth,
+      window.innerHeight,
+    );
     floating.style.setProperty("--overlay-x", `${Math.round(x)}px`);
     floating.style.setProperty("--overlay-y", `${Math.round(y)}px`);
   }, [enabled, anchor, floating, placement, tick]);

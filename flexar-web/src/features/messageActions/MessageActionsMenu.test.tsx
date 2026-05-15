@@ -105,12 +105,12 @@ describe("MessageActionsMenu — ownership gating", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     expect(
-      screen.getByRole("menuitem", { name: "Edit message" }),
+      screen.getByRole("menuitem", { name: "Редактировать" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: "Delete message" }),
+      screen.getByRole("menuitem", { name: "Удалить сообщение" }),
     ).toBeInTheDocument();
   });
 
@@ -128,22 +128,22 @@ describe("MessageActionsMenu — ownership gating", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     expect(
-      screen.queryByRole("menuitem", { name: "Edit message" }),
+      screen.queryByRole("menuitem", { name: "Редактировать" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("menuitem", { name: "Delete message" }),
+      screen.queryByRole("menuitem", { name: "Удалить сообщение" }),
     ).not.toBeInTheDocument();
     // Always-on items still render.
     expect(
-      screen.getByRole("menuitem", { name: "Star message" }),
+      screen.getByRole("menuitem", { name: "Отметить" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: "Copy link to message" }),
+      screen.getByRole("menuitem", { name: "Копировать ссылку" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: "Mark as unread from here" }),
+      screen.getByRole("menuitem", { name: "Отметить непрочитанным отсюда" }),
     ).toBeInTheDocument();
   });
 
@@ -161,9 +161,9 @@ describe("MessageActionsMenu — ownership gating", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     expect(
-      screen.getByRole("menuitem", { name: "Unstar message" }),
+      screen.getByRole("menuitem", { name: "Снять отметку" }),
     ).toBeInTheDocument();
   });
 });
@@ -184,8 +184,8 @@ describe("MessageActionsMenu — star toggle", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Star message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Отметить" }));
 
     await waitFor(() => {
       expect(updateMessageFlagsMock).toHaveBeenCalledWith({
@@ -215,8 +215,8 @@ describe("MessageActionsMenu — star toggle", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Star message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Отметить" }));
 
     await waitFor(() => {
       expect(onActionError).toHaveBeenCalledWith("nope");
@@ -241,8 +241,8 @@ describe("MessageActionsMenu — star toggle", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Unstar message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Снять отметку" }));
 
     await waitFor(() => {
       expect(updateMessageFlagsMock).toHaveBeenCalledWith({
@@ -273,9 +273,9 @@ describe("MessageActionsMenu — mark unread", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     fireEvent.click(
-      screen.getByRole("menuitem", { name: "Mark as unread from here" }),
+      screen.getByRole("menuitem", { name: "Отметить непрочитанным отсюда" }),
     );
 
     await waitFor(() => {
@@ -312,9 +312,9 @@ describe("MessageActionsMenu — copy link", () => {
         onActionNotice={onActionNotice}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     fireEvent.click(
-      screen.getByRole("menuitem", { name: "Copy link to message" }),
+      screen.getByRole("menuitem", { name: "Копировать ссылку" }),
     );
 
     await waitFor(() => {
@@ -323,7 +323,7 @@ describe("MessageActionsMenu — copy link", () => {
       );
     });
     await waitFor(() => {
-      expect(onActionNotice).toHaveBeenCalledWith("Link copied");
+      expect(onActionNotice).toHaveBeenCalledWith("Ссылка скопирована");
     });
   });
 
@@ -346,12 +346,12 @@ describe("MessageActionsMenu — copy link", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
     fireEvent.click(
-      screen.getByRole("menuitem", { name: "Copy link to message" }),
+      screen.getByRole("menuitem", { name: "Копировать ссылку" }),
     );
     expect(onActionError).toHaveBeenCalledWith(
-      "Clipboard is unavailable in this context.",
+      "Буфер обмена недоступен в этом контексте.",
     );
   });
 });
@@ -372,8 +372,8 @@ describe("MessageActionsMenu — edit / delete intents", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Edit message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Редактировать" }));
     expect(onEditRequested).toHaveBeenCalledOnce();
   });
 
@@ -392,8 +392,8 @@ describe("MessageActionsMenu — edit / delete intents", () => {
         onActionNotice={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Delete message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Действия с сообщением" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Удалить сообщение" }));
     expect(onDeleteRequested).toHaveBeenCalledOnce();
   });
 });

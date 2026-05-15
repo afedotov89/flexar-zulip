@@ -75,7 +75,7 @@ export function Lightbox(): React.JSX.Element | null {
         className={styles.backdrop}
         role="dialog"
         aria-modal="true"
-        aria-label="Image preview"
+        aria-label="Просмотр изображения"
         onClick={handleBackdropClick}
       >
         <IconButton
@@ -83,7 +83,7 @@ export function Lightbox(): React.JSX.Element | null {
           icon="close"
           size="md"
           variant="ghost"
-          aria-label="Close image preview"
+          aria-label="Закрыть просмотр изображения"
           className={styles.closeButton}
           onClick={close}
         />

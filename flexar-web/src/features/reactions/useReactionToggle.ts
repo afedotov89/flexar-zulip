@@ -22,8 +22,9 @@
 // reconciles the cache when it arrives.
 
 import { useCallback, useState } from "react";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { EmojiIdentity, MessageId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useAuthStore } from "../../stores/authStore";
 import { useMessagesStore } from "../../stores/messagesStore";
 
@@ -31,13 +32,6 @@ export interface UseReactionToggle {
   toggle: (emoji: EmojiIdentity, currentlyActive: boolean) => Promise<void>;
   errorMessage: string | null;
   clearError: () => void;
-}
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Could not update reaction.";
 }
 
 export function useReactionToggle(messageId: MessageId): UseReactionToggle {
@@ -82,7 +76,7 @@ export function useReactionToggle(messageId: MessageId): UseReactionToggle {
         // Revert by running the inverse op through the same reducer.
         const inverse: "add" | "remove" = op === "add" ? "remove" : "add";
         tryOptimistic(inverse, emoji);
-        setErrorMessage(describeError(cause));
+        setErrorMessage(describeApiError(cause, "Не удалось обновить реакцию."));
       }
     },
     [messageId, tryOptimistic],

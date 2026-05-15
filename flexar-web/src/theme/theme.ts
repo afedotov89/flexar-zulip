@@ -146,6 +146,11 @@ export interface ColorRoles {
   focusRing: string;
   // Semi-transparent dark scrim behind modal dialogs.
   overlayScrim: string;
+  // Stronger scrim for media-focused overlays (the image lightbox).
+  // Modals carry their own surface chrome and read fine against the
+  // weaker scrim; a full-bleed image overlay needs a darker backdrop
+  // so the image is the unmistakable subject.
+  overlayScrimStrong: string;
   // Per-user avatar background palette. These are theme-independent
   // Flexar brand colours (`brandColors.avatarMarble` in `tokens.ts`),
   // exposed as flat `avatar1..avatarN` roles so the existing flat-key
@@ -183,6 +188,7 @@ const lightColors: ColorRoles = {
   active: "hsl(240deg 7% 11% / 9%)",
   focusRing: "hsl(215deg 100% 54% / 45%)",
   overlayScrim: "hsl(0deg 0% 0% / 50%)",
+  overlayScrimStrong: "hsl(0deg 0% 0% / 80%)",
   avatar1,
   avatar2,
   avatar3,
@@ -214,6 +220,7 @@ const darkColors: ColorRoles = {
   active: "hsl(0deg 0% 100% / 12%)",
   focusRing: "hsl(213deg 100% 62% / 55%)",
   overlayScrim: "hsl(0deg 0% 0% / 65%)",
+  overlayScrimStrong: "hsl(0deg 0% 0% / 88%)",
   avatar1,
   avatar2,
   avatar3,

@@ -181,7 +181,7 @@ describe("ComposeBox — drafts autosave", () => {
     vi.useFakeTimers();
     try {
       render(<ComposeBox narrow={channelTopicNarrow} />);
-      const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+      const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: "in progress" } });
 
       // Before the debounce: nothing saved yet.
@@ -207,7 +207,7 @@ describe("ComposeBox — drafts autosave", () => {
     vi.useFakeTimers();
     try {
       render(<ComposeBox narrow={channelTopicNarrow} />);
-      const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+      const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
       fireEvent.change(textarea, { target: { value: "abc" } });
       act(() => {
@@ -246,7 +246,7 @@ describe("ComposeBox — drafts autosave", () => {
         },
       });
       render(<ComposeBox narrow={channelTopicNarrow} />);
-      const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+      const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
       // The mount restored "old body"; type to clear it.
       expect(textarea.value).toBe("old body");
@@ -269,7 +269,7 @@ describe("ComposeBox — drafts autosave", () => {
       const searchNarrow: Narrow = [{ operator: "search", operand: "x" }];
       render(<ComposeBox narrow={searchNarrow} />);
       // The compose box renders the placeholder hint, not a textarea.
-      expect(screen.queryByLabelText("Message")).toBeNull();
+      expect(screen.queryByLabelText("Сообщение")).toBeNull();
       act(() => {
         vi.advanceTimersByTime(1000);
       });
@@ -295,9 +295,9 @@ describe("ComposeBox — drafts on send", () => {
     });
 
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("old draft");
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     await waitFor(() => {
       expect(sendMessageMock).toHaveBeenCalledTimes(1);
@@ -319,9 +319,9 @@ describe("ComposeBox — drafts restoration on mount", () => {
       },
     });
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("saved earlier");
-    expect(screen.getByText("Restored from draft")).toBeInTheDocument();
+    expect(screen.getByText("Восстановлено из черновика")).toBeInTheDocument();
   });
 
   it("does not restore a draft saved for a different DM conversation", () => {
@@ -338,9 +338,9 @@ describe("ComposeBox — drafts restoration on mount", () => {
       },
     });
     render(<ComposeBox narrow={dmNarrowWith5} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("");
-    expect(screen.queryByText("Restored from draft")).toBeNull();
+    expect(screen.queryByText("Восстановлено из черновика")).toBeNull();
   });
 
   it("restores the matching DM draft and ignores other DMs", () => {
@@ -362,7 +362,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
     });
     render(<ComposeBox narrow={dmNarrowWith11} />);
     expect(
-      (screen.getByLabelText("Message") as HTMLTextAreaElement).value,
+      (screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value,
     ).toBe("for ophelia");
   });
 
@@ -378,17 +378,17 @@ describe("ComposeBox — drafts restoration on mount", () => {
       },
     });
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    expect(screen.getByText("Restored from draft")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Message"), {
+    expect(screen.getByText("Восстановлено из черновика")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Сообщение"), {
       target: { value: "savedX" },
     });
-    expect(screen.queryByText("Restored from draft")).toBeNull();
+    expect(screen.queryByText("Восстановлено из черновика")).toBeNull();
   });
 
   it("starts blank when a channel narrow has no saved draft", () => {
     render(<ComposeBox narrow={channelOnlyNarrow} />);
     expect(
-      (screen.getByLabelText("Message") as HTMLTextAreaElement).value,
+      (screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value,
     ).toBe("");
   });
 });

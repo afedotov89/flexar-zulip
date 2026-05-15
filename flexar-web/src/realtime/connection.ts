@@ -335,6 +335,24 @@ export class RealtimeConnection {
             eventTypes: [...this.#eventTypes],
             fetchEventTypes: [...this.#eventTypes],
             slimPresence: true,
+            // Ask the server to deliver realtime `message` events with
+            // rendered HTML in `message.content` (Phase 1.7 + 4.x
+            // optimistic-echo fix). The register-queue endpoint defaults
+            // this to `false`, which would mean every event delivered
+            // raw Markdown — `MessageContent` would then render `code`
+            // and `**bold**` as literal text. Explicit `true` aligns the
+            // event stream with `getMessages` (which we also call with
+            // applyMarkdown=true) and with the documented Zulip-web
+            // client behaviour.
+            applyMarkdown: true,
+            // Have the snapshot include the full subscriber list for
+            // every subscribed channel — the right sidebar's
+            // "В этом канале" reads `Subscription.subscribers`. Without
+            // this, the snapshot omits the array entirely and that pane
+            // renders "Нет данных" until the user re-registers.
+            // `peer_add` / `peer_remove` events keep the list current
+            // after the initial snapshot (see `streamsReducer`).
+            includeSubscribers: true,
           });
           if (!this.#isCurrent(runId)) {
             return;

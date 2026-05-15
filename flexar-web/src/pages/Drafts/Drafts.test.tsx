@@ -139,7 +139,7 @@ function renderDraftsAt(initialPath = "/drafts"): void {
 describe("Drafts page — empty state", () => {
   it("shows the no-drafts hint when the store is empty", () => {
     renderDraftsAt();
-    expect(screen.getByText("No drafts yet")).toBeInTheDocument();
+    expect(screen.getByText("Черновиков пока нет")).toBeInTheDocument();
     expect(screen.queryByRole("list")).toBeNull();
   });
 });
@@ -164,11 +164,11 @@ describe("Drafts page — populated", () => {
     });
     renderDraftsAt();
 
-    const list = screen.getByRole("list", { name: "Drafts" });
+    const list = screen.getByRole("list", { name: "Черновики" });
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(2);
     // Recency-desc: DM (newer) first, channel (older) second.
-    expect(within(items[0]).getByText("Direct message to: Hamlet")).toBeInTheDocument();
+    expect(within(items[0]).getByText("Личное сообщение для: Hamlet")).toBeInTheDocument();
     expect(within(items[1]).getByText("# engineering > deploys")).toBeInTheDocument();
   });
 
@@ -185,7 +185,7 @@ describe("Drafts page — populated", () => {
     });
     renderDraftsAt();
     expect(
-      screen.getByText("Direct message to: Hamlet, Ophelia"),
+      screen.getByText("Личное сообщение для: Hamlet, Ophelia"),
     ).toBeInTheDocument();
   });
 
@@ -209,7 +209,7 @@ describe("Drafts page — populated", () => {
     renderDraftsAt();
     expect(screen.getByText("# Channel 99 > foo")).toBeInTheDocument();
     expect(
-      screen.getByText("Direct message to: User 42"),
+      screen.getByText("Личное сообщение для: User 42"),
     ).toBeInTheDocument();
   });
 
@@ -249,7 +249,7 @@ describe("Drafts page — populated", () => {
     renderDraftsAt();
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Open draft for # engineering > deploys",
+        name: "Открыть черновик для # engineering > deploys",
       }),
     );
     expect(screen.getByTestId("location").textContent).toBe(
@@ -271,7 +271,7 @@ describe("Drafts page — populated", () => {
     renderDraftsAt();
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Open draft for Direct message to: Hamlet",
+        name: "Открыть черновик для Личное сообщение для: Hamlet",
       }),
     );
     expect(screen.getByTestId("location").textContent).toBe("/narrow/dm/5");
@@ -297,7 +297,7 @@ describe("Drafts page — populated", () => {
     renderDraftsAt();
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Delete draft for # engineering > deploys",
+        name: "Удалить черновик для # engineering > deploys",
       }),
     );
     expect(useDraftsStore.getState().drafts).toEqual({
@@ -310,7 +310,7 @@ describe("Drafts page — populated", () => {
     });
     // The remaining row is still there.
     expect(
-      screen.getByText("Direct message to: Hamlet"),
+      screen.getByText("Личное сообщение для: Hamlet"),
     ).toBeInTheDocument();
   });
 });

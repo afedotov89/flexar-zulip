@@ -162,9 +162,12 @@ describe("request encoding", () => {
     expect(params.get("anchor")).toBe("newest");
     expect(params.get("num_before")).toBe("10");
     expect(params.get("num_after")).toBe("0");
-    // includeAnchor / applyMarkdown were not passed -> absent.
+    // includeAnchor was not passed -> absent.
     expect(params.has("include_anchor")).toBe(false);
-    expect(params.has("apply_markdown")).toBe(false);
+    // applyMarkdown defaults to true so the realtime pipeline and the
+    // history fetch agree on rendered HTML — explicit `false` only when
+    // the caller wants raw Markdown (`getRawContent`).
+    expect(params.get("apply_markdown")).toBe("true");
   });
 
   it("JSON-encodes the narrow parameter as a single query value", async () => {

@@ -58,7 +58,7 @@ describe("ComposeEmojiPicker", () => {
       emojiById: { "1": emoji({ id: "1", name: "flexar_logo" }) },
     });
     render(withTheme(<ComposeEmojiPicker onPick={() => {}} />));
-    const search = screen.getByRole("textbox", { name: "Find emoji" });
+    const search = screen.getByRole("textbox", { name: "Поиск эмодзи" });
     fireEvent.change(search, { target: { value: "flexar" } });
     expect(
       screen.getByRole("gridcell", { name: ":flexar_logo:" }),
@@ -75,9 +75,9 @@ describe("ComposeEmojiPicker", () => {
 
   it("shows an empty-state message when the filter matches nothing", () => {
     render(withTheme(<ComposeEmojiPicker onPick={() => {}} />));
-    fireEvent.change(screen.getByRole("textbox", { name: "Find emoji" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Поиск эмодзи" }), {
       target: { value: "xyzzy-no-match" },
     });
-    expect(screen.getByRole("status")).toHaveTextContent("No emoji match.");
+    expect(screen.getByRole("status")).toHaveTextContent("Нет совпадений.");
   });
 });

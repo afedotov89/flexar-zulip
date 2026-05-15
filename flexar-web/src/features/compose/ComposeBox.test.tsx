@@ -158,23 +158,23 @@ const dmNarrow: Narrow = [{ operator: "dm", operand: [5, 9] }];
 describe("ComposeBox — pre-fill from narrow", () => {
   it("pre-fills channel and topic from a channel+topic narrow", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const channel = screen.getByLabelText("Channel") as HTMLInputElement;
-    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    const channel = screen.getByLabelText("Канал") as HTMLInputElement;
+    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     expect(channel.value).toBe("engineering");
     expect(topic.value).toBe("deploys");
   });
 
   it("pre-fills channel only when the narrow has no topic", () => {
     render(<ComposeBox narrow={channelOnlyNarrow} />);
-    const channel = screen.getByLabelText("Channel") as HTMLInputElement;
-    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    const channel = screen.getByLabelText("Канал") as HTMLInputElement;
+    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     expect(channel.value).toBe("engineering");
     expect(topic.value).toBe("");
   });
 
   it("pre-fills DM recipients from a dm narrow, stripping the viewer", () => {
     render(<ComposeBox narrow={dmNarrow} />);
-    const recipients = screen.getByLabelText("To") as HTMLInputElement;
+    const recipients = screen.getByLabelText("Кому") as HTMLInputElement;
     expect(recipients.value).toBe("Hamlet");
   });
 
@@ -185,7 +185,7 @@ describe("ComposeBox — pre-fill from narrow", () => {
         /Choose a channel or a direct-message conversation to start writing/,
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Отправить" })).toBeNull();
   });
 
   it("renders the placeholder hint when the route has no narrow", () => {
@@ -201,7 +201,7 @@ describe("ComposeBox — pre-fill from narrow", () => {
 describe("ComposeBox — send", () => {
   it("disables Send when the body is empty", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const send = screen.getByRole("button", { name: "Send" }) as HTMLButtonElement;
+    const send = screen.getByRole("button", { name: "Отправить" }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
   });
 
@@ -209,9 +209,9 @@ describe("ComposeBox — send", () => {
     sendMessageMock.mockResolvedValue({ id: 99 });
     render(<ComposeBox narrow={channelTopicNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "hello" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     await waitFor(() => {
       expect(sendMessageMock).toHaveBeenCalledWith({
@@ -222,10 +222,10 @@ describe("ComposeBox — send", () => {
       });
     });
     // Body cleared, recipient/topic preserved.
-    expect((screen.getByLabelText("Message") as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value).toBe(
       "",
     );
-    expect((screen.getByLabelText("Topic") as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText("Тема") as HTMLInputElement).value).toBe(
       "deploys",
     );
   });
@@ -234,7 +234,7 @@ describe("ComposeBox — send", () => {
     sendMessageMock.mockResolvedValue({ id: 100 });
     render(<ComposeBox narrow={channelTopicNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
     // Shift+Enter: must NOT submit. We simulate by checking that a
     // shift+enter keydown does not call sendMessage; the actual newline
@@ -264,9 +264,9 @@ describe("ComposeBox — send", () => {
     sendMessageMock.mockResolvedValue({ id: 101 });
     render(<ComposeBox narrow={dmNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "hi there" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     await waitFor(() => {
       expect(sendMessageMock).toHaveBeenCalledWith({
@@ -288,9 +288,9 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
     );
     render(<ComposeBox narrow={channelTopicNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "echo me" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     // While the request is in flight, the optimistic entry sits in
     // the store under the first negative id (-1) and the send button
@@ -317,9 +317,9 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
     sendMessageMock.mockRejectedValue(new Error("boom"));
     render(<ComposeBox narrow={channelTopicNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "will fail" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     await waitFor(() => {
       expect(screen.getByText("boom")).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
     // The optimistic entry is removed.
     expect(useMessagesStore.getState().messages[-1]).toBeUndefined();
     // The draft text remains for retry.
-    expect((screen.getByLabelText("Message") as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value).toBe(
       "will fail",
     );
   });
@@ -342,9 +342,9 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
     );
     render(<ComposeBox narrow={channelTopicNarrow} />);
 
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "race" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     await waitFor(() => {
       expect(useMessagesStore.getState().messages[-1]).toBeDefined();

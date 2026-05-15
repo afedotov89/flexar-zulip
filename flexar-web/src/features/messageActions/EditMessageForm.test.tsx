@@ -86,7 +86,7 @@ describe("EditMessageForm — load + save success", () => {
     render(<EditMessageForm message={message} onClose={vi.fn()} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     expect(textarea.value).toBe("**hello** there");
   });
@@ -101,10 +101,10 @@ describe("EditMessageForm — load + save success", () => {
     render(<EditMessageForm message={message} onClose={onClose} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "new md" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => {
       expect(editMessageMock).toHaveBeenCalledWith(message.id, {
@@ -130,7 +130,7 @@ describe("EditMessageForm — load + save success", () => {
     render(<EditMessageForm message={message} onClose={onClose} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "new" } });
     fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
@@ -154,10 +154,10 @@ describe("EditMessageForm — failure paths", () => {
     render(<EditMessageForm message={message} onClose={onClose} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "broken" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("oh no");
@@ -192,8 +192,8 @@ describe("EditMessageForm — cancel", () => {
 
     render(<EditMessageForm message={message} onClose={onClose} />);
 
-    await screen.findByLabelText("Edit message");
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await screen.findByLabelText("Редактировать сообщение");
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
 
     expect(onClose).toHaveBeenCalledOnce();
     expect(editMessageMock).not.toHaveBeenCalled();
@@ -208,7 +208,7 @@ describe("EditMessageForm — cancel", () => {
     render(<EditMessageForm message={message} onClose={onClose} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     fireEvent.keyDown(textarea, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
@@ -222,8 +222,8 @@ describe("EditMessageForm — cancel", () => {
 
     render(<EditMessageForm message={message} onClose={onClose} />);
 
-    await screen.findByLabelText("Edit message");
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByLabelText("Редактировать сообщение");
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledOnce();
@@ -239,14 +239,14 @@ describe("EditMessageForm — cancel", () => {
     render(<EditMessageForm message={message} onClose={vi.fn()} />);
 
     const textarea = (await screen.findByLabelText(
-      "Edit message",
+      "Редактировать сообщение",
     )) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "   " } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Message content can't be empty.",
+        "Сообщение не может быть пустым.",
       );
     });
     expect(editMessageMock).not.toHaveBeenCalled();

@@ -22,9 +22,10 @@
 //   - `Escape`        — Cancel
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import { Button } from "../../components/Button";
 import type { Message } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { EditAutoGrowTextarea } from "./EditAutoGrowTextarea";
 import styles from "./EditMessageForm.module.css";
@@ -40,13 +41,6 @@ type LoadState =
   | { kind: "loading" }
   | { kind: "ready" }
   | { kind: "loadError"; message: string };
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Could not edit message.";
-}
 
 export function EditMessageForm({
   message,
@@ -98,7 +92,10 @@ export function EditMessageForm({
         if (cancelled) {
           return;
         }
-        setLoadState({ kind: "loadError", message: describeError(cause) });
+        setLoadState({
+          kind: "loadError",
+          message: describeApiError(cause, "Не удалось загрузить сообщение."),
+        });
       }
     })();
     return () => {
@@ -114,7 +111,7 @@ export function EditMessageForm({
     // No empty saves — Zulip rejects them; treat the empty case as a
     // no-op rather than firing a request that will error out.
     if (trimmed === "") {
-      setSaveError("Message content can't be empty.");
+      setSaveError("Сообщение не может быть пустым.");
       return;
     }
     // No-op save: nothing changed → just close, no REST call.
@@ -141,7 +138,7 @@ export function EditMessageForm({
       if (!aliveRef.current) {
         return;
       }
-      setSaveError(describeError(cause));
+      setSaveError(describeApiError(cause, "Не удалось сохранить."));
       setIsSaving(false);
     }
   }, [
@@ -173,7 +170,7 @@ export function EditMessageForm({
     <div className={styles.form}>
       {loadState.kind === "loading" && (
         <p className={styles.status} role="status">
-          Loading edit content…
+          Загружаем сообщение…
         </p>
       )}
       {loadState.kind === "loadError" && (
@@ -184,7 +181,7 @@ export function EditMessageForm({
       {loadState.kind === "ready" && (
         <>
           <label className={styles.label} htmlFor={`edit-${message.id}`}>
-            Edit message
+            Редактировать сообщение
           </label>
           <EditAutoGrowTextarea
             ref={textareaRef}
@@ -207,7 +204,7 @@ export function EditMessageForm({
               onClick={onClose}
               disabled={isSaving}
             >
-              Cancel
+              Отмена
             </Button>
             <Button
               variant="primary"
@@ -217,7 +214,7 @@ export function EditMessageForm({
               }}
               loading={isSaving}
             >
-              Save
+              Сохранить
             </Button>
           </div>
         </>

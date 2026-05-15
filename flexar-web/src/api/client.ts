@@ -216,6 +216,12 @@ export class ApiClient {
    * Fetch a range of messages. `GET /api/v1/messages`.
    * `numBefore` / `numAfter` bound the range around `anchor`
    * (default `"newest"`); `narrow` filters which messages match.
+   *
+   * `applyMarkdown` defaults to `true` — the feed renderer needs the
+   * server-rendered HTML, and Zulip's documented default for this
+   * parameter is unreliable across versions, so we set it explicitly.
+   * Callers wanting raw Markdown (the edit form via `getRawContent`)
+   * pass `false` directly.
    */
   async getMessages(options: GetMessagesOptions): Promise<GetMessagesResult> {
     const params: Params = {
@@ -223,7 +229,7 @@ export class ApiClient {
       num_before: options.numBefore,
       num_after: options.numAfter,
       include_anchor: options.includeAnchor,
-      apply_markdown: options.applyMarkdown,
+      apply_markdown: options.applyMarkdown ?? true,
       narrow: options.narrow ? narrowToWire(options.narrow) : undefined,
     };
     const body = await sendRequest<{

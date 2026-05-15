@@ -72,10 +72,10 @@ export function Drafts(): React.JSX.Element {
   if (drafts.length === 0) {
     return (
       <div className={styles.empty}>
-        <p className={styles.emptyTitle}>No drafts yet</p>
+        <p className={styles.emptyTitle}>Черновиков пока нет</p>
         <p className={styles.emptyHint}>
-          Drafts you start in a conversation will appear here so you can
-          finish them later.
+          Начатые в разговорах черновики появятся здесь — их можно будет
+          закончить позже.
         </p>
       </div>
     );
@@ -83,8 +83,8 @@ export function Drafts(): React.JSX.Element {
 
   return (
     <div className={styles.drafts}>
-      <h1 className={styles.heading}>Drafts</h1>
-      <ul className={styles.list} aria-label="Drafts">
+      <h1 className={styles.heading}>Черновики</h1>
+      <ul className={styles.list} aria-label="Черновики">
         {drafts.map((draft) => (
           <DraftRow
             key={draft.key}
@@ -125,7 +125,7 @@ function DraftRow({
         type="button"
         className={styles.openButton}
         onClick={onOpen}
-        aria-label={`Open draft for ${destinationLabel}`}
+        aria-label={`Открыть черновик для ${destinationLabel}`}
       >
         <span className={styles.destination}>{destinationLabel}</span>
         <span className={styles.preview}>{preview}</span>
@@ -137,7 +137,7 @@ function DraftRow({
         icon="close"
         variant="ghost"
         size="sm"
-        aria-label={`Delete draft for ${destinationLabel}`}
+        aria-label={`Удалить черновик для ${destinationLabel}`}
         onClick={onDelete}
         className={styles.deleteButton}
       />
@@ -165,7 +165,7 @@ function describeDestination(
   const names = destination.recipientIds.map(
     (id) => getUser(id)?.full_name ?? `User ${id}`,
   );
-  return `Direct message to: ${names.join(", ")}`;
+  return `Личное сообщение для: ${names.join(", ")}`;
 }
 
 // Build the narrow for a draft's destination so clicking the row lands

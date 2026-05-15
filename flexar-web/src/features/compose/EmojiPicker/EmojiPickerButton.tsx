@@ -37,7 +37,7 @@ export function EmojiPickerButton({
       icon="smile"
       size="sm"
       variant="ghost"
-      aria-label="Insert emoji"
+      aria-label="Вставить эмодзи"
       disabled={disabled}
     />
   );
@@ -48,7 +48,7 @@ export function EmojiPickerButton({
       placement="top"
       open={open}
       onOpenChange={setOpen}
-      aria-label="Insert emoji"
+      aria-label="Вставить эмодзи"
     >
       <ComposeEmojiPicker onPick={handlePick} />
     </Popover>

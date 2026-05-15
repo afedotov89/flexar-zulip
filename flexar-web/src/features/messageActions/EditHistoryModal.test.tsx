@@ -20,14 +20,14 @@ function entry(overrides: Partial<MessageEdit>): MessageEdit {
 }
 
 describe("summariseEntry", () => {
-  it("returns 'Original message' for a snapshot with no `prev_*` fields", () => {
-    expect(summariseEntry(entry({}), channelName)).toBe("Original message");
+  it("returns 'Исходное сообщение' for a snapshot with no `prev_*` fields", () => {
+    expect(summariseEntry(entry({}), channelName)).toBe("Исходное сообщение");
   });
 
   it("describes a content edit", () => {
     expect(
       summariseEntry(entry({ prev_content: "old text" }), channelName),
-    ).toBe("edited content");
+    ).toBe("изменено содержимое");
   });
 
   it("describes a topic move with both before and after", () => {
@@ -36,7 +36,7 @@ describe("summariseEntry", () => {
         entry({ prev_topic: "old", topic: "new" }),
         channelName,
       ),
-    ).toBe('moved from topic "old" to "new"');
+    ).toBe("тема перемещена из «old» в «new»");
   });
 
   it("describes a channel move using the resolver", () => {
@@ -45,7 +45,7 @@ describe("summariseEntry", () => {
         entry({ prev_stream: 11, stream: 22 }),
         channelName,
       ),
-    ).toBe("moved from #Channel11 to #Channel22");
+    ).toBe("канал перенесён с #Channel11 на #Channel22");
   });
 
   it("joins multiple changes with `·`", () => {
@@ -58,6 +58,6 @@ describe("summariseEntry", () => {
         }),
         channelName,
       ),
-    ).toBe('edited content · moved from topic "old" to "new"');
+    ).toBe("изменено содержимое · тема перемещена из «old» в «new»");
   });
 });

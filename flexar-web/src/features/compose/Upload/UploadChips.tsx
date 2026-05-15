@@ -28,7 +28,7 @@ export function UploadChips({
     return null;
   }
   return (
-    <ul className={styles.chips} aria-label="Uploads">
+    <ul className={styles.chips} aria-label="Загрузки">
       {uploads.map((slot) => (
         <UploadChip
           key={slot.id}
@@ -73,7 +73,7 @@ function UploadChip({
           <span
             className={styles.progressTrack}
             role="progressbar"
-            aria-label={`Upload progress for ${slot.name}`}
+            aria-label={`Прогресс загрузки ${slot.name}`}
             aria-valuenow={percent}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -87,7 +87,7 @@ function UploadChip({
         size="sm"
         variant="ghost"
         aria-label={
-          isActive ? `Cancel upload ${slot.name}` : `Dismiss ${slot.name}`
+          isActive ? `Отменить загрузку ${slot.name}` : `Скрыть ${slot.name}`
         }
         onClick={isActive ? onCancel : onDismiss}
         className={styles.dismiss}

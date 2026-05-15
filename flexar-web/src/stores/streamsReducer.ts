@@ -39,6 +39,7 @@ import type {
   StreamId,
   Subscription,
   SubscriptionEvent,
+  UserId,
 } from "../domain";
 import type { InitialState } from "../realtime";
 
@@ -215,11 +216,71 @@ export function applySubscriptionEvent(
     }
     case "peer_add":
     case "peer_remove": {
+      // Keep both the count AND the actual subscriber list in sync.
+      // The count drives sidebar badges; the list drives the right
+      // sidebar's "В этом канале" pane. The two folds compose — count
+      // first, then mutate the subscribers array on each affected sub.
       const delta = event.op === "peer_add" ? 1 : -1;
       const count = event.user_ids.length;
-      return adjustSubscriberCount(snapshot, event.stream_ids, delta * count);
+      const withCount = adjustSubscriberCount(
+        snapshot,
+        event.stream_ids,
+        delta * count,
+      );
+      return adjustSubscriberList(
+        withCount,
+        event.stream_ids,
+        event.user_ids,
+        event.op,
+      );
     }
   }
+}
+
+/**
+ * Add or remove `userIds` from the `subscribers` array of every
+ * affected subscription. Channels the viewer is not subscribed to
+ * have no subscribers list to maintain — they're skipped. Returns
+ * the original snapshot when nothing changed.
+ *
+ * Idempotent on both ends: an already-listed user is not duplicated
+ * on `peer_add`; a missing user is not flagged on `peer_remove`.
+ */
+function adjustSubscriberList(
+  snapshot: StreamsSnapshot,
+  streamIds: readonly StreamId[],
+  userIds: readonly UserId[],
+  op: "peer_add" | "peer_remove",
+): StreamsSnapshot {
+  if (streamIds.length === 0 || userIds.length === 0) {
+    return snapshot;
+  }
+  let changed = false;
+  const subscriptions = { ...snapshot.subscriptions };
+  for (const streamId of streamIds) {
+    const sub = subscriptions[streamId];
+    if (sub === undefined) {
+      continue;
+    }
+    const existing = sub.subscribers ?? [];
+    let next: UserId[];
+    if (op === "peer_add") {
+      const additions = userIds.filter((id) => !existing.includes(id));
+      if (additions.length === 0) {
+        continue;
+      }
+      next = [...existing, ...additions];
+    } else {
+      const dropping = new Set<UserId>(userIds);
+      next = existing.filter((id) => !dropping.has(id));
+      if (next.length === existing.length) {
+        continue;
+      }
+    }
+    subscriptions[streamId] = { ...sub, subscribers: next };
+    changed = true;
+  }
+  return changed ? { ...snapshot, subscriptions } : snapshot;
 }
 
 /**

@@ -166,11 +166,11 @@ export function ReactionPicker({
           id={inputId}
           size="sm"
           iconLeft="search"
-          placeholder="Find emoji"
+          placeholder="Поиск эмодзи"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleInputKeyDown}
-          aria-label="Find emoji"
+          aria-label="Поиск эмодзи"
           autoComplete="off"
         />
       </div>
@@ -183,7 +183,7 @@ export function ReactionPicker({
           ref={gridRef}
           className={styles.grid}
           role="grid"
-          aria-label="Emoji"
+          aria-label="Эмодзи"
           onKeyDown={handleGridKeyDown}
         >
           {filtered.map((entry) => (

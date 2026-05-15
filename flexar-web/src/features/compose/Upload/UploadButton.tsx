@@ -49,7 +49,7 @@ export function UploadButton({
         icon="paperclip"
         size="sm"
         variant="ghost"
-        aria-label="Attach files"
+        aria-label="Прикрепить файлы"
         onClick={handleClick}
         disabled={disabled}
       />

@@ -17,9 +17,10 @@ import { IconButton } from "../../components/IconButton";
 import { Input } from "../../components/Input";
 import { Popover } from "../../components/Popover";
 import { ComposeEmojiPicker } from "../compose/EmojiPicker/ComposeEmojiPicker";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { UpdateOwnUserStatusParams } from "../../api";
 import type { UserStatus } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import {
   emojiCodeFromGlyph,
   glyphFromUnicodeEmojiCode,
@@ -113,7 +114,7 @@ export function StatusEditor({
       onClose();
     } catch (cause) {
       setBusy(false);
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить статус."));
     }
   };
 
@@ -131,7 +132,7 @@ export function StatusEditor({
       onClose();
     } catch (cause) {
       setBusy(false);
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить статус."));
     }
   };
 
@@ -147,34 +148,34 @@ export function StatusEditor({
               icon="smile"
               size="md"
               variant="secondary"
-              aria-label="Pick a status emoji"
+              aria-label="Выбрать эмодзи статуса"
               disabled={busy}
             />
           }
           placement="bottom"
           open={pickerOpen}
           onOpenChange={setPickerOpen}
-          aria-label="Status emoji picker"
+          aria-label="Эмодзи статуса"
         >
           <ComposeEmojiPicker onPick={handlePickEmoji} />
         </Popover>
         {emoji !== null && (
           <span className={styles.emojiPreview}>
-            <span aria-label={`Selected emoji: ${emoji.emojiName}`}>
+            <span aria-label={`Выбран эмодзи: ${emoji.emojiName}`}>
               {emoji.glyph || `:${emoji.emojiName}:`}
             </span>
             <IconButton
               icon="close"
               size="sm"
               variant="ghost"
-              aria-label="Clear status emoji"
+              aria-label="Убрать эмодзи статуса"
               onClick={handleClearEmoji}
               disabled={busy}
             />
           </span>
         )}
         <Input
-          aria-label="Status text"
+          aria-label="Текст статуса"
           value={text}
           maxLength={MAX_STATUS_TEXT}
           onChange={(event) => setText(event.currentTarget.value)}
@@ -242,12 +243,3 @@ function initialEmojiChoice(
   };
 }
 
-function describeError(cause: unknown): string {
-  if (isApiError(cause)) {
-    return cause.body?.msg ?? cause.message;
-  }
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось обновить статус.";
-}

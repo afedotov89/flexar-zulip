@@ -25,10 +25,11 @@
 // phase and tracked as a follow-up.
 
 import { useCallback } from "react";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import { DropdownMenu } from "../../components/DropdownMenu";
 import { IconButton } from "../../components/IconButton";
 import type { Message, UserId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useRealmStore } from "../../stores/realmStore";
 import type {
@@ -52,13 +53,6 @@ export interface MessageActionsMenuProps {
   onActionError: (message: string) => void;
   /** Surface a transient success notice (e.g. "Link copied"). */
   onActionNotice: (message: string) => void;
-}
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Action failed.";
 }
 
 export function MessageActionsMenu({
@@ -95,7 +89,7 @@ export function MessageActionsMenu({
           op: inverse,
           flag,
         });
-        onActionError(describeError(cause));
+        onActionError(describeApiError(cause));
       }
     },
     [applyOptimisticFlag, message.id, onActionError],
@@ -116,37 +110,37 @@ export function MessageActionsMenu({
   const handleCopyLink = useCallback((): void => {
     const url = buildMessageLink(message, { realmUrl, viewerId });
     if (url === undefined) {
-      onActionError("Could not build a link to this message.");
+      onActionError("Не удалось построить ссылку на сообщение.");
       return;
     }
     const clipboard = navigator.clipboard;
     if (clipboard === undefined) {
       // jsdom test runs and non-secure-context loads land here.
-      onActionError("Clipboard is unavailable in this context.");
+      onActionError("Буфер обмена недоступен в этом контексте.");
       return;
     }
     void clipboard
       .writeText(url)
-      .then(() => onActionNotice("Link copied"))
-      .catch((cause: unknown) => onActionError(describeError(cause)));
+      .then(() => onActionNotice("Ссылка скопирована"))
+      .catch((cause: unknown) => onActionError(describeApiError(cause)));
   }, [message, onActionError, onActionNotice, realmUrl, viewerId]);
 
   const items: DropdownMenuEntry[] = [];
   // Star/Unstar — single toggle item; label and icon flip on state.
   items.push({
     id: "star-toggle",
-    label: isStarred ? "Unstar message" : "Star message",
+    label: isStarred ? "Снять отметку" : "Отметить",
     icon: "star",
     onSelect: handleStarToggle,
   });
   items.push({
     id: "copy-link",
-    label: "Copy link to message",
+    label: "Копировать ссылку",
     onSelect: handleCopyLink,
   });
   items.push({
     id: "mark-unread",
-    label: "Mark as unread from here",
+    label: "Отметить непрочитанным отсюда",
     onSelect: handleMarkUnread,
   });
   // View edit history — only for messages that have actually been
@@ -155,7 +149,7 @@ export function MessageActionsMenu({
   if (message.last_edit_timestamp !== undefined) {
     items.push({
       id: "view-history",
-      label: "View edit history",
+      label: "История правок",
       onSelect: onViewHistoryRequested,
     } satisfies DropdownMenuItem);
   }
@@ -163,12 +157,12 @@ export function MessageActionsMenu({
     items.push({ id: "sep-own", separator: true });
     items.push({
       id: "edit",
-      label: "Edit message",
+      label: "Редактировать",
       onSelect: onEditRequested,
     } satisfies DropdownMenuItem);
     items.push({
       id: "delete",
-      label: "Delete message",
+      label: "Удалить сообщение",
       danger: true,
       onSelect: onDeleteRequested,
     } satisfies DropdownMenuItem);
@@ -181,12 +175,12 @@ export function MessageActionsMenu({
           icon="dots-vertical"
           size="sm"
           variant="ghost"
-          aria-label="More actions"
+          aria-label="Действия с сообщением"
         />
       }
       items={items}
       placement="bottom"
-      aria-label="Message actions"
+      aria-label="Действия с сообщением"
     />
   );
 }

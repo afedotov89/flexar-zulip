@@ -32,6 +32,7 @@ import {
   uploadToMarkdown,
   type UploadFileResult,
 } from "../../../api";
+import { describeApiError } from "../../../lib/errors";
 
 /** A single upload's status, exclusive. */
 export type UploadStatus = "uploading" | "done" | "error" | "aborted";
@@ -145,7 +146,7 @@ export function useUploadManager(
           }
           updateSlot(id, {
             status: "error",
-            errorMessage: describeError(cause),
+            errorMessage: describeApiError(cause, "Не удалось загрузить файл."),
           });
         });
     },
@@ -166,14 +167,4 @@ export function useUploadManager(
   const busy = uploads.some((slot) => slot.status === "uploading");
 
   return { uploads, busy, enqueue, cancel, dismiss };
-}
-
-function describeError(cause: unknown): string {
-  if (isApiError(cause)) {
-    return cause.body?.msg ?? cause.message;
-  }
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось загрузить файл.";
 }

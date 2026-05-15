@@ -48,13 +48,13 @@ export function ReactionPickerButton({
         icon="smile"
         size="sm"
         variant="ghost"
-        aria-label="Add reaction"
+        aria-label="Добавить реакцию"
       />
     ) : (
       <button
         type="button"
         className={styles.inlineTrigger}
-        aria-label="Add reaction"
+        aria-label="Добавить реакцию"
       >
         <span className={styles.inlineGlyph} aria-hidden="true">
           +
@@ -68,7 +68,7 @@ export function ReactionPickerButton({
       placement="top"
       open={open}
       onOpenChange={setOpen}
-      aria-label="Add reaction"
+      aria-label="Добавить реакцию"
     >
       <ReactionPicker onPick={handlePick} />
     </Popover>

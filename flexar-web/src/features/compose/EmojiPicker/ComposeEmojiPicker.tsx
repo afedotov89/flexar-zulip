@@ -183,24 +183,24 @@ export function ComposeEmojiPicker({
           id={inputId}
           size="sm"
           iconLeft="search"
-          placeholder="Find emoji"
+          placeholder="Поиск эмодзи"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleInputKeyDown}
-          aria-label="Find emoji"
+          aria-label="Поиск эмодзи"
           autoComplete="off"
         />
       </div>
       {entries.length === 0 ? (
         <div className={styles.empty} role="status">
-          No emoji match.
+          Нет совпадений.
         </div>
       ) : (
         <div
           ref={gridRef}
           className={styles.grid}
           role="grid"
-          aria-label="Emoji"
+          aria-label="Эмодзи"
           onKeyDown={handleGridKeyDown}
         >
           {entries.map((entry) => (

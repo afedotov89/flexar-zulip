@@ -10,10 +10,11 @@
 // is visible — closing only happens on success or explicit cancel.
 
 import { useCallback, useState } from "react";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import type { Message } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useMessagesStore } from "../../stores/messagesStore";
 import styles from "./DeleteConfirmModal.module.css";
 
@@ -24,13 +25,6 @@ export interface DeleteConfirmModalProps {
   message: Message;
   /** Called when the modal is dismissed (success, cancel, backdrop). */
   onClose: () => void;
-}
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error ? error.message : "Could not delete message.";
 }
 
 export function DeleteConfirmModal({
@@ -69,7 +63,7 @@ export function DeleteConfirmModal({
       if (snapshotFlags.length > 0) {
         restoreFlags(snapshotMessage.id, snapshotFlags);
       }
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось удалить сообщение."));
       setIsDeleting(false);
     }
   }, [
@@ -86,7 +80,7 @@ export function DeleteConfirmModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Delete message?"
+      title="Удалить сообщение?"
       size="sm"
       // Disallow accidental dismissal while the request is in flight —
       // the user should see the result, not lose the modal mid-call.
@@ -99,7 +93,7 @@ export function DeleteConfirmModal({
             onClick={onClose}
             disabled={isDeleting}
           >
-            Cancel
+            Отмена
           </Button>
           <Button
             variant="danger"
@@ -109,12 +103,12 @@ export function DeleteConfirmModal({
             }}
             loading={isDeleting}
           >
-            Delete
+            Удалить
           </Button>
         </>
       }
     >
-      <p className={styles.body}>This action can&rsquo;t be undone.</p>
+      <p className={styles.body}>Действие нельзя отменить.</p>
       {error !== null && (
         <p className={styles.error} role="alert">
           {error}

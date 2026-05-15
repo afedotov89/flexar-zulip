@@ -54,7 +54,8 @@ import {
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
+import { describeApiError } from "../../lib/errors";
 import type { Narrow, StreamId, User, UserId } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
 import { useDraftsStore } from "../../stores/draftsStore";
@@ -124,15 +125,6 @@ const EMPTY_FORM: FormState = {
  * and is short enough that a reload right after typing keeps the body.
  */
 const AUTOSAVE_DEBOUNCE_MS = 500;
-
-function describeError(error: unknown): string {
-  if (isApiError(error)) {
-    return error.body?.msg ?? error.message;
-  }
-  return error instanceof Error
-    ? error.message
-    : "Failed to send. Please try again.";
-}
 
 // Format the participant list for the DM recipients input. Uses
 // full names when known, ids otherwise — typeahead (2.3) replaces
@@ -505,12 +497,12 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         const topic = form.topic.trim();
         if (streamId === undefined) {
           setErrorMessage(
-            "Choose a channel to send to (the channel name is unknown).",
+            "Выберите канал для отправки (имя канала неизвестно).",
           );
           return;
         }
         if (topic === "") {
-          setErrorMessage("This channel needs a topic.");
+          setErrorMessage("В этом канале нужна тема.");
           return;
         }
         const streamName = getStream(streamId)?.name;
@@ -530,7 +522,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       } else {
         const recipientIds = parseRecipients(form.recipientsInput, users);
         if (recipientIds.length === 0) {
-          setErrorMessage("Add at least one recipient.");
+          setErrorMessage("Добавьте хотя бы одного получателя.");
           return;
         }
         destination = {
@@ -583,7 +575,9 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         // Failure path: drop the optimistic echo, surface the error.
         // The draft text stays in the textarea for retry.
         removeOptimistic(localId);
-        setErrorMessage(describeError(cause));
+        setErrorMessage(
+          describeApiError(cause, "Не удалось отправить. Попробуйте ещё раз."),
+        );
       } finally {
         setSending(false);
       }
@@ -754,13 +748,13 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       onSubmit={onSubmit}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      aria-label="Send a message"
+      aria-label="Отправить сообщение"
     >
       <div className={styles.recipientRow}>
         {formMode === "channel" ? (
           <>
             <label className={styles.fieldLabel} htmlFor="compose-channel">
-              Channel
+              Канал
             </label>
             <Input
               id="compose-channel"
@@ -772,11 +766,11 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
                   channelInput: event.target.value,
                 }))
               }
-              placeholder="channel name"
+              placeholder="название канала"
               disabled={sending}
             />
             <label className={styles.fieldLabel} htmlFor="compose-topic">
-              Topic
+              Тема
             </label>
             <Input
               id="compose-topic"
@@ -792,7 +786,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
               onKeyDown={onTopicKeyDown}
               onFocus={topicTypeahead.handleFocus}
               onBlur={topicTypeahead.handleBlur}
-              placeholder="topic"
+              placeholder="тема"
               disabled={sending}
               aria-autocomplete="list"
               aria-controls={
@@ -817,13 +811,13 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
               activeId={topicTypeahead.state.activeId}
               onSelect={topicTypeahead.onSelect}
               onHover={topicTypeahead.onHover}
-              ariaLabel="Topic suggestions"
+              ariaLabel="Подсказки тем"
             />
           </>
         ) : (
           <>
             <label className={styles.fieldLabel} htmlFor="compose-recipients">
-              To
+              Кому
             </label>
             <Input
               id="compose-recipients"
@@ -835,14 +829,14 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
                   recipientsInput: event.target.value,
                 }))
               }
-              placeholder="comma-separated names"
+              placeholder="имена через запятую"
               disabled={sending}
             />
           </>
         )}
       </div>
 
-      <div className={styles.modeRow} role="tablist" aria-label="Compose mode">
+      <div className={styles.modeRow} role="tablist" aria-label="Режим compose">
         <button
           type="button"
           role="tab"
@@ -855,7 +849,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             .join(" ")}
           onClick={() => setMode("write")}
         >
-          Write
+          Текст
         </button>
         <button
           type="button"
@@ -869,18 +863,18 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             .join(" ")}
           onClick={() => setMode("preview")}
         >
-          Preview
+          Превью
         </button>
       </div>
 
       {mode === "write" ? (
         <>
           <label className={styles.srOnly} htmlFor="compose-content">
-            Message
+            Сообщение
           </label>
           {showRestoredHint && (
             <p className={styles.restoredHint} aria-live="polite">
-              Restored from draft
+              Восстановлено из черновика
             </p>
           )}
           <AutoGrowTextarea
@@ -916,11 +910,11 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             onPaste={onTextareaPaste}
             placeholder={
               formMode === "channel"
-                ? "Write a message"
-                : "Write a direct message"
+                ? "Написать сообщение"
+                : "Написать личное сообщение"
             }
             disabled={sending}
-            aria-label="Message"
+            aria-label="Сообщение"
             aria-autocomplete="list"
             aria-controls={
               textareaTypeahead.state.open
@@ -975,7 +969,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
           onError={setErrorMessage}
         />
         <span className={styles.hintInline} aria-hidden="true">
-          Enter to send, Shift+Enter for a new line
+          Enter — отправить, Shift+Enter — перенос строки
         </span>
         <Button
           type="submit"
@@ -984,7 +978,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
           loading={sending}
           disabled={!canSend}
         >
-          Send
+          Отправить
         </Button>
       </div>
     </form>
@@ -1005,13 +999,13 @@ function renderTextareaRow(row: TextareaTypeaheadRow): React.ReactNode {
 function ariaLabelFor(kind: "mention" | "channel" | "emoji" | null): string {
   switch (kind) {
     case "mention":
-      return "Mention suggestions";
+      return "Подсказки упоминаний";
     case "channel":
-      return "Channel suggestions";
+      return "Подсказки каналов";
     case "emoji":
-      return "Emoji suggestions";
+      return "Подсказки эмодзи";
     case null:
-      return "Suggestions";
+      return "Подсказки";
   }
 }
 

@@ -20,8 +20,9 @@ import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Toggle } from "../../components/Toggle";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { UpdateOwnSettingsParams } from "../../api";
+import { describeApiError } from "../../lib/errors";
 import { useAuthStore } from "../../stores/authStore";
 import { useUserSettingsStore } from "../../stores/userSettingsStore";
 import { useUsersStore } from "../../stores/usersStore";
@@ -54,7 +55,7 @@ export function Settings(): React.JSX.Element {
     try {
       await apiClient.updateOwnSettings(params);
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить настройки."));
     }
   };
 
@@ -195,12 +196,3 @@ function ToggleRow({
   );
 }
 
-function describeError(cause: unknown): string {
-  if (isApiError(cause)) {
-    return cause.body?.msg ?? cause.message;
-  }
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось обновить настройки.";
-}

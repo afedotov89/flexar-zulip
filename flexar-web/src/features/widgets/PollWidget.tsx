@@ -17,8 +17,9 @@ import { useMemo, useRef, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { apiClient, isApiError } from "../../api";
+import { apiClient } from "../../api";
 import type { Submessage, UserId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useAuthStore } from "../../stores/authStore";
 import { useUsersStore } from "../../stores/usersStore";
 import {
@@ -78,7 +79,7 @@ export function PollWidget({
         content: buildVoteContent(key, state.hasVoted(key, viewerUserId)),
       });
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describeApiError(cause, "Не удалось обновить опрос."));
     } finally {
       setBusyKey(null);
     }
@@ -157,7 +158,7 @@ function NewOptionInput({
       nextIdxRef.current = idx + 1;
       setValue("");
     } catch (cause) {
-      onError(describeError(cause));
+      onError(describeApiError(cause, "Не удалось обновить опрос."));
     } finally {
       setBusy(false);
     }
@@ -198,16 +199,6 @@ function namesFor(
   return voterIds
     .map((id) => usersMap[id]?.full_name ?? `User ${id}`)
     .join(", ");
-}
-
-function describeError(cause: unknown): string {
-  if (isApiError(cause)) {
-    return cause.body?.msg ?? cause.message;
-  }
-  if (cause instanceof Error && cause.message !== "") {
-    return cause.message;
-  }
-  return "Не удалось обновить опрос.";
 }
 
 // The auth selector is co-located so the consumer (`MessageRow`) does

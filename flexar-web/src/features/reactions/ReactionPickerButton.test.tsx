@@ -9,7 +9,7 @@ describe("ReactionPickerButton", () => {
   it("toolbar variant renders an Add reaction icon button", () => {
     render(<ReactionPickerButton onPick={() => {}} variant="toolbar" />);
     expect(
-      screen.getByRole("button", { name: "Add reaction" }),
+      screen.getByRole("button", { name: "Добавить реакцию" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -17,7 +17,7 @@ describe("ReactionPickerButton", () => {
   it("opens the picker on click and closes it after a pick", () => {
     const onPick = vi.fn();
     render(<ReactionPickerButton onPick={onPick} />);
-    fireEvent.click(screen.getByRole("button", { name: "Add reaction" }));
+    fireEvent.click(screen.getByRole("button", { name: "Добавить реакцию" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("gridcell", { name: ":thumbs_up:" }));
     expect(onPick).toHaveBeenCalledWith({
@@ -30,7 +30,7 @@ describe("ReactionPickerButton", () => {
 
   it("inline variant renders a + chip-shaped trigger", () => {
     render(<ReactionPickerButton onPick={() => {}} variant="inline" />);
-    const trigger = screen.getByRole("button", { name: "Add reaction" });
+    const trigger = screen.getByRole("button", { name: "Добавить реакцию" });
     expect(trigger).toHaveTextContent("+");
   });
 });

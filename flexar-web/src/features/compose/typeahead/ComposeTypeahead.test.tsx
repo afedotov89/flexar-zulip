@@ -207,9 +207,9 @@ function typeIntoInput(input: HTMLInputElement, value: string): void {
 describe("ComposeBox typeahead — `@` mentions", () => {
   it("opens the mention listbox on typing `@`", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@");
-    const listbox = screen.getByRole("listbox", { name: "Mention suggestions" });
+    const listbox = screen.getByRole("listbox", { name: "Подсказки упоминаний" });
     expect(listbox).toBeInTheDocument();
     expect(textarea.getAttribute("aria-controls")).toBe(listbox.id);
     expect(textarea.getAttribute("aria-expanded")).toBe("true");
@@ -221,7 +221,7 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("filters as the user keeps typing", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@ham");
     expect(screen.getByText("Hamlet")).toBeInTheDocument();
     expect(screen.queryByText("Iago")).toBeNull();
@@ -229,14 +229,14 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("does not open in the middle of an email address", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "alice@host");
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
   it("inserts the mention syntax on Enter", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@ham");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(textarea.value).toBe("@**Hamlet** ");
@@ -245,7 +245,7 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("navigates with ArrowDown / ArrowUp and selects with Enter", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@");
     // Initial active row is the first (Hamlet, alphabetical).
     expect(textarea.getAttribute("aria-activedescendant")).toBe(
@@ -269,7 +269,7 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("dismisses on Escape and does not re-open on the same token", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@ham");
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     fireEvent.keyDown(textarea, { key: "Escape" });
@@ -281,7 +281,7 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("selects a row on mousedown", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@ham");
     fireEvent.mouseDown(screen.getByText("Hamlet"));
     expect(textarea.value).toBe("@**Hamlet** ");
@@ -290,7 +290,7 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 
   it("does NOT submit on Enter while the typeahead has the keypress", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "@ham");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(sendMessageMock).not.toHaveBeenCalled();
@@ -300,10 +300,10 @@ describe("ComposeBox typeahead — `@` mentions", () => {
 describe("ComposeBox typeahead — `#` channels", () => {
   it("opens with the channel listbox", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "see #en");
     expect(
-      screen.getByRole("listbox", { name: "Channel suggestions" }),
+      screen.getByRole("listbox", { name: "Подсказки каналов" }),
     ).toBeInTheDocument();
     expect(screen.getByText("engineering")).toBeInTheDocument();
     expect(screen.getByText("english-lit")).toBeInTheDocument();
@@ -311,7 +311,7 @@ describe("ComposeBox typeahead — `#` channels", () => {
 
   it("inserts the channel-link syntax on Enter", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "see #eng");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(textarea.value).toBe("see #**engineering** ");
@@ -321,10 +321,10 @@ describe("ComposeBox typeahead — `#` channels", () => {
 describe("ComposeBox typeahead — `:` emoji", () => {
   it("opens the emoji listbox", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, ":sm");
     expect(
-      screen.getByRole("listbox", { name: "Emoji suggestions" }),
+      screen.getByRole("listbox", { name: "Подсказки эмодзи" }),
     ).toBeInTheDocument();
     // First match is `smile` (prefix) before `smirk`.
     expect(screen.getByText(":smile:")).toBeInTheDocument();
@@ -332,7 +332,7 @@ describe("ComposeBox typeahead — `:` emoji", () => {
 
   it("inserts the shortcode on Enter", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "lol :sm");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(textarea.value).toBe("lol :smile: ");
@@ -340,7 +340,7 @@ describe("ComposeBox typeahead — `:` emoji", () => {
 
   it("does not open inside `time:00:30`", () => {
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     typeIntoTextarea(textarea, "time:00:30");
     expect(screen.queryByRole("listbox")).toBeNull();
   });
@@ -360,11 +360,11 @@ describe("ComposeBox typeahead — topic input", () => {
       loadStatus: { 7: "loaded" },
     });
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
     typeIntoInput(topic, "des");
     const listbox = screen.getByRole("listbox", {
-      name: "Topic suggestions",
+      name: "Подсказки тем",
     });
     expect(listbox).toBeInTheDocument();
     expect(topic.getAttribute("aria-controls")).toBe(listbox.id);
@@ -375,7 +375,7 @@ describe("ComposeBox typeahead — topic input", () => {
   it("calls loadTopics(streamId) on focus", () => {
     const spy = vi.spyOn(useTopicsStore.getState(), "loadTopics");
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
     expect(spy).toHaveBeenCalledWith(7);
   });
@@ -388,7 +388,7 @@ describe("ComposeBox typeahead — topic input", () => {
       loadStatus: { 7: "loaded" },
     });
     render(<ComposeBox narrow={channelTopicNarrow} />);
-    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
     // Clear the prefilled value so an empty query lists all topics.
     typeIntoInput(topic, "");
