@@ -21,10 +21,15 @@ export type { ApiErrorBody } from "./errors";
 export type {
   ApiKeyResult,
   Credentials,
+  DeleteMessageResult,
+  EditMessageParams,
+  EditMessagePropagateMode,
+  EditMessageResult,
   GetEventsResult,
   GetMessagesOptions,
   GetMessagesResult,
   GetOwnUserResult,
+  GetSingleMessageResult,
   GetStreamsResult,
   GetSubscriptionsResult,
   GetTopicsResult,
@@ -35,4 +40,6 @@ export type {
   RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
+  UpdateMessageFlagsParams,
+  UpdateMessageFlagsResult,
 } from "./types";

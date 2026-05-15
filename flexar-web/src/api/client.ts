@@ -12,6 +12,7 @@
 // bootstrap payload) come from `./types`. Errors surface as `ApiError`.
 
 import type {
+  MessageId,
   ReactionType,
   ServerEvent,
   Stream,
@@ -24,10 +25,14 @@ import { sendRequest, type Params } from "./request";
 import type {
   ApiKeyResult,
   Credentials,
+  DeleteMessageResult,
+  EditMessageParams,
+  EditMessageResult,
   GetEventsResult,
   GetMessagesOptions,
   GetMessagesResult,
   GetOwnUserResult,
+  GetSingleMessageResult,
   GetStreamsResult,
   GetSubscriptionsResult,
   GetTopicsResult,
@@ -37,6 +42,8 @@ import type {
   RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
+  UpdateMessageFlagsParams,
+  UpdateMessageFlagsResult,
 } from "./types";
 
 /** Options for `getStreams` (`GET /api/v1/streams`). */
@@ -266,6 +273,96 @@ export class ApiClient {
       this.#credentials,
     );
     return body.rendered;
+  }
+
+  /**
+   * Edit a message's content, topic, or channel.
+   * `PATCH /api/v1/messages/{messageId}`.
+   *
+   * Phase 3.3 only sets `content` (a content edit); the topic / move
+   * parameters (`topic`, `propagateMode`, `sendNotificationToOldThread`,
+   * `sendNotificationToNewThread`) are scaffolded so a later
+   * move-message feature can use the same method without a signature
+   * change.
+   */
+  async editMessage(
+    messageId: MessageId,
+    params: EditMessageParams,
+  ): Promise<EditMessageResult> {
+    const wire: Params = {
+      content: params.content,
+      topic: params.topic,
+      propagate_mode: params.propagateMode,
+      send_notification_to_old_thread: params.sendNotificationToOldThread,
+      send_notification_to_new_thread: params.sendNotificationToNewThread,
+    };
+    await sendRequest<unknown>(
+      { method: "PATCH", path: `/messages/${messageId}`, params: wire },
+      this.#credentials,
+    );
+    return {};
+  }
+
+  /**
+   * Permanently delete a message.
+   * `DELETE /api/v1/messages/{messageId}`.
+   */
+  async deleteMessage(messageId: MessageId): Promise<DeleteMessageResult> {
+    await sendRequest<unknown>(
+      { method: "DELETE", path: `/messages/${messageId}` },
+      this.#credentials,
+    );
+    return {};
+  }
+
+  /**
+   * Add or remove a personal flag (e.g. `read`, `starred`) on one or
+   * more messages. `POST /api/v1/messages/flags`.
+   *
+   * Returns the IDs of the messages the server actually updated — a
+   * subset of the request when the server skipped some (e.g. `remove`
+   * `read` on messages in channels the user is not subscribed to).
+   */
+  async updateMessageFlags(
+    params: UpdateMessageFlagsParams,
+  ): Promise<UpdateMessageFlagsResult> {
+    const body = await sendRequest<{ messages: MessageId[] }>(
+      {
+        method: "POST",
+        path: "/messages/flags",
+        params: {
+          op: params.op,
+          flag: params.flag,
+          messages: params.messages,
+        },
+      },
+      this.#credentials,
+    );
+    return { messages: body.messages };
+  }
+
+  /**
+   * Fetch a single message's raw Markdown source.
+   * `GET /api/v1/messages/{messageId}?apply_markdown=false`.
+   *
+   * The cache holds rendered HTML (from `getMessages` with
+   * `apply_markdown=true`), but the inline edit form needs the original
+   * Markdown so users edit the same source they wrote. The server
+   * returns both the modern `message.content` (Markdown when
+   * `apply_markdown=false`) and the deprecated top-level `raw_content`;
+   * we read `raw_content` because it is unambiguously the raw text on
+   * every supported server version.
+   */
+  async getRawContent(messageId: MessageId): Promise<string> {
+    const body = await sendRequest<GetSingleMessageResult>(
+      {
+        method: "GET",
+        path: `/messages/${messageId}`,
+        params: { apply_markdown: false },
+      },
+      this.#credentials,
+    );
+    return body.raw_content;
   }
 
   // --- Reactions ----------------------------------------------------

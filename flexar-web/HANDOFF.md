@@ -30,6 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `1fb0da3b55` 3.3 — действия над сообщением (меню+edit+delete+star+copy+mark-unread), live ✅
 - `36b79f1131` 3.2 — реакции (чипы + `ReactionPicker` + optimistic, live-протык ✅)
 - `43c5fd6cad` 2.4 — драфты (`useDraftsStore` + автосохранение + восстановление + `/drafts`-страница, +фикс ререндера destination-лейбла), live-протык ✅
 - `1563e06ea3` 2.3 — typeahead (@юзеры/#каналы/:эмодзи/топики), live-протык ✅
@@ -149,8 +150,15 @@ unicode emoji (коммит `2723e343a2`).
 **Фаза 3 — частично:**
 - ✅ **3.2 Реакции** — чипы + `ReactionPicker` (поиск + grid-keyboard) +
   optimistic + revert + viewer-active подсветка. Live ✅: добавлено
-  🚀 на сообщение Welcome Bot, чип появился. 848 unit-тестов.
-- 🚧 **3.3** действия над сообщением (edit/delete/star/move/quote/copy-link)
+  🚀 на сообщение Welcome Bot, чип появился.
+- ✅ **3.3 Действия (частично)** — `MessageActionsMenu` на toolbar:
+  Star/Unstar, Copy link, Mark unread; **Edit** (own only — inline,
+  `getRawContent`→Textarea→Save+Ctrl+Enter, optimistic+revert),
+  **Delete** (own only — confirm Modal, optimistic+restore). Новые
+  методы apiClient: `editMessage`/`deleteMessage`/`updateMessageFlags`/
+  `getRawContent`. Live ✅: меню открылось, Star→Unstar флип. Out of
+  scope (на 3.3-extension): move/resolve topic, view source,
+  quote-reply. 902 unit-теста.
 - 🚧 **3.4** управление непрочитанным (mark-as-read on scroll, mark all)
 - ⏳ **3.1** поиск; **3.5** уведомления; **3.6** эмодзи-пикер для compose +
   custom realm emoji

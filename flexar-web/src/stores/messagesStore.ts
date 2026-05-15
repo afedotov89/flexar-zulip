@@ -25,6 +25,11 @@
 
 import { create } from "zustand";
 import type { Message, MessageFlag, MessageId } from "../domain";
+export type {
+  OptimisticDelete,
+  OptimisticEdit,
+  OptimisticFlag,
+} from "./messagesReducer";
 import {
   isDeleteMessageEvent,
   isMessageEvent,
@@ -35,6 +40,9 @@ import {
 import {
   applyDeleteMessageEvent,
   applyMessageEvent,
+  applyOptimisticDelete,
+  applyOptimisticEdit,
+  applyOptimisticFlag,
   applyOptimisticReaction,
   applyReactionEvent,
   applyUpdateMessageEvent,
@@ -44,8 +52,13 @@ import {
   insertOptimisticMessage,
   reconcileOptimisticMessage,
   removeOptimisticMessage,
+  restoreFlags,
+  restoreMessage,
   type FlagMap,
   type MessageMap,
+  type OptimisticDelete,
+  type OptimisticEdit,
+  type OptimisticFlag,
   type OptimisticReaction,
 } from "./messagesReducer";
 import { wireStore } from "./wireStore";
@@ -100,6 +113,42 @@ export interface MessagesState {
    * the caller flips `op` and runs this same action to revert.
    */
   applyOptimisticReaction: (pending: OptimisticReaction) => void;
+  /**
+   * Optimistically swap in new content for a cached message (Phase 3.3).
+   * The edit form calls this immediately on Save; the realtime
+   * `update_message` event reconciles. On REST failure the caller
+   * passes the original `Message` snapshot to `restoreMessage` to roll
+   * back. A no-op on uncached ids.
+   */
+  applyOptimisticEdit: (pending: OptimisticEdit) => void;
+  /**
+   * Optimistically drop a cached message and its flags (Phase 3.3).
+   * The delete-confirm modal calls this immediately on confirm; the
+   * realtime `delete_message` event is idempotent. On REST failure the
+   * caller restores the snapshotted `Message` (`restoreMessage`) and
+   * any per-viewer flags (`restoreFlags`).
+   */
+  applyOptimisticDelete: (pending: OptimisticDelete) => void;
+  /**
+   * Optimistically add or remove a per-viewer flag on one cached
+   * message (Phase 3.3). Star/unstar and mark-unread call this
+   * immediately; the realtime `update_message_flags` event reconciles.
+   * On REST failure the caller flips `op` and runs this same action
+   * to revert.
+   */
+  applyOptimisticFlag: (pending: OptimisticFlag) => void;
+  /**
+   * Re-insert a previously-cached `Message` by id (Phase 3.3). Used to
+   * revert a failed optimistic edit or delete: the caller snapshotted
+   * the original `Message` before the optimistic change.
+   */
+  restoreMessage: (message: Message) => void;
+  /**
+   * Re-attach previously-cached `flags` for a message id (Phase 3.3).
+   * Used together with `restoreMessage` to revert a failed optimistic
+   * delete.
+   */
+  restoreFlags: (messageId: MessageId, flags: readonly MessageFlag[]) => void;
 }
 
 const EMPTY_FLAGS: MessageFlag[] = [];
@@ -148,6 +197,44 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
       applyOptimisticReaction(
         { messages: state.messages, flags: state.flags },
         pending,
+      ),
+    );
+  },
+  applyOptimisticEdit: (pending) => {
+    set((state) =>
+      applyOptimisticEdit(
+        { messages: state.messages, flags: state.flags },
+        pending,
+      ),
+    );
+  },
+  applyOptimisticDelete: (pending) => {
+    set((state) =>
+      applyOptimisticDelete(
+        { messages: state.messages, flags: state.flags },
+        pending,
+      ),
+    );
+  },
+  applyOptimisticFlag: (pending) => {
+    set((state) =>
+      applyOptimisticFlag(
+        { messages: state.messages, flags: state.flags },
+        pending,
+      ),
+    );
+  },
+  restoreMessage: (message) => {
+    set((state) =>
+      restoreMessage({ messages: state.messages, flags: state.flags }, message),
+    );
+  },
+  restoreFlags: (messageId, flags) => {
+    set((state) =>
+      restoreFlags(
+        { messages: state.messages, flags: state.flags },
+        messageId,
+        flags,
       ),
     );
   },

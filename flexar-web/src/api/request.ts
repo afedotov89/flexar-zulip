@@ -27,7 +27,7 @@ const API_BASE = "/api/v1";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** HTTP methods the client issues. */
-type HttpMethod = "GET" | "POST" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 /**
  * A parameter value before encoding. Objects and arrays are

@@ -403,6 +403,166 @@ export function applyOptimisticReaction(
   };
 }
 
+/** A pending optimistic content edit the UI wants to apply (Phase 3.3). */
+export interface OptimisticEdit {
+  message_id: MessageId;
+  /**
+   * The new content to swap in. The cache stores rendered HTML; on an
+   * optimistic edit we have only the user-typed Markdown, so we drop it
+   * in directly. Whichever form the cache held becomes Markdown until
+   * the realtime `update_message` event lands with the server-rendered
+   * HTML and reconciles. Visually the row continues to render through
+   * `MessageContent`, which sanitises whatever it is given.
+   */
+  content: string;
+}
+
+/** A pending optimistic delete the UI wants to apply (Phase 3.3). */
+export interface OptimisticDelete {
+  message_id: MessageId;
+}
+
+/** A pending optimistic flag change the UI wants to apply (Phase 3.3). */
+export interface OptimisticFlag {
+  message_id: MessageId;
+  op: "add" | "remove";
+  flag: MessageFlag;
+}
+
+/**
+ * Optimistically edit a cached message's content (Phase 3.3). The UI
+ * calls this immediately on Save — before the REST request — so the
+ * row updates without a round-trip; the realtime `update_message` event
+ * arrives shortly after with the server-rendered HTML and reconciles.
+ *
+ * Mirrors `applyUpdateMessageEvent`'s content-edit branch: writes
+ * `content` and stamps `last_edit_timestamp` (seconds since epoch). On
+ * REST failure the caller restores the prior `Message` directly — there
+ * is no inverse op for an edit, so the caller passes the snapshot back
+ * through `restoreMessage` to roll back. A no-op on uncached ids.
+ */
+export function applyOptimisticEdit(
+  snapshot: MessagesSnapshot,
+  pending: OptimisticEdit,
+): MessagesSnapshot {
+  const message = snapshot.messages[pending.message_id];
+  if (message === undefined) {
+    return snapshot;
+  }
+  if (message.content === pending.content) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    messages: {
+      ...snapshot.messages,
+      [pending.message_id]: {
+        ...message,
+        content: pending.content,
+        last_edit_timestamp: Math.floor(Date.now() / 1000),
+      },
+    },
+  };
+}
+
+/**
+ * Restore a previously-cached `Message` by id (Phase 3.3). Used to
+ * revert a failed optimistic edit: the caller snapshotted the original
+ * `Message` before the edit and passes it back here on REST failure.
+ * Inserts it under its id verbatim. Pure; never mutates the input.
+ */
+export function restoreMessage(
+  snapshot: MessagesSnapshot,
+  message: Message,
+): MessagesSnapshot {
+  return {
+    ...snapshot,
+    messages: { ...snapshot.messages, [message.id]: message },
+  };
+}
+
+/**
+ * Optimistically drop a cached message and its flags (Phase 3.3). The
+ * UI calls this immediately on confirm — the realtime `delete_message`
+ * event arrives shortly after and `applyDeleteMessageEvent` is
+ * idempotent on an already-deleted id, so the two paths converge.
+ *
+ * On REST failure the caller has snapshotted the original `Message` /
+ * flags and re-inserts them (`restoreMessage` for the body,
+ * `restoreFlags` for the flag set). A no-op on uncached ids.
+ */
+export function applyOptimisticDelete(
+  snapshot: MessagesSnapshot,
+  pending: OptimisticDelete,
+): MessagesSnapshot {
+  const inMessages = pending.message_id in snapshot.messages;
+  const inFlags = pending.message_id in snapshot.flags;
+  if (!inMessages && !inFlags) {
+    return snapshot;
+  }
+  const messages = { ...snapshot.messages };
+  const flags = { ...snapshot.flags };
+  delete messages[pending.message_id];
+  delete flags[pending.message_id];
+  return { messages, flags };
+}
+
+/**
+ * Re-attach previously-cached `flags` for a message id (Phase 3.3).
+ * Used together with `restoreMessage` to revert a failed optimistic
+ * delete. Pure; never mutates the input.
+ */
+export function restoreFlags(
+  snapshot: MessagesSnapshot,
+  messageId: MessageId,
+  flags: readonly MessageFlag[],
+): MessagesSnapshot {
+  return {
+    ...snapshot,
+    flags: { ...snapshot.flags, [messageId]: [...flags] },
+  };
+}
+
+/**
+ * Optimistically add or remove a per-viewer flag on one cached message
+ * (Phase 3.3). Mirrors `applyUpdateMessageFlagsEvent` for a single id
+ * with the same idempotency: adding a flag already present, or removing
+ * one that is absent, is a no-op (returns the same snapshot reference).
+ *
+ * The realtime `update_message_flags` event lands shortly after; the
+ * event reducer is idempotent on the same `(id, flag, op)` triple, so
+ * it harmonises with the optimistic state without a flicker. On REST
+ * failure the caller flips `op` and runs this same reducer to revert.
+ */
+export function applyOptimisticFlag(
+  snapshot: MessagesSnapshot,
+  pending: OptimisticFlag,
+): MessagesSnapshot {
+  const current = snapshot.flags[pending.message_id] ?? [];
+  if (pending.op === "add") {
+    if (current.includes(pending.flag)) {
+      return snapshot;
+    }
+    return {
+      ...snapshot,
+      flags: {
+        ...snapshot.flags,
+        [pending.message_id]: [...current, pending.flag],
+      },
+    };
+  }
+  if (!current.includes(pending.flag)) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    flags: {
+      ...snapshot.flags,
+      [pending.message_id]: current.filter((f) => f !== pending.flag),
+    },
+  };
+}
+
 /**
  * Fold an `update_message_flags` event into the `flags` map. Returns a
  * new snapshot; inputs are never mutated.

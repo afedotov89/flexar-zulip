@@ -1,0 +1,18 @@
+/*
+ * Delete-confirm modal body styles (Phase 3.3). The structural
+ * chrome — backdrop, header, footer, focus trap — comes from the
+ * `Modal` primitive; this file styles only the body content.
+ */
+
+.body {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+.error {
+  margin-top: var(--space-3);
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}

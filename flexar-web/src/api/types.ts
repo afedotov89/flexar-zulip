@@ -9,6 +9,8 @@
 
 import type {
   Message,
+  MessageFlag,
+  MessageId,
   Narrow,
   ServerEvent,
   Stream,
@@ -101,6 +103,84 @@ export interface SendMessageResult {
 export interface RenderMarkdownResult {
   /** Server-rendered HTML for the supplied Markdown. */
   rendered: string;
+}
+
+/**
+ * Which messages an `editMessage` topic / channel move applies to. Only
+ * the default `"change_one"` is valid for content-only edits — Zulip
+ * rejects `"change_later"` / `"change_all"` when no topic / stream
+ * change is requested.
+ */
+export type EditMessagePropagateMode =
+  | "change_one"
+  | "change_later"
+  | "change_all";
+
+/**
+ * Parameters for `editMessage` (`PATCH /api/v1/messages/{message_id}`).
+ *
+ * All fields are optional. Phase 3.3 only sets `content`; `topic` /
+ * `propagateMode` / the notification flags are scaffolded for later
+ * move-message work and otherwise unused.
+ */
+export interface EditMessageParams {
+  /** New message content (Markdown source). Omitted on a pure topic move. */
+  content?: string;
+  /** New topic name. Omitted unless moving the message to a different topic. */
+  topic?: string;
+  /** Which messages a topic / channel change propagates to. */
+  propagateMode?: EditMessagePropagateMode;
+  /** Whether to leave a notification message in the old topic. */
+  sendNotificationToOldThread?: boolean;
+  /** Whether to leave a notification message in the new topic. */
+  sendNotificationToNewThread?: boolean;
+}
+
+/**
+ * Response envelope of `PATCH /api/v1/messages/{message_id}`.
+ *
+ * Phase 3.3 does not need any of the body fields beyond the success
+ * envelope itself, so this is a deliberately empty shape — the success
+ * promise resolution carries all the information the caller needs.
+ */
+export type EditMessageResult = Record<string, never>;
+
+/** Response envelope of `DELETE /api/v1/messages/{message_id}`. */
+export type DeleteMessageResult = Record<string, never>;
+
+/**
+ * Parameters for `updateMessageFlags`
+ * (`POST /api/v1/messages/flags`). Add or remove a single flag (e.g.
+ * `"read"`, `"starred"`) on the listed messages.
+ */
+export interface UpdateMessageFlagsParams {
+  op: "add" | "remove";
+  /** The flag to add or remove (e.g. `"read"`, `"starred"`). */
+  flag: MessageFlag;
+  /** IDs of the messages whose flags are being updated. */
+  messages: MessageId[];
+}
+
+/** Response envelope of `POST /api/v1/messages/flags`. */
+export interface UpdateMessageFlagsResult {
+  /** IDs of the messages the server actually updated. */
+  messages: MessageId[];
+}
+
+/**
+ * Response of `GET /api/v1/messages/{message_id}` with
+ * `apply_markdown=false`.
+ *
+ * The server returns both the modern `message` envelope (with `content`
+ * carrying the raw Markdown when `apply_markdown=false`) and the
+ * deprecated top-level `raw_content` field. Phase 3.3 only needs the
+ * raw Markdown source — `getRawContent` returns it as a string and does
+ * not re-expose the rest of this shape.
+ */
+export interface GetSingleMessageResult {
+  message: Message;
+  /** The raw Markdown source of the message (deprecated top-level field). */
+  raw_content: string;
 }
 
 /** Options for `registerQueue` (`POST /api/v1/register`). */

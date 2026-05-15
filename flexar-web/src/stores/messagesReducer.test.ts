@@ -17,6 +17,9 @@ import type {
 import {
   applyDeleteMessageEvent,
   applyMessageEvent,
+  applyOptimisticDelete,
+  applyOptimisticEdit,
+  applyOptimisticFlag,
   applyOptimisticReaction,
   applyReactionEvent,
   applyUpdateMessageEvent,
@@ -26,6 +29,8 @@ import {
   insertOptimisticMessage,
   reconcileOptimisticMessage,
   removeOptimisticMessage,
+  restoreFlags,
+  restoreMessage,
   type MessagesSnapshot,
 } from "./messagesReducer";
 import { makeMessage, makeReaction } from "./testFixtures";
@@ -636,5 +641,174 @@ describe("applyOptimisticReaction (Phase 3.2)", () => {
       },
     });
     expect(snapshot.messages[1].reactions).toEqual([]);
+  });
+});
+
+describe("applyOptimisticEdit (Phase 3.3)", () => {
+  it("swaps in the new content and stamps last_edit_timestamp", () => {
+    const snapshot = withMessages(1);
+    snapshot.messages[1] = makeMessage({ id: 1, content: "old" });
+    const before = Math.floor(Date.now() / 1000);
+
+    const next = applyOptimisticEdit(snapshot, {
+      message_id: 1,
+      content: "new",
+    });
+
+    expect(next.messages[1].content).toBe("new");
+    expect(next.messages[1].last_edit_timestamp).toBeGreaterThanOrEqual(before);
+  });
+
+  it("is a no-op when the content is unchanged", () => {
+    const snapshot = withMessages(1);
+    snapshot.messages[1] = makeMessage({ id: 1, content: "same" });
+    const next = applyOptimisticEdit(snapshot, {
+      message_id: 1,
+      content: "same",
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("is a no-op for an uncached message", () => {
+    const snapshot = emptyMessagesSnapshot();
+    const next = applyOptimisticEdit(snapshot, {
+      message_id: 999,
+      content: "new",
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("does not mutate the input snapshot", () => {
+    const snapshot = withMessages(1);
+    snapshot.messages[1] = makeMessage({ id: 1, content: "old" });
+    applyOptimisticEdit(snapshot, { message_id: 1, content: "new" });
+    expect(snapshot.messages[1].content).toBe("old");
+  });
+});
+
+describe("restoreMessage (Phase 3.3)", () => {
+  it("re-inserts the supplied Message under its id", () => {
+    const snapshot = emptyMessagesSnapshot();
+    const next = restoreMessage(
+      snapshot,
+      makeMessage({ id: 7, content: "hi" }),
+    );
+    expect(next.messages[7].content).toBe("hi");
+  });
+
+  it("overwrites an existing entry with the supplied one", () => {
+    const snapshot = withMessages(7);
+    snapshot.messages[7] = makeMessage({ id: 7, content: "current" });
+    const next = restoreMessage(
+      snapshot,
+      makeMessage({ id: 7, content: "restored" }),
+    );
+    expect(next.messages[7].content).toBe("restored");
+  });
+});
+
+describe("applyOptimisticDelete (Phase 3.3)", () => {
+  it("drops the message and its flags", () => {
+    const snapshot = withMessages(1, 2);
+    snapshot.flags[1] = ["read", "starred"];
+    const next = applyOptimisticDelete(snapshot, { message_id: 1 });
+    expect(1 in next.messages).toBe(false);
+    expect(1 in next.flags).toBe(false);
+    expect(2 in next.messages).toBe(true);
+  });
+
+  it("is a no-op for an uncached id", () => {
+    const snapshot = withMessages(1);
+    const next = applyOptimisticDelete(snapshot, { message_id: 999 });
+    expect(next).toBe(snapshot);
+  });
+
+  it("does not mutate the input snapshot", () => {
+    const snapshot = withMessages(1);
+    snapshot.flags[1] = ["read"];
+    applyOptimisticDelete(snapshot, { message_id: 1 });
+    expect(snapshot.messages[1]).toBeDefined();
+    expect(snapshot.flags[1]).toEqual(["read"]);
+  });
+});
+
+describe("restoreFlags (Phase 3.3)", () => {
+  it("re-attaches the supplied flags under the given message id", () => {
+    const snapshot = emptyMessagesSnapshot();
+    const next = restoreFlags(snapshot, 42, ["read", "starred"]);
+    expect(next.flags[42]).toEqual(["read", "starred"]);
+  });
+
+  it("copies the input array so callers cannot mutate the cache", () => {
+    const flags = ["read"];
+    const next = restoreFlags(emptyMessagesSnapshot(), 1, flags);
+    flags.push("starred");
+    expect(next.flags[1]).toEqual(["read"]);
+  });
+});
+
+describe("applyOptimisticFlag (Phase 3.3)", () => {
+  it("add appends the flag to the message's flag list", () => {
+    const snapshot = withMessages(1);
+    const next = applyOptimisticFlag(snapshot, {
+      message_id: 1,
+      op: "add",
+      flag: "starred",
+    });
+    expect(next.flags[1]).toEqual(["starred"]);
+  });
+
+  it("add is idempotent when the flag is already present", () => {
+    const snapshot = withMessages(1);
+    snapshot.flags[1] = ["starred"];
+    const next = applyOptimisticFlag(snapshot, {
+      message_id: 1,
+      op: "add",
+      flag: "starred",
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("remove drops the flag from the message's flag list", () => {
+    const snapshot = withMessages(1);
+    snapshot.flags[1] = ["read", "starred"];
+    const next = applyOptimisticFlag(snapshot, {
+      message_id: 1,
+      op: "remove",
+      flag: "read",
+    });
+    expect(next.flags[1]).toEqual(["starred"]);
+  });
+
+  it("remove is a no-op when the flag is absent (revert tolerates double-revert)", () => {
+    const snapshot = withMessages(1);
+    snapshot.flags[1] = ["read"];
+    const next = applyOptimisticFlag(snapshot, {
+      message_id: 1,
+      op: "remove",
+      flag: "starred",
+    });
+    expect(next).toBe(snapshot);
+  });
+
+  it("tracks flags for messages whose body is not in the cache", () => {
+    const snapshot = emptyMessagesSnapshot();
+    const next = applyOptimisticFlag(snapshot, {
+      message_id: 999,
+      op: "add",
+      flag: "starred",
+    });
+    expect(next.flags[999]).toEqual(["starred"]);
+  });
+
+  it("does not mutate the input snapshot", () => {
+    const snapshot = withMessages(1);
+    snapshot.flags[1] = ["read"];
+    applyOptimisticFlag(snapshot, {
+      message_id: 1,
+      op: "add",
+      flag: "starred",
+    });
+    expect(snapshot.flags[1]).toEqual(["read"]);
   });
 });

@@ -273,6 +273,92 @@ describe("request encoding", () => {
     expect(body.get("content")).toBe("**foo**");
   });
 
+  it("editMessage PATCHes the messages endpoint with content in the form body", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().editMessage(42, { content: "**edited**" });
+
+    expect(calls[0].url).toBe("/api/v1/messages/42");
+    expect(calls[0].init.method).toBe("PATCH");
+    expect(headersOf(0)["Content-Type"]).toBe(
+      "application/x-www-form-urlencoded",
+    );
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("content")).toBe("**edited**");
+    // Optional move parameters were not supplied -> absent from the body.
+    expect(body.has("topic")).toBe(false);
+    expect(body.has("propagate_mode")).toBe(false);
+  });
+
+  it("editMessage forwards topic / propagate_mode / notification flags when supplied", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().editMessage(42, {
+      topic: "new topic",
+      propagateMode: "change_all",
+      sendNotificationToOldThread: true,
+      sendNotificationToNewThread: false,
+    });
+
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("topic")).toBe("new topic");
+    expect(body.get("propagate_mode")).toBe("change_all");
+    expect(body.get("send_notification_to_old_thread")).toBe("true");
+    expect(body.get("send_notification_to_new_thread")).toBe("false");
+    expect(body.has("content")).toBe(false);
+  });
+
+  it("deleteMessage issues a DELETE on the messages endpoint", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().deleteMessage(99);
+
+    expect(calls[0].url).toBe("/api/v1/messages/99");
+    expect(calls[0].init.method).toBe("DELETE");
+  });
+
+  it("updateMessageFlags POSTs op + flag + JSON-encoded message ids", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      messages: [4, 8, 15],
+    });
+
+    const result = await client().updateMessageFlags({
+      op: "add",
+      flag: "starred",
+      messages: [4, 8, 15],
+    });
+
+    expect(result).toEqual({ messages: [4, 8, 15] });
+    expect(calls[0].url).toBe("/api/v1/messages/flags");
+    expect(calls[0].init.method).toBe("POST");
+    expect(headersOf(0)["Content-Type"]).toBe(
+      "application/x-www-form-urlencoded",
+    );
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("op")).toBe("add");
+    expect(body.get("flag")).toBe("starred");
+    expect(JSON.parse(body.get("messages") as string)).toEqual([4, 8, 15]);
+  });
+
+  it("getRawContent fetches the message with apply_markdown=false and returns raw_content", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      raw_content: "**hi** there",
+      message: { id: 7, content: "**hi** there" },
+    });
+
+    const raw = await client().getRawContent(7);
+
+    expect(raw).toBe("**hi** there");
+    const [path, query] = calls[0].url.split("?");
+    expect(path).toBe("/api/v1/messages/7");
+    expect(calls[0].init.method).toBe("GET");
+    expect(new URLSearchParams(query).get("apply_markdown")).toBe("false");
+  });
+
   it("issues a DELETE with form body for removeReaction", async () => {
     mockJsonResponse({ result: "success", msg: "" });
 

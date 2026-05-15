@@ -113,3 +113,22 @@
 .row:focus-within .actions {
   opacity: 1;
 }
+
+/*
+ * Inline notices surfaced by the actions menu (Phase 3.3): success
+ * notices ("Link copied") and recoverable errors (REST failure on
+ * star/unstar / mark-unread / copy-link). Both sit immediately under
+ * the body so they are visible at the message they pertain to. The
+ * error uses the danger colour role; the notice uses muted text.
+ */
+.actionError {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}
+
+.actionNotice {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

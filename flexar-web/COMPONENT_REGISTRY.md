@@ -194,7 +194,9 @@ Starred `/narrow/is/starred`, Reactions `/narrow/has/reaction/sender/me`.
 `getMessages(opts)`; `sendMessage(params)`; `addReaction(msgId, r)` /
 `removeReaction(msgId, r)`; `getSubscriptions()`; `getStreams(opts?)`;
 `getUsers(opts?)`; `getOwnUser()`; `getTopics(streamId)` → `Topic[]` (1.5a);
-`renderMarkdown(content)` → `string` (HTML, 2.1+2.2).
+`renderMarkdown(content)` → `string` (HTML, 2.1+2.2);
+`editMessage(id, params)`, `deleteMessage(id)`, `updateMessageFlags({op,flag,messages})`,
+`getRawContent(id)` → `string` (markdown source, 3.3).
 
 Realtime register/long-poll — это транспортные вызовы; цикл подписки и
 диспатч событий (`src/realtime/`) — отдельная Фаза 1.2. TanStack
@@ -241,6 +243,7 @@ Query-хуки поверх клиента — позже, с фичами.
 | `Feed` (страница) | ✅ | `src/pages/Feed/` | Центр-колонка для narrow/index-роутов: монтирует `MessageFeed` (index `/` → Combined feed); Drafts-вид → `Drafts`; Inbox/Recent — плейсхолдер. |
 | `Drafts` (страница) | ✅ | `src/pages/Drafts/` | Список драфтов (2.4): destination-лейбл (`# канал > топик` / DM), preview, timestamp, X-удаление; клик → `goToNarrow` (compose восстанавливает текст). Empty-state. **Live-протык на стенде — ✅ (драфт сохранён → переход → восстановлен).** |
 | `Reactions` | ✅ | `src/features/reactions/` | Реакции (Фаза 3.2): чипы под сообщением (группировка по `(reactionType,emojiCode)`, count, tooltip с именами реактовавших, viewer-active accent, click-toggle), `ReactionPicker` (`Popover` + `Input`-поиск + grid-навигация по 8 колонкам, Enter/Escape) на toolbar-кнопке `smile` и на «+» в конце ряда. Optimistic-update через `applyOptimisticReaction` (mirrors `applyReactionEvent`, идемпотентно с приходящим event-ом), revert + error-text при сбое. Глифы — bundled corpus; non-unicode — как `:shortcode:`. **Live ✅: добавил 🚀 — чип появился с viewer-active подсветкой.** |
+| `MessageActions` | ✅ | `src/features/messageActions/` | Действия над сообщением (Фаза 3.3): `MessageActionsMenu` (`DropdownMenu` на `dots-vertical` toolbar) — Star/Unstar (label flips), Copy link, Mark as unread, Edit (own only), Delete (own only, danger). `EditMessageForm` (inline-редактор: `getRawContent` → `Textarea` → Save/Cancel, Ctrl+Enter/Escape, optimistic + revert через `restoreMessage`). `DeleteConfirmModal` (Modal с danger-кнопкой, optimistic + restore при сбое). `messageLink` — pure-функция URL Zulip-формата (`/#narrow/.../near/{id}`) → `clipboard`. **Live ✅: меню открывается с правильным набором, Star→Unstar лейбл флипается.** |
 | `NotFound` (страница) | ✅ | `src/pages/NotFound/` | Плейсхолдер catch-all роута. |
 
 **Зависимости, добавленные оркестратором:** `react-router-dom` (v7),
