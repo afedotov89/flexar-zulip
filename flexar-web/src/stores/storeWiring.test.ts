@@ -76,10 +76,11 @@ const { useRealmEmojiStore } = await import("./realmEmojiStore");
 const { useTypingStore } = await import("./typingStore");
 const { useScheduledMessagesStore } = await import("./scheduledMessagesStore");
 const { useUserStatusesStore } = await import("./userStatusesStore");
+const { useUserSettingsStore } = await import("./userSettingsStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 12;
+const STORE_COUNT = 13;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -102,6 +103,7 @@ describe("server-state stores — wiring", () => {
       loadStatus: "idle",
     });
     useUserStatusesStore.setState({ statuses: {} });
+    useUserSettingsStore.setState({ settings: {} });
   });
 
   it("every store subscribes at module load", () => {
@@ -411,6 +413,30 @@ describe("server-state stores — wiring", () => {
       reaction_type: "",
     });
     expect(useUserStatusesStore.getState().getStatus(5)).toBeUndefined();
+  });
+
+  it("hydrates user_settings from the snapshot and folds update events", () => {
+    emitInitialState({
+      user_settings: {
+        twenty_four_hour_time: true,
+        enable_sounds: false,
+        web_font_size_px: 14,
+      },
+    });
+    expect(useUserSettingsStore.getState().getBoolean("twenty_four_hour_time")).toBe(
+      true,
+    );
+    expect(useUserSettingsStore.getState().getBoolean("enable_sounds")).toBe(false);
+    expect(useUserSettingsStore.getState().getNumber("web_font_size_px")).toBe(14);
+
+    emitEvent({
+      id: 21,
+      type: "user_settings",
+      op: "update",
+      property: "enable_sounds",
+      value: true,
+    });
+    expect(useUserSettingsStore.getState().getBoolean("enable_sounds")).toBe(true);
   });
 
   it("clears the scheduled-messages store on re-register", () => {

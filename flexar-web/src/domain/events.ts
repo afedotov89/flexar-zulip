@@ -376,6 +376,20 @@ export type ScheduledMessagesEvent =
   | ScheduledMessagesRemoveEvent;
 
 /**
+ * One of the current user's personal settings changed. The event
+ * carries the property name and its new value (the value type
+ * depends on the property — boolean / integer / string).
+ */
+export interface UserSettingsUpdateEvent extends EventBase {
+  type: "user_settings";
+  op: "update";
+  property: string;
+  value: boolean | number | string;
+  /** Present only when `property === "default_language"`. */
+  language_name?: string;
+}
+
+/**
  * A new submessage was added to a widget message. Mirrors the
  * `Submessage` shape stored on `Message.submessages` so the reducer
  * can append the event payload directly.
@@ -426,6 +440,7 @@ export type ServerEvent =
   | TypingEvent
   | UserStatusEvent
   | UserTopicEvent
+  | UserSettingsUpdateEvent
   | ScheduledMessagesEvent
   | SubmessageEvent
   | HeartbeatEvent

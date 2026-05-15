@@ -318,6 +318,32 @@ export interface GetUsersResult {
 export type GetOwnUserResult = User;
 
 /**
+ * Parameters for `updateOwnSettings` (`PATCH /api/v1/settings`). The
+ * server endpoint accepts a large surface (~80 settings); this type
+ * lists the subset Phase 5.1's UI exposes. Adding a setting here is
+ * a one-line change — every value is forwarded straight through to
+ * the form-encoded body.
+ *
+ * `fullName` and the password fields are forwarded under their wire
+ * names; the rest match the server name (snake_case) so the mapping
+ * stays obvious.
+ */
+export interface UpdateOwnSettingsParams {
+  /** New display name for the current user. */
+  fullName?: string;
+  /** Whether time should be displayed in 24-hour notation. */
+  twenty_four_hour_time?: boolean;
+  /** Whether the client should play a sound on a new notification. */
+  enable_sounds?: boolean;
+  /** Whether desktop notifications are enabled. */
+  enable_desktop_notifications?: boolean;
+  /** Whether the user receives typing notifications from others. */
+  receives_typing_notifications?: boolean;
+  /** Whether the client should display starred-message counts. */
+  starred_message_counts?: boolean;
+}
+
+/**
  * Parameters for `sendSubmessage` (`POST /api/v1/submessages`). Used
  * by widget messages (poll / todo) to record votes, add options, etc.
  * `content` is widget-specific JSON the server validates against the

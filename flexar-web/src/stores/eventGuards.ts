@@ -24,6 +24,7 @@ import type {
   TypingEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
+  UserSettingsUpdateEvent,
   UserStatusEvent,
 } from "../domain";
 
@@ -93,4 +94,10 @@ export function isSubmessageEvent(
   event: ServerEvent,
 ): event is SubmessageEvent {
   return event.type === "submessage";
+}
+
+export function isUserSettingsUpdateEvent(
+  event: ServerEvent,
+): event is UserSettingsUpdateEvent {
+  return event.type === "user_settings";
 }

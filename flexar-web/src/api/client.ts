@@ -56,6 +56,7 @@ import type {
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
+  UpdateOwnSettingsParams,
   UpdateOwnUserStatusParams,
   UpdateScheduledMessageParams,
 } from "./types";
@@ -480,6 +481,33 @@ export class ApiClient {
           content: params.content,
         },
       },
+      this.#credentials,
+    );
+  }
+
+  // --- Personal settings --------------------------------------------
+
+  /**
+   * Update the authenticated user's personal settings.
+   * `PATCH /api/v1/settings`.
+   *
+   * Only the supplied parameters change — the server's
+   * `ignored_parameters_unsupported` envelope tells us about any
+   * keys it didn't process, but the UI does not need it for the
+   * Phase 5.1 form. The realtime `user_settings update` event
+   * echoes each change back so the store reconciles automatically.
+   */
+  async updateOwnSettings(params: UpdateOwnSettingsParams): Promise<void> {
+    const wire: Params = {
+      full_name: params.fullName,
+      twenty_four_hour_time: params.twenty_four_hour_time,
+      enable_sounds: params.enable_sounds,
+      enable_desktop_notifications: params.enable_desktop_notifications,
+      receives_typing_notifications: params.receives_typing_notifications,
+      starred_message_counts: params.starred_message_counts,
+    };
+    await sendRequest<unknown>(
+      { method: "PATCH", path: "/settings", params: wire },
       this.#credentials,
     );
   }

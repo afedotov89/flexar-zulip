@@ -80,6 +80,7 @@ export type {
   ScheduledMessagesUpdateEvent,
   ServerEvent,
   SubmessageEvent,
+  UserSettingsUpdateEvent,
   StreamCreateEvent,
   StreamDeleteEvent,
   StreamEvent,

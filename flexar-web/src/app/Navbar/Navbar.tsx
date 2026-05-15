@@ -53,6 +53,13 @@ export function Navbar(): React.JSX.Element {
             <span className={styles.accountEmail} title={session.email}>
               {session.email}
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void navigate("/settings")}
+            >
+              Настройки
+            </Button>
             <Button variant="secondary" size="sm" onClick={handleLogout}>
               Log out
             </Button>

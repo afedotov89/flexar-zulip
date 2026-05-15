@@ -41,6 +41,7 @@ import { RequireAuth } from "./RequireAuth";
 import { Feed } from "../pages/Feed";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFound } from "../pages/NotFound";
+import { Settings } from "../pages/Settings";
 import { TokenShowcase } from "../pages/TokenShowcase";
 import { PrimitivesShowcase } from "../pages/PrimitivesShowcase";
 import { NARROW_ROOT, SPECIAL_VIEWS } from "../lib/narrow";
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
             path: view.path.slice(1),
             element: <Feed />,
           })),
+          // Personal settings (Phase 5.1).
+          { path: "settings", element: <Settings /> },
         ],
       },
     ],
