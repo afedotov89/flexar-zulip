@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.5 закрыта** (отложенные сообщения: API + store + schedule popover + /scheduled).
+**Последнее обновление:** 2026-05-15, **Фаза 4.1 закрыта** (загрузки файлов: paperclip + paste + drag-drop, прогресс, отмена, Markdown-вставка).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `6f5d210c68` 4.1 — загрузки файлов (XHR-транспорт + paperclip/paste/drag-drop, прогресс, Markdown-вставка)
+- `ef71763250` HANDOFF — 4.5 заметка
 - `e3465b6b0d` 4.5 — отложенные сообщения (API + store + popover + /scheduled)
 - `3e566ce6c5` 4.6 — edit-history viewer (modal in actions menu)
 - `f4fc972afb` HANDOFF — fill in 4.3 commit hash
@@ -246,8 +248,21 @@ unicode emoji (коммит `2723e343a2`).
   delivery time + body preview + cancel; failed messages выделены
   danger-границей. 985 unit-тестов; гейты зелёные. Live-протык на
   стенде ⏳ ждёт владельца.
-- ⏳ **4.1** загрузки файлов; **4.2** медиа/лайтбокс; **4.4** presence;
-  **4.7** виджеты; **4.8** превью ссылок
+- ✅ **4.1 Загрузки файлов** — `api/upload.ts` отдельный
+  `XMLHttpRequest`-транспорт для `POST /user_uploads` (fetch не
+  отдаёт upload-progress); `apiClient.uploadFile`; чистые хелперы
+  `sanitiseLinkText`/`isImageType`/`uploadToMarkdown` (escape `[/]`
+  → fullwidth, image vs. file разводятся `!` префиксом). UI:
+  `useUploadManager` (per-compose state machine с `AbortController`
+  на слот, статусы uploading/error/aborted, on-success вставляет
+  Markdown в textarea и убирает чип); `UploadButton` (paperclip +
+  visually-hidden `<input type=file multiple>`); `UploadChips`
+  (filename + progress bar через `--upload-progress` CSS-property,
+  cancel/dismiss IconButton); ComposeBox: paperclip в actionsRow,
+  paste-handler на textarea, drag-drop на форму. 992 unit-тестa;
+  гейты зелёные. Live-протык на стенде ⏳ ждёт владельца.
+- ⏳ **4.2** медиа/лайтбокс; **4.4** presence; **4.7** виджеты;
+  **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

@@ -596,7 +596,7 @@ keyboard-driven).
 - [ ] **Гейт Фазы 3:** Playwright-набор фазы зелёный · общий протык
 
 ### Фаза 4 — Богатые фичи
-- [ ] 4.1 Загрузки файлов — И · [ ] П
+- [x] 4.1 Загрузки файлов — ✅И (`api/upload.ts` XHR-транспорт + `apiClient.uploadFile`; чистые `sanitiseLinkText`/`isImageType`/`uploadToMarkdown`; `useUploadManager` per-compose с `AbortController`; `UploadButton` + `UploadChips` с `--upload-progress` CSS-property; ComposeBox: paperclip + paste-handler + drag-drop) · [~] П (компонент смонтирован, unit ✅, live на стенде ⏳ ждёт владельца)
 - [ ] 4.2 Медиа / лайтбокс — И · [ ] П
 - [x] 4.3 Typing-индикаторы — ✅И · ✅П (apiClient.sendTyping; useTypingStore с TTL-pruning; TypingIndicator над compose; useTypingEmitter с debounced start/stop; live ✅: POST /api/v1/typing)
 - [ ] 4.4 Presence — И · [ ] П
