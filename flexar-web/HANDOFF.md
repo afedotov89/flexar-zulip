@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.8 закрыта** (стили для `.message_inline_image` и `.message_embed`-карточек + порядок click-делегации).
+**Последнее обновление:** 2026-05-15, **Фаза 4 закрыта целиком** — последним вошёл 4.7 (виджет опросов + voting). Готовы перейти к Фазе 5.
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `74e3e9515e` 4.7 — виджет опросов (poll widget viewer + voting + add-option)
+- `97185d326f` HANDOFF — 4.8 заметка
 - `835e32513d` 4.8 — стили link-previews (`.message_inline_image`, `.message_embed`)
 - `ba488dd9c3` HANDOFF — 4.2 заметка
 - `0530e91de9` 4.2 — image lightbox (Lightbox + global store, click-делегация на `<img>`)
@@ -303,7 +305,26 @@ unicode emoji (коммит `2723e343a2`).
   ДО anchor-check, иначе клик по image-preview-обёрнутому-в-`<a>` всегда
   навигировал бы вместо открытия lightbox. 1005 unit-тестов;
   гейты зелёные.
-- ⏳ **4.7** виджеты (последний пункт фазы 4)
+- ✅ **4.7 Виджеты (poll)** — `apiClient.sendSubmessage` + `SubmessageEvent`
+  + `submessage` в `DEFAULT_EVENT_TYPES` + чистый `applySubmessageEvent`
+  редьюсер (idempotent на submessage_id, no-op на uncached parent);
+  `messagesStore` фолдит submessage-события, добавляя в
+  `Message.submessages`. Чистая `pollState.ts`: `detectPoll` парсит
+  initial widget-submessage; `derivePollState` фолдит
+  `new_option`/`vote`/`question` с Zulip-encoding ключей
+  (`<sender_id>,<idx>` + literal `canned`); dedup-by-text;
+  `buildVoteContent`/`buildNewOptionContent` JSON-builders.
+  `PollWidget` показывает question + options с tally и voter names,
+  кнопкой toggle-vote и inline add-option-form; optimism через
+  realtime-echo сервера. `MessageRow`: `detectPoll` → `PollWidget`
+  вместо `MessageContent`. Создание поллов остаётся через
+  `/poll Question\\nA\\nB` в compose (server detection — без UI).
+  Todo-виджеты НЕ реализованы (отдельный widget-protocol —
+  `new_task`/`strike`/`new_task_list_title`); добавляются позже без
+  изменения этой поверхности. 1018 unit-тестов; гейты зелёные.
+  Live-протык на стенде ⏳ ждёт владельца.
+
+**🎯 Фаза 4 фиче-комплит** — 4.1+4.2+4.3+4.4+4.5+4.6+4.7+4.8 закрыты.
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
