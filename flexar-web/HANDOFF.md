@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 3.6 закрыта** (emoji-picker live-verified).
+**Последнее обновление:** 2026-05-15, **Фаза 3.5 закрыта** (notifications mounted; permission + sound + dispatcher).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `<TBD>` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
+- `9b3803d07d` HANDOFF — fill in 3.6 commit hash
 - `ded70d7141` 3.6 — эмодзи-пикер для compose + кастомные realm-эмодзи store, live ✅
 - `ed7a002dfc` HANDOFF — fill in 3.4 commit hash
 - `0fd37adc0c` 3.4 — управление непрочитанным (mark-as-read on scroll + mark-all-read), live ✅
@@ -183,7 +185,21 @@ unicode emoji (коммит `2723e343a2`).
   открыл пикер → нашёл `fire` → клик → `:fire:` вставился в textarea
   на позицию каретки, popover закрылся, фокус вернулся в textarea.
   924 unit-теста.
-- ⏳ **3.1** поиск; **3.5** уведомления
+- ✅ **3.5 Уведомления** — `src/lib/notifications/`: чистый
+  `notificationTriggerFor(message, flags, ownUserId)` (mention vs DM,
+  гасит own-messages, поддерживает `mentioned`/`wildcard_mentioned`/
+  `stream_wildcard_mentioned`/`topic_wildcard_mentioned`),
+  `requestPermission/showDesktopNotification` (graceful no-op без
+  Notification API / без grant), `playNotificationSound` (Web Audio
+  синтезированный двух-тоновый блип, без зависимости на ассетах).
+  Диспатчер `NotificationCenter` в `AppShell` подписан на
+  realtime-events, фильтрует через trigger, гасит при visible+focused
+  табе, шлёт title/body с именами sender'а и channel>topic, click →
+  `goToNarrow` в conversation. 933 unit-теста. Live: компонент
+  смонтирован, Notification API детектится, permission запрашивается
+  на маунте (в Chrome-под-управлением промпт не показывается — это
+  ограничение автоматизации; будет работать в обычном браузере).
+- ⏳ **3.1** поиск
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

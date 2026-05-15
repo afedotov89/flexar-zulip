@@ -11,6 +11,7 @@ import { Outlet } from "react-router-dom";
 import { Navbar } from "../Navbar";
 import { LeftSidebar } from "../../features/leftSidebar";
 import { RightSidebar } from "../../features/rightSidebar";
+import { NotificationCenter } from "../../features/notifications";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -31,6 +32,14 @@ export function AppShell() {
           <RightSidebar />
         </aside>
       </div>
+
+      {/*
+        The notification dispatcher renders no UI of its own — it
+        subscribes to the realtime layer and pops desktop notifications
+        for mentions / DMs while the tab is in the background. Mounted
+        once for the lifetime of the authenticated shell.
+      */}
+      <NotificationCenter />
     </div>
   );
 }
