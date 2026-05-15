@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 5.5 закрыта** (subscribe/unsubscribe + `/channels` browse-page; sidebar «+» теперь навигирует).
+**Последнее обновление:** 2026-05-15, **сессия live-протыка** на стенде закрыла 7 phase-checkpoints + 3 bugfix-коммита (submessage path, scheduled topic display, hydrate race).
 
 ---
 
@@ -30,6 +30,9 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `f323087681` 4.5-fix — scheduled topic display (empty-topic fallback) + /scheduled hydrate-race fix (live-протык)
+- `a9c0a25623` 4.7-fix — POST /submessage (singular path; live-протык 404→200)
+- `013d7fe263` HANDOFF — 5.5 заметка
 - `9370f321d4` 5.5 — subscribe/unsubscribe + browse-channels (`/channels`)
 - `c7088b1d81` HANDOFF — 5.1 заметка
 - `53baae234d` 5.1 — личные настройки (`/settings` + `useUserSettingsStore` + PATCH /settings)
@@ -355,6 +358,51 @@ unicode emoji (коммит `2723e343a2`).
   others (5.4). Гейты зелёные.
 - ⏳ **5.2** настройки организации; **5.3** управление каналами;
   **5.4** управление пользователями
+
+### Live-протык на стенде (`a.fedotov@friflex.com`) — сессия 2026-05-15
+Прошёл сквозной протык **7 фич** на стенде, найдено и пофикшено
+**3 бага**:
+
+- ✅ **5.5 channels** — subscribe DELETE 200 → `#песочница`
+  выпала из sidebar; subscribe POST 200 → вернулась с топиками.
+  Фильтр работает; sort subscribed-first сохраняется.
+- ✅ **5.1 settings** — PATCH /settings 200 на toggle of 24-h time;
+  realtime user_settings event обновил store; toggle переключился
+  визуально. Заметка: при автоматизации лучше кликать по label,
+  не по hidden-input через ref.
+- ✅ **4.4 user status** — POST /users/me/status 200 → navbar chip
+  «Тестирую Flexar Hub», правый сайдбар UserRow получил status
+  text под именем; clear → восстановлено.
+- ✅ **4.5 schedule popover + /scheduled list + cancel** — POST
+  /scheduled_messages 200 на «Завтра 09:00» preset, body cleared,
+  popover закрылся; `/scheduled` показал record с правильным
+  delivery time; DELETE → realtime remove → empty state.
+- ✅ **4.7 poll widget** — `/poll Coffee or tea?` создал виджет;
+  клик на «Coffee» — vote-tally 1, voter name «Александр Федотов»,
+  option highlighted; click again → unvote (tally 0).
+- ✅ **4.1/4.2 wiring** — paperclip+hidden multi-file input
+  смонтированы; lightbox открывается через store.openImage и
+  Esc закрывает.
+
+**Найденные баги:**
+1. `apiClient.sendSubmessage` слал `POST /submessages` (plural)
+   → 404. Сервер регистрирует `rest_path("submessage")` (singular).
+   Фикс `a9c0a25623`.
+2. Scheduled-page показывала `# песочница` без topic для
+   сообщений в `general chat`. Корень: `realm_empty_topic_display_name`
+   на стенде = `general chat`, поэтому сервер интерпретирует
+   `topic=general chat` как пустой topic. Фикс: при `topic=""`
+   показывать `realm.realm_empty_topic_display_name` или
+   `(no topic)` fallback. Коммит `f323087681`.
+3. `/scheduled` рендерила empty state даже когда сервер хранил
+   3 сообщения. Race: `wireStore.hydrate` сбрасывает store на
+   каждом register, `useEffect` с stable-action-ref не
+   пере-фетчил. Фикс: добавить `loadStatus` в dep array.
+   Коммит `f323087681`.
+
+**Open follow-up:** добавить `realm` в `DEFAULT_EVENT_TYPES`,
+чтобы realm-store получал `realm_empty_topic_display_name` (сейчас
+fallback `(no topic)`).
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
