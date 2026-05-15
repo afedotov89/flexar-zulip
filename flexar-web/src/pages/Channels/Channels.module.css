@@ -1,5 +1,5 @@
 /*
- * Browse channels page (Phase 5.5). Token-only design values.
+ * Browse channels page (Phase 5.5, extended in 5.3). Token-only.
  */
 
 .channels {
@@ -23,6 +23,12 @@
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
 }
 
 .search {
@@ -61,6 +67,18 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+  text-decoration: none;
+}
+
+.name:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.name:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .description {

@@ -1,0 +1,15 @@
+/*
+ * Admin: reactivate-user confirmation modal (Phase 5.4). Token-only.
+ */
+
+.text {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+.error {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}

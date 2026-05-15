@@ -1,0 +1,9 @@
+/*
+ * Confirm modal for removing a subscriber (Phase 5.3). Token-only.
+ */
+
+.body {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}

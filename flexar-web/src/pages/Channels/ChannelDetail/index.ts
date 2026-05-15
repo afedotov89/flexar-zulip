@@ -1,0 +1,1 @@
+export { ChannelDetail } from "./ChannelDetail";

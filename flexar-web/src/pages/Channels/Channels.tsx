@@ -1,19 +1,20 @@
-// Browse channels page (Phase 5.5).
+// Browse channels page (Phase 5.5, extended in 5.3 with create + detail).
 //
 // Lists every channel the user can see (subscribed and not), with a
 // per-row Subscribe / Unsubscribe button and a search filter. Realtime
 // `subscription add | remove` events keep the buttons in sync without
 // further wiring — the store reducers already fold the events.
 //
+// 5.3 additions: a "Create channel" button in the header opens
+// `CreateChannelModal`, and the channel name in each row is a
+// `<Link>` to `/channels/:id` (the new detail page).
+//
 // Optimistic / refresh policy: API call → wait for response → on
 // success the realtime echo flips the row, on failure surface in a
 // banner. The button enters a loading state during the round-trip.
-//
-// Out of scope for Phase 5.5: per-channel settings (notifications,
-// pin, color), creating a new channel from this page (subscribe
-// already creates one if the name is new), bulk-select.
 
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
@@ -21,6 +22,7 @@ import { apiClient } from "../../api";
 import type { Stream, StreamId } from "../../domain";
 import { describeApiError } from "../../lib/errors";
 import { useStreamsStore } from "../../stores/streamsStore";
+import { CreateChannelModal } from "./CreateChannelModal";
 import styles from "./Channels.module.css";
 
 export function Channels(): React.JSX.Element {
@@ -29,6 +31,7 @@ export function Channels(): React.JSX.Element {
   const [filter, setFilter] = useState("");
   const [busyStreamId, setBusyStreamId] = useState<StreamId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const list = useMemo(() => {
     const visible = Object.values(streams);
@@ -80,15 +83,26 @@ export function Channels(): React.JSX.Element {
     <div className={styles.channels}>
       <header className={styles.header}>
         <h1 className={styles.heading}>Каналы</h1>
-        <Input
-          aria-label="Поиск канала"
-          type="search"
-          iconLeft="search"
-          value={filter}
-          onChange={(event) => setFilter(event.currentTarget.value)}
-          placeholder="Поиск канала"
-          className={styles.search}
-        />
+        <div className={styles.headerActions}>
+          <Input
+            aria-label="Поиск канала"
+            type="search"
+            iconLeft="search"
+            value={filter}
+            onChange={(event) => setFilter(event.currentTarget.value)}
+            placeholder="Поиск канала"
+            className={styles.search}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            iconLeft="plus"
+            onClick={() => setCreateOpen(true)}
+          >
+            Создать канал
+          </Button>
+        </div>
       </header>
 
       {error !== null && (
@@ -111,7 +125,12 @@ export function Channels(): React.JSX.Element {
             return (
               <li key={stream.stream_id} className={styles.row}>
                 <div className={styles.info}>
-                  <span className={styles.name}>#{stream.name}</span>
+                  <Link
+                    to={`/channels/${stream.stream_id}`}
+                    className={styles.name}
+                  >
+                    #{stream.name}
+                  </Link>
                   {stream.description !== undefined && stream.description !== "" && (
                     <span className={styles.description}>
                       {stream.description}
@@ -136,7 +155,11 @@ export function Channels(): React.JSX.Element {
           })}
         </ul>
       )}
+
+      <CreateChannelModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
     </div>
   );
 }
-

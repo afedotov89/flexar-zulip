@@ -43,6 +43,7 @@ import { Feed } from "../pages/Feed";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFound } from "../pages/NotFound";
 import { Channels } from "../pages/Channels";
+import { ChannelDetail } from "../pages/Channels/ChannelDetail";
 import { Settings } from "../pages/Settings";
 import { AdminOrganization } from "../pages/Admin/AdminOrganization";
 import { AdminUsers } from "../pages/Admin/AdminUsers";
@@ -73,6 +74,8 @@ export const router = createBrowserRouter([
           { path: "settings", element: <Settings /> },
           // Browse channels (Phase 5.5).
           { path: "channels", element: <Channels /> },
+          // Channel detail / management (Phase 5.3).
+          { path: "channels/:id", element: <ChannelDetail /> },
           // Admin section — gated by RequireAdmin (Phase 5.2/5.3/5.4).
           {
             path: "admin",
