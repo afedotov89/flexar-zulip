@@ -50,6 +50,7 @@ import type { Narrow, StreamId, User, UserId } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useStreamsStore } from "../../stores/streamsStore";
+import { useTopicsStore } from "../../stores/topicsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
 import {
@@ -63,6 +64,16 @@ import {
   type OptimisticSender,
 } from "./optimisticMessage";
 import { ComposePreview } from "./ComposePreview";
+import {
+  ChannelRowContent,
+  EmojiRowContent,
+  MentionRowContent,
+  TopicRowContent,
+  TypeaheadPanel,
+  useTextareaTypeahead,
+  useTopicTypeahead,
+  type TextareaTypeaheadRow,
+} from "./typeahead";
 import styles from "./ComposeBox.module.css";
 
 export interface ComposeBoxProps {
@@ -175,7 +186,10 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const users = useUsersStore((store) => store.users);
   const getUser = useUsersStore((store) => store.getUser);
   const streams = useStreamsStore((store) => store.streams);
+  const subscriptions = useStreamsStore((store) => store.subscriptions);
   const getStream = useStreamsStore((store) => store.getStream);
+  const topicsByChannel = useTopicsStore((s) => s.topicsByChannel);
+  const loadTopics = useTopicsStore((s) => s.loadTopics);
   const insertOptimistic = useMessagesStore((s) => s.insertOptimistic);
   const reconcileOptimistic = useMessagesStore((s) => s.reconcileOptimistic);
   const removeOptimistic = useMessagesStore((s) => s.removeOptimistic);
@@ -191,8 +205,27 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // The textarea's `selectionStart` at the moment it last changed —
+  // drives the typeahead trigger detection. The dance with both a ref
+  // and React state is intentional: the *node* refs (set lazily via
+  // callback refs) are what `TypeaheadPanel` needs as anchors, while
+  // the cursor is plain state that re-runs the typeahead memos.
+  const [cursor, setCursor] = useState(0);
+  const [textareaNode, setTextareaNode] = useState<HTMLTextAreaElement | null>(
+    null,
+  );
+  const [topicNode, setTopicNode] = useState<HTMLInputElement | null>(null);
+  // Pending selection update — set by typeahead `onApply`, applied to
+  // the textarea/input once the new value has been rendered.
+  const pendingTextareaCursor = useRef<number | null>(null);
+  const pendingTopicCursor = useRef<number | null>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const setTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
+    setTextareaNode(node);
+  }, []);
+  const setTopicRef = useCallback((node: HTMLInputElement | null) => {
+    setTopicNode(node);
+  }, []);
 
   // A stable identity for the current narrow's pre-fill, used to reset
   // the form fields when the user navigates between conversations.
@@ -221,6 +254,66 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   // the user's mode-toggling actions, but defaults to whatever the
   // narrow pre-fill suggests.
   const formMode: "channel" | "direct" | "none" = fromNarrow.mode;
+
+  // The current channel id (for the topic-typeahead's lazy fetch).
+  const channelStreamId: StreamId | undefined = useMemo(
+    () => resolveChannel(form.channelInput, streams),
+    [form.channelInput, streams],
+  );
+  const topicsForChannel =
+    channelStreamId !== undefined ? topicsByChannel[channelStreamId] ?? [] : [];
+
+  // Textarea typeahead (`@` / `#` / `:`). The `onApply` callback
+  // updates the controlled value and queues the new cursor position;
+  // a separate effect commits the cursor to the DOM after the value
+  // change has rendered.
+  const textareaTypeahead = useTextareaTypeahead({
+    value: form.content,
+    cursor,
+    users,
+    streams,
+    subscriptions,
+    onApply: useCallback((newValue: string, newCursor: number) => {
+      pendingTextareaCursor.current = newCursor;
+      setForm((current) => ({ ...current, content: newValue }));
+      setCursor(newCursor);
+    }, []),
+  });
+
+  // Apply pending cursor to the DOM once the value has updated. Without
+  // this, the textarea's selection stays where it was before the
+  // splice (typically inside the now-replaced token).
+  useEffect(() => {
+    if (pendingTextareaCursor.current === null || textareaNode === null) {
+      return;
+    }
+    const target = pendingTextareaCursor.current;
+    pendingTextareaCursor.current = null;
+    textareaNode.setSelectionRange(target, target);
+    textareaNode.focus();
+  }, [form.content, textareaNode]);
+
+  // Topic typeahead.
+  const topicTypeahead = useTopicTypeahead({
+    value: form.topic,
+    streamId: channelStreamId,
+    topics: topicsForChannel,
+    loadTopics,
+    onApply: useCallback((newValue: string) => {
+      pendingTopicCursor.current = newValue.length;
+      setForm((current) => ({ ...current, topic: newValue }));
+    }, []),
+  });
+
+  useEffect(() => {
+    if (pendingTopicCursor.current === null || topicNode === null) {
+      return;
+    }
+    const target = pendingTopicCursor.current;
+    pendingTopicCursor.current = null;
+    topicNode.setSelectionRange(target, target);
+    topicNode.focus();
+  }, [form.topic, topicNode]);
 
   const canSend =
     !sending &&
@@ -316,7 +409,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         // Clear only the body — keep recipient/topic for the next msg.
         setForm((current) => ({ ...current, content: "" }));
         // Return focus to the textarea so the user can keep typing.
-        textareaRef.current?.focus();
+        textareaNode?.focus();
       } catch (cause) {
         // Failure path: drop the optimistic echo, surface the error.
         // The draft text stays in the textarea for retry.
@@ -338,13 +431,18 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       insertOptimistic,
       reconcileOptimistic,
       removeOptimistic,
+      textareaNode,
     ],
   );
 
-  // Keyboard model: Enter sends, Shift+Enter inserts a newline. The
-  // composition guard avoids sending mid-IME composition (e.g. CJK).
+  // Keyboard model: typeahead first (so Enter/Tab/Arrows/Escape navigate
+  // the panel when it is open), then send. Shift+Enter inserts a newline.
+  // The composition guard avoids sending mid-IME composition (e.g. CJK).
   const onTextareaKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>): void => {
+      if (textareaTypeahead.handleKeyDown(event)) {
+        return;
+      }
       if (event.key !== "Enter" || event.shiftKey) {
         return;
       }
@@ -357,7 +455,18 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       event.preventDefault();
       void onSubmit();
     },
-    [onSubmit],
+    [onSubmit, textareaTypeahead],
+  );
+
+  // Topic input: typeahead intercepts arrows/enter/tab/escape; otherwise
+  // we let the form's natural behaviour through (Enter would submit the
+  // form, but the `Send` button has the only `type="submit"` so this is
+  // a no-op in practice).
+  const onTopicKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>): void => {
+      topicTypeahead.handleKeyDown(event);
+    },
+    [topicTypeahead],
   );
 
   if (formMode === "none") {
@@ -400,6 +509,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             </label>
             <Input
               id="compose-topic"
+              ref={setTopicRef}
               size="sm"
               value={form.topic}
               onChange={(event) =>
@@ -408,8 +518,35 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
                   topic: event.target.value,
                 }))
               }
+              onKeyDown={onTopicKeyDown}
+              onFocus={topicTypeahead.handleFocus}
+              onBlur={topicTypeahead.handleBlur}
               placeholder="topic"
               disabled={sending}
+              aria-autocomplete="list"
+              aria-controls={
+                topicTypeahead.state.open
+                  ? topicTypeahead.state.panelId
+                  : undefined
+              }
+              aria-activedescendant={
+                topicTypeahead.state.activeId ?? undefined
+              }
+              aria-expanded={topicTypeahead.state.open}
+            />
+            <TypeaheadPanel
+              panelId={topicTypeahead.state.panelId}
+              anchor={topicNode}
+              open={topicTypeahead.state.open}
+              rows={topicTypeahead.state.rows.map((row) => ({
+                id: row.id,
+                label: row.label,
+                render: () => <TopicRowContent row={row} />,
+              }))}
+              activeId={topicTypeahead.state.activeId}
+              onSelect={topicTypeahead.onSelect}
+              onHover={topicTypeahead.onHover}
+              ariaLabel="Topic suggestions"
             />
           </>
         ) : (
@@ -472,15 +609,27 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
           </label>
           <AutoGrowTextarea
             id="compose-content"
-            ref={textareaRef}
+            ref={setTextareaRef}
             value={form.content}
-            onChange={(event) =>
+            onChange={(event) => {
               setForm((current) => ({
                 ...current,
                 content: event.target.value,
-              }))
-            }
+              }));
+              setCursor(event.target.selectionStart ?? event.target.value.length);
+            }}
             onKeyDown={onTextareaKeyDown}
+            onSelect={(event) =>
+              setCursor(
+                (event.target as HTMLTextAreaElement).selectionStart ?? 0,
+              )
+            }
+            onClick={(event) =>
+              setCursor(
+                (event.target as HTMLTextAreaElement).selectionStart ?? 0,
+              )
+            }
+            onBlur={textareaTypeahead.close}
             placeholder={
               formMode === "channel"
                 ? "Write a message"
@@ -488,6 +637,30 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             }
             disabled={sending}
             aria-label="Message"
+            aria-autocomplete="list"
+            aria-controls={
+              textareaTypeahead.state.open
+                ? textareaTypeahead.state.panelId
+                : undefined
+            }
+            aria-activedescendant={
+              textareaTypeahead.state.activeId ?? undefined
+            }
+            aria-expanded={textareaTypeahead.state.open}
+          />
+          <TypeaheadPanel
+            panelId={textareaTypeahead.state.panelId}
+            anchor={textareaNode}
+            open={textareaTypeahead.state.open}
+            rows={textareaTypeahead.state.rows.map((row) => ({
+              id: row.id,
+              label: row.label,
+              render: () => renderTextareaRow(row),
+            }))}
+            activeId={textareaTypeahead.state.activeId}
+            onSelect={textareaTypeahead.onSelect}
+            onHover={textareaTypeahead.onHover}
+            ariaLabel={ariaLabelFor(textareaTypeahead.state.kind)}
           />
         </>
       ) : (
@@ -518,6 +691,30 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       </div>
     </form>
   );
+}
+
+// Pick the right row content for whichever textarea typeahead is open.
+function renderTextareaRow(row: TextareaTypeaheadRow): React.ReactNode {
+  if ("user" in row) {
+    return <MentionRowContent row={row} />;
+  }
+  if ("entry" in row) {
+    return <EmojiRowContent row={row} />;
+  }
+  return <ChannelRowContent row={row} />;
+}
+
+function ariaLabelFor(kind: "mention" | "channel" | "emoji" | null): string {
+  switch (kind) {
+    case "mention":
+      return "Mention suggestions";
+    case "channel":
+      return "Channel suggestions";
+    case "emoji":
+      return "Emoji suggestions";
+    case null:
+      return "Suggestions";
+  }
 }
 
 // Stable per-narrow key for the pre-fill effect.
