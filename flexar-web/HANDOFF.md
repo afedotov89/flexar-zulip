@@ -30,7 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
-- `<TBD>` 3.1 — search bar (parser + Navbar input → narrow), live ✅
+- `85b91cda8f` 3.1 — search bar (parser + Navbar input → narrow), live ✅
 - `7a4a3c839b` HANDOFF — fill in 3.5 commit hash
 - `6304de67c0` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
 - `9b3803d07d` HANDOFF — fill in 3.6 commit hash
