@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.1 закрыта** (загрузки файлов: paperclip + paste + drag-drop, прогресс, отмена, Markdown-вставка).
+**Последнее обновление:** 2026-05-15, **Фаза 4.4 закрыта** (user status: текст + эмодзи, редактор в navbar, отображение в правом сайдбаре).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `d39eeb6234` 4.4 — user status (текст+эмодзи, navbar editor, right sidebar)
+- `ff0d1dee97` HANDOFF — 4.1 заметка
 - `6f5d210c68` 4.1 — загрузки файлов (XHR-транспорт + paperclip/paste/drag-drop, прогресс, Markdown-вставка)
 - `ef71763250` HANDOFF — 4.5 заметка
 - `e3465b6b0d` 4.5 — отложенные сообщения (API + store + popover + /scheduled)
@@ -261,8 +263,22 @@ unicode emoji (коммит `2723e343a2`).
   cancel/dismiss IconButton); ComposeBox: paperclip в actionsRow,
   paste-handler на textarea, drag-drop на форму. 992 unit-тестa;
   гейты зелёные. Live-протык на стенде ⏳ ждёт владельца.
-- ⏳ **4.2** медиа/лайтбокс; **4.4** presence; **4.7** виджеты;
-  **4.8** превью ссылок
+- ✅ **4.4 User status (текст + эмодзи)** —
+  `apiClient.updateOwnUserStatus({ statusText, emojiName,
+  emojiCode, reactionType })`; `UserStatus.reaction_type` /
+  `UserStatusEvent.reaction_type` расширены до `ReactionType | ""`,
+  чтобы wire-сигнал «очистить» был легален в типах.
+  `useUserStatusesStore` бакетирует `UserStatus`-ы по user-id,
+  гидратируется из `user_status` снапшота register, фолдит
+  realtime-события через чистые `hydrateFromSnapshot`/
+  `applyUserStatusEvent` (empty-string clear, drop-on-empty).
+  UI: `StatusEditor` (popover с 60-char input + emoji-picker
+  reuse + Save/Clear/Cancel + char-counter с danger-overflow);
+  `StatusButton` в navbar (триггер с инлайн-предпросмотром
+  emoji+text); правый сайдбар `UserRow` рендерит status emoji
+  рядом с именем + status text под именем. 1001 unit-тест;
+  гейты зелёные. Live-протык на стенде ⏳ ждёт владельца.
+- ⏳ **4.2** медиа/лайтбокс; **4.7** виджеты; **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
