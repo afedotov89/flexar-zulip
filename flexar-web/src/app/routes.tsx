@@ -38,11 +38,15 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { RequireAuth } from "./RequireAuth";
+import { RequireAdmin } from "./RequireAdmin";
 import { Feed } from "../pages/Feed";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFound } from "../pages/NotFound";
 import { Channels } from "../pages/Channels";
 import { Settings } from "../pages/Settings";
+import { AdminOrganization } from "../pages/Admin/AdminOrganization";
+import { AdminUsers } from "../pages/Admin/AdminUsers";
+import { AdminInvites } from "../pages/Admin/AdminInvites";
 import { TokenShowcase } from "../pages/TokenShowcase";
 import { PrimitivesShowcase } from "../pages/PrimitivesShowcase";
 import { NARROW_ROOT, SPECIAL_VIEWS } from "../lib/narrow";
@@ -69,6 +73,16 @@ export const router = createBrowserRouter([
           { path: "settings", element: <Settings /> },
           // Browse channels (Phase 5.5).
           { path: "channels", element: <Channels /> },
+          // Admin section — gated by RequireAdmin (Phase 5.2/5.3/5.4).
+          {
+            path: "admin",
+            element: <RequireAdmin />,
+            children: [
+              { path: "organization", element: <AdminOrganization /> },
+              { path: "users", element: <AdminUsers /> },
+              { path: "invites", element: <AdminInvites /> },
+            ],
+          },
         ],
       },
     ],

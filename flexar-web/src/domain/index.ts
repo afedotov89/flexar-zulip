@@ -65,11 +65,15 @@ export type { ChannelFolder, OwnUser, Realm } from "./realm";
 export type { ScheduledMessage, ScheduledMessageType } from "./scheduledMessage";
 
 export type {
+  DefaultStreamsEvent,
   DeleteMessageEvent,
   HeartbeatEvent,
   MessageEvent,
   PresenceEvent,
   ReactionEvent,
+  RealmEvent,
+  RealmUpdateDictEvent,
+  RealmUpdateEvent,
   RealmUserAddEvent,
   RealmUserEvent,
   RealmUserRemoveEvent,

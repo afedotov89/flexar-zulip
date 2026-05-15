@@ -410,6 +410,44 @@ export interface HeartbeatEvent extends EventBase {
 }
 
 /**
+ * `realm` event with `op: "update"` — a single realm-level setting was
+ * changed (admin edited org settings). The server sends one event per
+ * changed property, with `property` and `value` carrying the new state.
+ */
+export interface RealmUpdateEvent extends EventBase {
+  type: "realm";
+  op: "update";
+  property: string;
+  value: unknown;
+}
+
+/**
+ * `realm` event with `op: "update_dict"` — a grouped set of realm
+ * settings changed atomically (e.g. a `data: { foo: ..., bar: ... }`
+ * payload covering several properties at once). Used by the server when
+ * an admin saves a subsection of org settings in one PATCH.
+ */
+export interface RealmUpdateDictEvent extends EventBase {
+  type: "realm";
+  op: "update_dict";
+  property: string;
+  data: Record<string, unknown>;
+}
+
+/** Union over the precisely-modelled `realm`-event ops. */
+export type RealmEvent = RealmUpdateEvent | RealmUpdateDictEvent;
+
+/**
+ * `default_streams` event — the realm's list of channels new users are
+ * auto-subscribed to changed. Server sends the new full list, not a
+ * delta; consumers replace state wholesale.
+ */
+export interface DefaultStreamsEvent extends EventBase {
+  type: "default_streams";
+  default_streams: number[];
+}
+
+/**
  * Fallback for any event type this layer does not model precisely.
  * Keeps `ServerEvent` open to the full set of server events while
  * preserving discriminated-union narrowing for the modelled ones.
@@ -436,6 +474,8 @@ export type ServerEvent =
   | SubscriptionEvent
   | StreamEvent
   | RealmUserEvent
+  | RealmEvent
+  | DefaultStreamsEvent
   | PresenceEvent
   | TypingEvent
   | UserStatusEvent

@@ -97,12 +97,13 @@ export type Unsubscribe = () => void;
  * Event types the queue subscribes to: the set a chat client acts on.
  *
  * This mirrors the precisely-modelled members of the domain
- * `ServerEvent` union — the long tail (`realm`, `user_group`, …) is
- * deliberately omitted to keep register/`/events` bandwidth down, as
+ * `ServerEvent` union — the long tail (`user_group`, `linkifiers`, …)
+ * is deliberately omitted to keep register/`/events` bandwidth down, as
  * the Zulip API docs recommend for production clients. `heartbeat` is
  * always delivered by the server regardless of this list; it is named
- * here only for documentation. Phase 1.3 can widen this through the
- * orchestrator if a store needs an event type not listed.
+ * here only for documentation. `realm` + `default_streams` (Phase 5.2
+ * admin settings) keep the realm-store and default-streams list fresh
+ * when an admin edits org settings.
  */
 export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "message",
@@ -111,8 +112,10 @@ export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "reaction",
   "subscription",
   "stream",
+  "realm",
   "realm_user",
   "realm_emoji",
+  "default_streams",
   "presence",
   "typing",
   "update_message_flags",

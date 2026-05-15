@@ -1,0 +1,12 @@
+/*
+ * Admin-route guard styles (Phase 5.2/5.3/5.4).
+ * Only the directory-hydration spinner needs styling.
+ */
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: var(--color-text);
+}

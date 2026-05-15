@@ -1,15 +1,25 @@
-// Flexar Hub Web — app-shell navbar (Phase 0.5, logout added 1.1).
+// Flexar Hub Web — app-shell navbar (Phase 0.5; logout 1.1; account
+// dropdown 5.x).
 //
 // Full-width top bar with three slots: the app-name (left), a search
 // placeholder (center), and an actions cluster (right). The actions
-// cluster holds the theme toggle plus — once a session exists — the
-// signed-in account's email and a logout control. The search slot is
-// still a labelled placeholder, not a real feature.
+// cluster holds the theme toggle, the user-status chip, and an
+// account-menu trigger that drops down a `DropdownMenu` with
+// Settings / Administration (admin-only) / Log out. The dropdown
+// pattern matches modern messengers (Slack/Linear/Notion) — the navbar
+// stays compact and the admin entry stays out of sight for non-admins.
+//
+// "Administration" routes to `/admin/users` by default — the most
+// frequently-visited admin section; the user can reach the others from
+// inside via the same dropdown re-opening.
 
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../components/Button";
+import { DropdownMenu } from "../../components/DropdownMenu";
+import type { DropdownMenuEntry } from "../../components/DropdownMenu";
+import { Icon } from "../../components/Icon";
 import { SearchBar } from "../../features/search";
 import { StatusButton } from "../../features/userStatus";
+import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../theme";
 import styles from "./Navbar.module.css";
@@ -21,6 +31,7 @@ export function Navbar(): React.JSX.Element {
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
 
   function handleLogout(): void {
     logout();
@@ -29,6 +40,38 @@ export function Navbar(): React.JSX.Element {
     // keeps the transition crisp.
     void navigate("/login", { replace: true });
   }
+
+  // Build the account-menu entries. "Administration" entry + its
+  // separator are skipped entirely for non-admins (cleaner than
+  // disabling, and admin-ness is not something the UI announces to
+  // members).
+  const accountMenuItems: DropdownMenuEntry[] = [
+    {
+      id: "settings",
+      label: "Настройки",
+      icon: "settings",
+      onSelect: () => void navigate("/settings"),
+    },
+    ...(isAdmin
+      ? ([
+          { id: "admin-sep", separator: true },
+          {
+            id: "admin",
+            label: "Администрирование",
+            icon: "shield",
+            onSelect: () => void navigate("/admin/users"),
+          },
+        ] as DropdownMenuEntry[])
+      : []),
+    { id: "logout-sep", separator: true },
+    {
+      id: "logout",
+      label: "Выйти",
+      icon: "log-out",
+      danger: true,
+      onSelect: handleLogout,
+    },
+  ];
 
   return (
     <header className={styles.navbar}>
@@ -50,19 +93,23 @@ export function Navbar(): React.JSX.Element {
         {session != null && (
           <div className={styles.account}>
             <StatusButton />
-            <span className={styles.accountEmail} title={session.email}>
-              {session.email}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => void navigate("/settings")}
-            >
-              Настройки
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleLogout}>
-              Выйти
-            </Button>
+            <DropdownMenu
+              trigger={
+                <button
+                  type="button"
+                  className={styles.accountTrigger}
+                  aria-label="Меню аккаунта"
+                  title={session.email}
+                >
+                  <Icon name="user" size="sm" />
+                  <span className={styles.accountEmail}>{session.email}</span>
+                  <Icon name="chevron-down" size="sm" />
+                </button>
+              }
+              items={accountMenuItems}
+              placement="bottom"
+              aria-label="Меню аккаунта"
+            />
           </div>
         )}
       </div>
