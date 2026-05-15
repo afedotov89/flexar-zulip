@@ -30,7 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
-- `<TBD>` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
+- `6304de67c0` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
 - `9b3803d07d` HANDOFF — fill in 3.6 commit hash
 - `ded70d7141` 3.6 — эмодзи-пикер для compose + кастомные realm-эмодзи store, live ✅
 - `ed7a002dfc` HANDOFF — fill in 3.4 commit hash
