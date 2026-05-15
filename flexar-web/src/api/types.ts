@@ -454,3 +454,181 @@ export interface UpdateScheduledMessageParams {
   scheduledDeliveryTimestamp?: UnixTimestamp;
 }
 
+// --- Admin: realm settings (Phase 5.2) -----------------------------
+
+/**
+ * Parameters for `updateRealm` (`PATCH /api/v1/realm`). The server
+ * endpoint accepts a large surface (~60 realm settings); this type
+ * lists the minimal-set Phase 5.2 exposes. All fields are optional —
+ * pass only what changed. Names match the server name (snake_case so
+ * the wire mapping stays obvious).
+ */
+export interface UpdateRealmParams {
+  /** Organization name (≤ 40 chars). */
+  name?: string;
+  /** Organization description (Markdown). */
+  description?: string;
+  /** Whether members may edit their own messages. */
+  allow_message_editing?: boolean;
+  /** Edit-time limit, seconds; `0` = unlimited. */
+  message_content_edit_limit_seconds?: number;
+  /** Delete-time limit, seconds; `0` = unlimited. */
+  message_content_delete_limit_seconds?: number;
+  /** Realm-wide message retention, in days; `-1` = forever. */
+  message_retention_days?: number;
+  /** Who can see message edit history (server enum, e.g. `"all_users"`). */
+  message_edit_history_visibility_policy?: string;
+  /** Whether invitations are required to join. */
+  invite_required?: boolean;
+  /** Days a new user must wait before having full-member permissions. */
+  waiting_period_threshold?: number;
+}
+
+// --- Admin: channels (Phase 5.3) -----------------------------------
+
+/** Privacy mode for a channel — derives the wire flags. */
+export type ChannelPrivacy = "public" | "private" | "web_public";
+
+/**
+ * Parameters for `createChannel` (`POST /api/v1/users/me/subscriptions`
+ * with subscriber creation flags). Wire-level the create is just a
+ * `subscribe` with a new channel name, plus extra privacy/permission
+ * fields the server uses to initialise the new channel.
+ */
+export interface CreateChannelParams {
+  name: string;
+  description?: string;
+  privacy?: ChannelPrivacy;
+  /**
+   * History setting: whether subscribers added later can see messages
+   * sent before their subscription. Defaults to `true` for public
+   * channels, `false` for private (Zulip's defaults).
+   */
+  historyPublicToSubscribers?: boolean;
+  /** Initial subscribers (caller is auto-included). */
+  principals?: ReadonlyArray<UserId>;
+  /** Whether the server should send an announcement message. */
+  announce?: boolean;
+}
+
+/**
+ * Parameters for `updateChannel`
+ * (`PATCH /api/v1/streams/{stream_id}`). All fields are optional —
+ * server merges. Pass only what changed.
+ */
+export interface UpdateChannelParams {
+  newName?: string;
+  description?: string;
+  isPrivate?: boolean;
+  isWebPublic?: boolean;
+  historyPublicToSubscribers?: boolean;
+  /** Channel retention; `-1` = forever, `null` = inherit realm. */
+  messageRetentionDays?: number | null;
+}
+
+/** Response of `GET /api/v1/streams/{stream_id}/members`. */
+export interface GetChannelSubscribersResult {
+  subscribers: UserId[];
+}
+
+// --- Admin: default streams (Phase 5.2) ----------------------------
+
+/** Response of `GET /api/v1/default_streams`. */
+export interface GetDefaultStreamsResult {
+  default_streams: number[];
+}
+
+// --- Admin: users (Phase 5.4) --------------------------------------
+
+/**
+ * Parameters for `updateUser` (`PATCH /api/v1/users/{user_id}`). All
+ * fields optional — pass only what changed. `role` accepts the wire
+ * integers (100=owner, 200=admin, 300=moderator, 400=member, 600=guest).
+ */
+export interface UpdateUserParams {
+  fullName?: string;
+  role?: number;
+  newEmail?: string;
+}
+
+/**
+ * Parameters for `deactivateUser`
+ * (`DELETE /api/v1/users/{user_id}`). All fields optional — the API
+ * accepts the bare DELETE for the common case.
+ */
+export interface DeactivateUserParams {
+  /** Comment surfaced in the deactivation notification to the user. */
+  deactivationNotificationComment?: string;
+  /** Whether to clear the deactivated user's avatar/messages. */
+  deleteProfile?: boolean;
+  deleteUserMessages?: boolean;
+}
+
+// --- Admin: invites (Phase 5.4) ------------------------------------
+
+/** One pending or expired invitation, as returned by `GET /invites`. */
+export interface Invite {
+  id: number;
+  /** When the invite was created (unix seconds). */
+  invited: UnixTimestamp;
+  /** Whom this invitation was issued to; absent for reusable links. */
+  email?: string;
+  /** Whether this is a multi-use invite link rather than per-email. */
+  is_multiuse: boolean;
+  /** Role the invitee will get after redemption (wire integer). */
+  invited_as: number;
+  /** Inviter's user id. */
+  invited_by_user_id?: UserId;
+  /** Expiration (unix seconds), or `null` for non-expiring. */
+  expiry_date: UnixTimestamp | null;
+  /** Whether the invitation link has been used (multi-use invites). */
+  link_url?: string;
+  /** Stream IDs the invitee gets auto-subscribed to. */
+  stream_ids?: number[];
+  /** Group IDs the invitee gets added to. */
+  group_ids?: number[];
+  /** Notifications stream id for the invite. */
+  notify_referrer_on_join?: boolean;
+}
+
+/** Response of `GET /api/v1/invites`. */
+export interface GetInvitesResult {
+  invites: Invite[];
+}
+
+/**
+ * Parameters for `sendInvites` (`POST /api/v1/invites`). `inviteeEmails`
+ * is a list — Zulip accepts a comma-or-newline-separated string on the
+ * wire; we join here so the call site supplies a clean array.
+ */
+export interface SendInvitesParams {
+  inviteeEmails: readonly string[];
+  /** Minutes from now until the invite expires; `null` = never. */
+  inviteExpiresInMinutes: number | null;
+  /** Role the invitee will be given on redemption (wire integer). */
+  inviteAs: number;
+  /** Stream IDs the invitee gets auto-subscribed to. */
+  streamIds?: readonly number[];
+  /** User-group IDs the invitee gets added to. */
+  groupIds?: readonly number[];
+  /** Whether to notify the referrer when the invitee joins. */
+  notifyReferrerOnJoin?: boolean;
+}
+
+/**
+ * Parameters for `createReusableInviteLink`
+ * (`POST /api/v1/invites/multiuse`). Same shape as `SendInvitesParams`
+ * minus the per-email field — the server returns a link URL.
+ */
+export interface CreateReusableInviteLinkParams {
+  inviteExpiresInMinutes: number | null;
+  inviteAs: number;
+  streamIds?: readonly number[];
+  groupIds?: readonly number[];
+}
+
+/** Response of `POST /api/v1/invites/multiuse`. */
+export interface CreateReusableInviteLinkResult {
+  invite_link: string;
+}
+

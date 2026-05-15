@@ -21,6 +21,7 @@ import type {
   Subscription,
   Topic,
   User,
+  UserId,
 } from "../domain";
 import { narrowToWire } from "./narrow";
 import { sendRequest, type Params } from "./request";
@@ -31,13 +32,20 @@ import {
 } from "./upload";
 import type {
   ApiKeyResult,
+  CreateChannelParams,
+  CreateReusableInviteLinkParams,
+  CreateReusableInviteLinkResult,
   CreateScheduledMessageParams,
   CreateScheduledMessageResult,
   Credentials,
+  DeactivateUserParams,
   DeleteMessageResult,
   EditMessageParams,
   EditMessageResult,
+  GetChannelSubscribersResult,
+  GetDefaultStreamsResult,
   GetEventsResult,
+  GetInvitesResult,
   GetMessagesOptions,
   GetMessagesResult,
   GetOwnUserResult,
@@ -46,21 +54,26 @@ import type {
   GetSubscriptionsResult,
   GetTopicsResult,
   GetUsersResult,
+  Invite,
   MarkAsReadResult,
   RegisterQueueOptions,
   RegisterQueueResult,
   RenderMarkdownResult,
+  SendInvitesParams,
   SendMessageParams,
   SendMessageResult,
   SendSubmessageParams,
   SendTypingParams,
   SubscribeParams,
   UnsubscribeParams,
+  UpdateChannelParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
   UpdateOwnSettingsParams,
   UpdateOwnUserStatusParams,
+  UpdateRealmParams,
   UpdateScheduledMessageParams,
+  UpdateUserParams,
 } from "./types";
 
 /** Options for `getStreams` (`GET /api/v1/streams`). */
@@ -836,6 +849,305 @@ export class ApiClient {
   async getOwnUser(): Promise<GetOwnUserResult> {
     return sendRequest<GetOwnUserResult>(
       { method: "GET", path: "/users/me" },
+      this.#credentials,
+    );
+  }
+
+  // --- Admin: realm settings (Phase 5.2) -----------------------------
+
+  /**
+   * Update one or more realm-level settings. `PATCH /api/v1/realm`.
+   * Pass only what changed — the server merges supplied fields. The
+   * realtime `realm` event echoes each change back so the realm-store
+   * stays in sync.
+   */
+  async updateRealm(params: UpdateRealmParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: "/realm",
+        params: {
+          name: params.name,
+          description: params.description,
+          allow_message_editing: params.allow_message_editing,
+          message_content_edit_limit_seconds:
+            params.message_content_edit_limit_seconds,
+          message_content_delete_limit_seconds:
+            params.message_content_delete_limit_seconds,
+          message_retention_days: params.message_retention_days,
+          message_edit_history_visibility_policy:
+            params.message_edit_history_visibility_policy,
+          invite_required: params.invite_required,
+          waiting_period_threshold: params.waiting_period_threshold,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  // --- Admin: default streams (Phase 5.2) ----------------------------
+
+  /**
+   * Fetch the realm's list of default channels (the channels new users
+   * are auto-subscribed to). `GET /api/v1/default_streams`. The same
+   * list is also delivered through the `default_streams` realtime
+   * event whenever an admin changes it, but this is the bootstrap.
+   */
+  async getDefaultStreams(): Promise<number[]> {
+    const body = await sendRequest<GetDefaultStreamsResult>(
+      { method: "GET", path: "/default_streams" },
+      this.#credentials,
+    );
+    return body.default_streams;
+  }
+
+  /** Add a channel to the realm's default-streams list. */
+  async addDefaultStream(streamId: number): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/default_streams",
+        params: { stream_id: streamId },
+      },
+      this.#credentials,
+    );
+  }
+
+  /** Remove a channel from the realm's default-streams list. */
+  async removeDefaultStream(streamId: number): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "DELETE",
+        path: "/default_streams",
+        params: { stream_id: streamId },
+      },
+      this.#credentials,
+    );
+  }
+
+  // --- Admin: channels (Phase 5.3) -----------------------------------
+
+  /**
+   * Create a new channel by subscribing to a previously-non-existent
+   * name. `POST /api/v1/users/me/subscriptions` — the same wire path
+   * as `subscribe`, but with the privacy/permission init fields. The
+   * realtime `stream:create` + `subscription:add` events echo the new
+   * channel back so the streams-store updates without a refetch.
+   */
+  async createChannel(params: CreateChannelParams): Promise<void> {
+    const isPrivate = params.privacy === "private";
+    const isWebPublic = params.privacy === "web_public";
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/users/me/subscriptions",
+        params: {
+          subscriptions: [
+            {
+              name: params.name,
+              ...(params.description !== undefined && {
+                description: params.description,
+              }),
+            },
+          ],
+          invite_only: isPrivate,
+          is_web_public: isWebPublic,
+          history_public_to_subscribers: params.historyPublicToSubscribers,
+          principals: params.principals,
+          announce: params.announce,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Update a channel's name, description, privacy, history setting, or
+   * retention. `PATCH /api/v1/streams/{stream_id}`. Pass only what
+   * changed; the server merges. Admin-only for channels the caller
+   * doesn't own.
+   */
+  async updateChannel(
+    streamId: number,
+    params: UpdateChannelParams,
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: `/streams/${streamId}`,
+        params: {
+          new_name: params.newName,
+          description: params.description,
+          is_private: params.isPrivate,
+          is_web_public: params.isWebPublic,
+          history_public_to_subscribers: params.historyPublicToSubscribers,
+          message_retention_days: params.messageRetentionDays,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Archive a channel — Zulip's "delete channel" semantic. The channel
+   * remains in the database (with messages preserved per retention
+   * policy) but no longer appears in non-archived listings.
+   * `DELETE /api/v1/streams/{stream_id}`.
+   */
+  async archiveChannel(streamId: number): Promise<void> {
+    await sendRequest<unknown>(
+      { method: "DELETE", path: `/streams/${streamId}` },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Fetch the subscriber user-id list for one channel.
+   * `GET /api/v1/streams/{stream_id}/members`. The streams-store
+   * already carries `subscribers` for each subscription via register
+   * + peer_add/remove events, so this is mostly for admin views of
+   * channels the caller is not subscribed to.
+   */
+  async getChannelSubscribers(streamId: number): Promise<UserId[]> {
+    const body = await sendRequest<GetChannelSubscribersResult>(
+      { method: "GET", path: `/streams/${streamId}/members` },
+      this.#credentials,
+    );
+    return body.subscribers;
+  }
+
+  // --- Admin: users (Phase 5.4) --------------------------------------
+
+  /**
+   * Update a user's display name, role, or email.
+   * `PATCH /api/v1/users/{user_id}`. Pass only what changed. `role`
+   * uses the wire integers (100=owner, 200=admin, 300=moderator,
+   * 400=member, 600=guest).
+   */
+  async updateUser(userId: UserId, params: UpdateUserParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: `/users/${userId}`,
+        params: {
+          full_name: params.fullName,
+          role: params.role,
+          new_email: params.newEmail,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Deactivate a user. `DELETE /api/v1/users/{user_id}`. Survives a
+   * re-login attempt — only `reactivateUser` brings them back.
+   */
+  async deactivateUser(
+    userId: UserId,
+    params: DeactivateUserParams = {},
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "DELETE",
+        path: `/users/${userId}`,
+        params: {
+          deactivation_notification_comment:
+            params.deactivationNotificationComment,
+          delete_profile: params.deleteProfile,
+          delete_user_messages: params.deleteUserMessages,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /** Reactivate a previously-deactivated user. */
+  async reactivateUser(userId: UserId): Promise<void> {
+    await sendRequest<unknown>(
+      { method: "POST", path: `/users/${userId}/reactivate` },
+      this.#credentials,
+    );
+  }
+
+  // --- Admin: invites (Phase 5.4) ------------------------------------
+
+  /**
+   * Fetch every pending or active invitation issued by this realm.
+   * `GET /api/v1/invites`. Includes both per-email invites (the
+   * common case) and reusable multi-use links.
+   */
+  async getInvites(): Promise<Invite[]> {
+    const body = await sendRequest<GetInvitesResult>(
+      { method: "GET", path: "/invites" },
+      this.#credentials,
+    );
+    return body.invites;
+  }
+
+  /**
+   * Send invitations to one or more email addresses.
+   * `POST /api/v1/invites`. The server accepts a comma-or-newline-
+   * separated string for `invitee_emails`; we join the supplied array
+   * here so call sites stay clean.
+   */
+  async sendInvites(params: SendInvitesParams): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: "/invites",
+        params: {
+          invitee_emails: params.inviteeEmails.join(","),
+          invite_expires_in_minutes: params.inviteExpiresInMinutes,
+          invite_as: params.inviteAs,
+          stream_ids:
+            params.streamIds !== undefined ? [...params.streamIds] : undefined,
+          group_ids:
+            params.groupIds !== undefined ? [...params.groupIds] : undefined,
+          notify_referrer_on_join: params.notifyReferrerOnJoin,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Create a multi-use invite link. `POST /api/v1/invites/multiuse`.
+   * The returned URL is sharable and valid until expiry.
+   */
+  async createReusableInviteLink(
+    params: CreateReusableInviteLinkParams,
+  ): Promise<string> {
+    const body = await sendRequest<CreateReusableInviteLinkResult>(
+      {
+        method: "POST",
+        path: "/invites/multiuse",
+        params: {
+          invite_expires_in_minutes: params.inviteExpiresInMinutes,
+          invite_as: params.inviteAs,
+          stream_ids:
+            params.streamIds !== undefined ? [...params.streamIds] : undefined,
+          group_ids:
+            params.groupIds !== undefined ? [...params.groupIds] : undefined,
+        },
+      },
+      this.#credentials,
+    );
+    return body.invite_link;
+  }
+
+  /** Revoke a pending or reusable invitation by id. */
+  async revokeInvite(inviteId: number): Promise<void> {
+    await sendRequest<unknown>(
+      { method: "DELETE", path: `/invites/${inviteId}` },
+      this.#credentials,
+    );
+  }
+
+  /** Resend a pending per-email invitation. */
+  async resendInvite(inviteId: number): Promise<void> {
+    await sendRequest<unknown>(
+      { method: "POST", path: `/invites/${inviteId}/resend` },
       this.#credentials,
     );
   }

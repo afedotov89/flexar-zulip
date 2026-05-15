@@ -33,12 +33,16 @@ type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
  * A parameter value before encoding. Objects and arrays are
  * JSON-stringified (Zulip expects JSON-encoded strings for structured
  * params such as `narrow` or `event_types`); scalars are stringified
- * directly. `undefined` values are dropped entirely.
+ * directly. `null` is JSON-encoded as the literal `null` (Zulip
+ * accepts it for "no value" on optional fields like
+ * `message_retention_days` and `invite_expires_in_minutes`).
+ * `undefined` values are dropped entirely.
  */
 export type ParamValue =
   | string
   | number
   | boolean
+  | null
   | readonly unknown[]
   | Record<string, unknown>
   | undefined;
@@ -79,7 +83,9 @@ interface AuthCredentials {
  * before reaching here.
  */
 function encodeParamValue(value: Exclude<ParamValue, undefined>): string {
-  if (typeof value === "object") {
+  // JSON-encode null and any structured value (arrays, objects);
+  // typeof null is "object", so the same branch handles both.
+  if (value === null || typeof value === "object") {
     return JSON.stringify(value);
   }
   return String(value);

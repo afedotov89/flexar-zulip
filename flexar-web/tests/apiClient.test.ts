@@ -498,6 +498,284 @@ describe("request encoding", () => {
   });
 });
 
+// Phase 5.2/5.3/5.4 admin methods. The wire contract — endpoint path,
+// method verb, body parameter names — is what tests pin down; the
+// underlying transport (auth header, encoding) is already covered by
+// the request-encoding suite above.
+describe("admin", () => {
+  const client = () =>
+    createApiClient({ email: "iago@zulip.com", apiKey: "secret-key" });
+
+  // --- realm ----------------------------------------------------------
+
+  it("updateRealm PATCHes /realm with only the supplied fields", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().updateRealm({
+      name: "Flexar Hub Test",
+      message_content_edit_limit_seconds: 600,
+    });
+
+    expect(calls[0].url).toBe("/api/v1/realm");
+    expect(calls[0].init.method).toBe("PATCH");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("name")).toBe("Flexar Hub Test");
+    expect(body.get("message_content_edit_limit_seconds")).toBe("600");
+    // Fields not supplied are dropped from the wire body.
+    expect(body.has("description")).toBe(false);
+    expect(body.has("invite_required")).toBe(false);
+  });
+
+  // --- default streams ------------------------------------------------
+
+  it("getDefaultStreams returns the default_streams id list", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      default_streams: [11, 22],
+    });
+
+    const ids = await client().getDefaultStreams();
+
+    expect(ids).toEqual([11, 22]);
+    expect(calls[0].url).toBe("/api/v1/default_streams");
+    expect(calls[0].init.method).toBe("GET");
+  });
+
+  it("addDefaultStream POSTs the stream id", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().addDefaultStream(11);
+
+    expect(calls[0].url).toBe("/api/v1/default_streams");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("stream_id")).toBe("11");
+  });
+
+  it("removeDefaultStream DELETEs with the stream id", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().removeDefaultStream(11);
+
+    expect(calls[0].url).toBe("/api/v1/default_streams");
+    expect(calls[0].init.method).toBe("DELETE");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("stream_id")).toBe("11");
+  });
+
+  // --- channels -------------------------------------------------------
+
+  it("createChannel POSTs to /users/me/subscriptions with privacy mapped to wire flags", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().createChannel({
+      name: "release-engineering",
+      description: "Release coordination",
+      privacy: "private",
+      principals: [5, 6],
+    });
+
+    expect(calls[0].url).toBe("/api/v1/users/me/subscriptions");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("subscriptions")).toBe(
+      JSON.stringify([
+        { name: "release-engineering", description: "Release coordination" },
+      ]),
+    );
+    // Private channel: invite_only=true, web_public=false.
+    expect(body.get("invite_only")).toBe("true");
+    expect(body.get("is_web_public")).toBe("false");
+    expect(body.get("principals")).toBe(JSON.stringify([5, 6]));
+  });
+
+  it("updateChannel PATCHes /streams/{id} with snake_cased keys", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().updateChannel(11, {
+      newName: "deploys",
+      isPrivate: true,
+      messageRetentionDays: 30,
+    });
+
+    expect(calls[0].url).toBe("/api/v1/streams/11");
+    expect(calls[0].init.method).toBe("PATCH");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("new_name")).toBe("deploys");
+    expect(body.get("is_private")).toBe("true");
+    expect(body.get("message_retention_days")).toBe("30");
+  });
+
+  it("updateChannel allows null retention to inherit the realm default", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().updateChannel(11, { messageRetentionDays: null });
+
+    const body = new URLSearchParams(calls[0].init.body as string);
+    // null is JSON-encoded so the server reads it as the JSON literal.
+    expect(body.get("message_retention_days")).toBe("null");
+  });
+
+  it("archiveChannel DELETEs /streams/{id}", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().archiveChannel(11);
+
+    expect(calls[0].url).toBe("/api/v1/streams/11");
+    expect(calls[0].init.method).toBe("DELETE");
+  });
+
+  it("getChannelSubscribers returns the subscriber id list", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      subscribers: [1, 2, 3],
+    });
+
+    const ids = await client().getChannelSubscribers(11);
+
+    expect(ids).toEqual([1, 2, 3]);
+    expect(calls[0].url).toBe("/api/v1/streams/11/members");
+    expect(calls[0].init.method).toBe("GET");
+  });
+
+  // --- users ----------------------------------------------------------
+
+  it("updateUser PATCHes /users/{id} with the supplied fields", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().updateUser(7, { fullName: "Alice Liddell", role: 200 });
+
+    expect(calls[0].url).toBe("/api/v1/users/7");
+    expect(calls[0].init.method).toBe("PATCH");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("full_name")).toBe("Alice Liddell");
+    expect(body.get("role")).toBe("200");
+  });
+
+  it("deactivateUser DELETEs /users/{id} with optional reason", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().deactivateUser(7, {
+      deactivationNotificationComment: "left the team",
+    });
+
+    expect(calls[0].url).toBe("/api/v1/users/7");
+    expect(calls[0].init.method).toBe("DELETE");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("deactivation_notification_comment")).toBe("left the team");
+  });
+
+  it("reactivateUser POSTs to /users/{id}/reactivate", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().reactivateUser(7);
+
+    expect(calls[0].url).toBe("/api/v1/users/7/reactivate");
+    expect(calls[0].init.method).toBe("POST");
+  });
+
+  // --- invites --------------------------------------------------------
+
+  it("getInvites returns the invites list", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      invites: [
+        {
+          id: 1,
+          invited: 1_700_000_000,
+          email: "alice@example.com",
+          is_multiuse: false,
+          invited_as: 400,
+          expiry_date: 1_700_086_400,
+        },
+      ],
+    });
+
+    const invites = await client().getInvites();
+
+    expect(invites).toHaveLength(1);
+    expect(invites[0].email).toBe("alice@example.com");
+    expect(calls[0].url).toBe("/api/v1/invites");
+    expect(calls[0].init.method).toBe("GET");
+  });
+
+  it("sendInvites joins emails with comma and snake-cases params", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().sendInvites({
+      inviteeEmails: ["alice@example.com", "bob@example.com"],
+      inviteExpiresInMinutes: 1440,
+      inviteAs: 400,
+      streamIds: [11, 22],
+    });
+
+    expect(calls[0].url).toBe("/api/v1/invites");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("invitee_emails")).toBe(
+      "alice@example.com,bob@example.com",
+    );
+    expect(body.get("invite_expires_in_minutes")).toBe("1440");
+    expect(body.get("invite_as")).toBe("400");
+    expect(body.get("stream_ids")).toBe(JSON.stringify([11, 22]));
+  });
+
+  it("sendInvites encodes a never-expires invite as JSON null", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().sendInvites({
+      inviteeEmails: ["alice@example.com"],
+      inviteExpiresInMinutes: null,
+      inviteAs: 400,
+    });
+
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("invite_expires_in_minutes")).toBe("null");
+  });
+
+  it("createReusableInviteLink POSTs to /invites/multiuse and returns the link", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      invite_link: "https://stand.example/join/abc123",
+    });
+
+    const link = await client().createReusableInviteLink({
+      inviteExpiresInMinutes: 60 * 24 * 7,
+      inviteAs: 400,
+      streamIds: [11],
+    });
+
+    expect(link).toBe("https://stand.example/join/abc123");
+    expect(calls[0].url).toBe("/api/v1/invites/multiuse");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("invite_as")).toBe("400");
+    expect(body.get("stream_ids")).toBe(JSON.stringify([11]));
+  });
+
+  it("revokeInvite DELETEs /invites/{id}", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().revokeInvite(42);
+
+    expect(calls[0].url).toBe("/api/v1/invites/42");
+    expect(calls[0].init.method).toBe("DELETE");
+  });
+
+  it("resendInvite POSTs to /invites/{id}/resend", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().resendInvite(42);
+
+    expect(calls[0].url).toBe("/api/v1/invites/42/resend");
+    expect(calls[0].init.method).toBe("POST");
+  });
+});
+
 describe("response handling", () => {
   const client = () =>
     createApiClient({ email: "iago@zulip.com", apiKey: "secret-key" });
