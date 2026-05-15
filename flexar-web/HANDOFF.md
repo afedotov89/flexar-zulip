@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.4 закрыта** (user status: текст + эмодзи, редактор в navbar, отображение в правом сайдбаре).
+**Последнее обновление:** 2026-05-15, **Фаза 4.2 закрыта** (image-lightbox: глобальный store + click-делегация в MessageContent).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `0530e91de9` 4.2 — image lightbox (Lightbox + global store, click-делегация на `<img>`)
+- `bcf1470008` HANDOFF — 4.4 заметка
 - `d39eeb6234` 4.4 — user status (текст+эмодзи, navbar editor, right sidebar)
 - `ff0d1dee97` HANDOFF — 4.1 заметка
 - `6f5d210c68` 4.1 — загрузки файлов (XHR-транспорт + paperclip/paste/drag-drop, прогресс, Markdown-вставка)
@@ -278,7 +280,16 @@ unicode emoji (коммит `2723e343a2`).
   emoji+text); правый сайдбар `UserRow` рендерит status emoji
   рядом с именем + status text под именем. 1001 unit-тест;
   гейты зелёные. Live-протык на стенде ⏳ ждёт владельца.
-- ⏳ **4.2** медиа/лайтбокс; **4.7** виджеты; **4.8** превью ссылок
+- ✅ **4.2 Image lightbox** — `useLightboxStore` (single Zustand
+  slot: `{open, src, alt}` + `openImage`/`close`); `Lightbox` mounted
+  один раз в AppShell, рендерит full-bleed overlay с close-button;
+  Esc на document-level + click backdrop → close; focus moves to
+  close button on open. `MessageContent`'s click delegation
+  расширена: `target instanceof HTMLImageElement && !classList.has("emoji")`
+  → `openLightbox(target.src, target.alt)`. Inline-emoji `<img>`
+  (с классом `emoji`) исключены, чтобы клик по эмодзи не открывал
+  гигантский overlay. 1005 unit-тестов; гейты зелёные.
+- ⏳ **4.7** виджеты; **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
