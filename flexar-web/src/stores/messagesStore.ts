@@ -40,6 +40,9 @@ import {
   applyUpdateMessageFlagsEvent,
   emptyMessagesSnapshot,
   ingestMessages,
+  insertOptimisticMessage,
+  reconcileOptimisticMessage,
+  removeOptimisticMessage,
   type FlagMap,
   type MessageMap,
 } from "./messagesReducer";
@@ -63,6 +66,29 @@ export interface MessagesState {
     messages: readonly Message[],
     flagsById?: Readonly<Record<MessageId, MessageFlag[]>>,
   ) => void;
+  /**
+   * Insert an optimistic-echo message (Phase 2.2). The compose layer
+   * writes through here so the user's freshly sent message appears
+   * immediately. The id must be a *local* id (Zulip ids are positive
+   * integers — the compose layer uses negatives to guarantee no clash
+   * with a real id).
+   */
+  insertOptimistic: (
+    message: Message,
+    flags?: readonly MessageFlag[],
+  ) => void;
+  /**
+   * Reconcile an optimistic-echo entry with the real server-assigned
+   * message (Phase 2.2). Removes the optimistic entry; inserts the
+   * real one only if it is not already in the cache (the live
+   * `message` event may have raced ahead).
+   */
+  reconcileOptimistic: (localId: MessageId, realMessage: Message) => void;
+  /**
+   * Drop an optimistic-echo entry (Phase 2.2). Used on send failure to
+   * remove the message that never made it.
+   */
+  removeOptimistic: (localId: MessageId) => void;
 }
 
 const EMPTY_FLAGS: MessageFlag[] = [];
@@ -77,6 +103,32 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
         { messages: state.messages, flags: state.flags },
         messages,
         flagsById,
+      ),
+    );
+  },
+  insertOptimistic: (message, flags) => {
+    set((state) =>
+      insertOptimisticMessage(
+        { messages: state.messages, flags: state.flags },
+        message,
+        flags,
+      ),
+    );
+  },
+  reconcileOptimistic: (localId, realMessage) => {
+    set((state) =>
+      reconcileOptimisticMessage(
+        { messages: state.messages, flags: state.flags },
+        localId,
+        realMessage,
+      ),
+    );
+  },
+  removeOptimistic: (localId) => {
+    set((state) =>
+      removeOptimisticMessage(
+        { messages: state.messages, flags: state.flags },
+        localId,
       ),
     );
   },

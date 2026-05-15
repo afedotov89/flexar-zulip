@@ -30,6 +30,7 @@ import { Skeleton } from "../../components/Skeleton";
 import type { Message, Narrow } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
+import { ComposeBox } from "../compose";
 import { MessageList } from "./MessageList";
 import { buildFeedRows } from "./feedItems";
 import { useFeedWindow } from "./useFeedWindow";
@@ -91,6 +92,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
     return (
       <div className={styles.feed}>
         <LoadingState />
+        <ComposeBox narrow={narrow} />
       </div>
     );
   }
@@ -114,6 +116,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
             </button>
           </Banner>
         </div>
+        <ComposeBox narrow={narrow} />
       </div>
     );
   }
@@ -127,6 +130,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
             Messages sent to this view will show up here.
           </p>
         </div>
+        <ComposeBox narrow={narrow} />
       </div>
     );
   }
@@ -151,6 +155,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
         onLoadNewer={window.loadNewer}
         scrollAnchorKey={scrollAnchorKey}
       />
+      <ComposeBox narrow={narrow} />
     </div>
   );
 }

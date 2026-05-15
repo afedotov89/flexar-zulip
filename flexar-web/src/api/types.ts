@@ -97,6 +97,12 @@ export interface SendMessageResult {
   id: number;
 }
 
+/** Response of `POST /api/v1/messages/render`. */
+export interface RenderMarkdownResult {
+  /** Server-rendered HTML for the supplied Markdown. */
+  rendered: string;
+}
+
 /** Options for `registerQueue` (`POST /api/v1/register`). */
 export interface RegisterQueueOptions {
   /**

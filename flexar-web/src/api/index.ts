@@ -32,6 +32,7 @@ export type {
   MessageAnchor,
   RegisterQueueOptions,
   RegisterQueueResult,
+  RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
 } from "./types";

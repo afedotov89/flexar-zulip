@@ -22,6 +22,9 @@ import {
   applyUpdateMessageFlagsEvent,
   emptyMessagesSnapshot,
   ingestMessages,
+  insertOptimisticMessage,
+  reconcileOptimisticMessage,
+  removeOptimisticMessage,
   type MessagesSnapshot,
 } from "./messagesReducer";
 import { makeMessage, makeReaction } from "./testFixtures";
@@ -417,5 +420,100 @@ describe("applyUpdateMessageFlagsEvent", () => {
       all: false,
     });
     expect(next.flags[999]).toEqual(["read"]);
+  });
+});
+
+describe("optimistic-echo helpers (Phase 2.2)", () => {
+  it("insertOptimisticMessage adds the message under its (negative) id", () => {
+    const next = insertOptimisticMessage(
+      emptyMessagesSnapshot(),
+      makeMessage({ id: -1, content: "hello" }),
+    );
+    expect(next.messages[-1].content).toBe("hello");
+    expect(next.flags[-1]).toBeUndefined();
+  });
+
+  it("insertOptimisticMessage stores flags when supplied", () => {
+    const next = insertOptimisticMessage(
+      emptyMessagesSnapshot(),
+      makeMessage({ id: -2 }),
+      ["read"],
+    );
+    expect(next.flags[-2]).toEqual(["read"]);
+  });
+
+  it("insertOptimisticMessage does not mutate the input snapshot", () => {
+    const snapshot = emptyMessagesSnapshot();
+    insertOptimisticMessage(snapshot, makeMessage({ id: -1 }));
+    expect(snapshot.messages).toEqual({});
+  });
+
+  it("reconcileOptimisticMessage swaps the local id for the real one", () => {
+    const seeded = insertOptimisticMessage(
+      emptyMessagesSnapshot(),
+      makeMessage({ id: -1, content: "hi" }),
+      ["read"],
+    );
+    const next = reconcileOptimisticMessage(
+      seeded,
+      -1,
+      makeMessage({ id: 42, content: "hi" }),
+    );
+    expect(next.messages[-1]).toBeUndefined();
+    expect(next.flags[-1]).toBeUndefined();
+    expect(next.messages[42].content).toBe("hi");
+  });
+
+  it("reconcileOptimisticMessage preserves an event-arrived-first cache entry", () => {
+    // The `message` event raced ahead: id 42 is already in the cache
+    // (with viewer flags). reconcile must drop the optimistic entry but
+    // keep the canonical entry the event installed — not clobber it.
+    const seeded = insertOptimisticMessage(
+      emptyMessagesSnapshot(),
+      makeMessage({ id: -1 }),
+    );
+    const withRealEntry = applyMessageEvent(seeded, {
+      id: 1,
+      type: "message",
+      message: makeMessage({ id: 42, content: "from event" }),
+      flags: ["mentioned"],
+    });
+    const next = reconcileOptimisticMessage(
+      withRealEntry,
+      -1,
+      makeMessage({ id: 42, content: "from rest" }),
+    );
+    expect(next.messages[-1]).toBeUndefined();
+    // Event's content + flags survive — the REST response does not
+    // overwrite them.
+    expect(next.messages[42].content).toBe("from event");
+    expect(next.flags[42]).toEqual(["mentioned"]);
+  });
+
+  it("reconcileOptimisticMessage tolerates an unknown local id", () => {
+    // The optimistic entry was already removed (e.g. by a prior failure
+    // path); reconcile should still install the real message cleanly.
+    const next = reconcileOptimisticMessage(
+      emptyMessagesSnapshot(),
+      -99,
+      makeMessage({ id: 7, content: "ok" }),
+    );
+    expect(next.messages[7].content).toBe("ok");
+  });
+
+  it("removeOptimisticMessage drops the entry and its flags", () => {
+    const seeded = insertOptimisticMessage(
+      emptyMessagesSnapshot(),
+      makeMessage({ id: -1 }),
+      ["read"],
+    );
+    const next = removeOptimisticMessage(seeded, -1);
+    expect(next.messages[-1]).toBeUndefined();
+    expect(next.flags[-1]).toBeUndefined();
+  });
+
+  it("removeOptimisticMessage is a no-op for an unknown id", () => {
+    const snapshot = emptyMessagesSnapshot();
+    expect(removeOptimisticMessage(snapshot, -99)).toBe(snapshot);
   });
 });

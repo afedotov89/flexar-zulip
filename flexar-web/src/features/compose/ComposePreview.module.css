@@ -1,0 +1,64 @@
+/*
+ * Compose preview pane (Phase 2.1). The pane sits inside the compose
+ * form when the user toggles to the "Preview" tab. The body styles
+ * the sanitised HTML returned by the server's renderer minimally —
+ * the production-grade message-content stylesheet lives in
+ * `messageFeed/MessageContent.module.css` and is feature-scoped there.
+ */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: calc(var(--font-size-md) * var(--line-height-normal) + var(--space-4));
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.placeholder {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.body {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+}
+
+/*
+ * Minimal styling for common server-rendered tags. Anything more
+ * elaborate (mentions, code blocks, KaTeX) lives in `messageFeed`'s
+ * own stylesheet — the preview is intentionally a no-frills view of
+ * the same sanitised HTML.
+ */
+.body :global(p) {
+  margin: 0 0 var(--space-2);
+}
+
+.body :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.body :global(strong) {
+  font-weight: var(--font-weight-semibold);
+}
+
+.body :global(em) {
+  font-style: italic;
+}
+
+.body :global(code) {
+  padding: 0 var(--space-1);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+}
+
+.errorRow {
+  display: block;
+}

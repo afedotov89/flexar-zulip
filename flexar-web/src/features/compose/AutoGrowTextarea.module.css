@@ -1,0 +1,20 @@
+/*
+ * Auto-growing textarea (Phase 2.1). The component sets `--auto-height`
+ * imperatively from the element's `scrollHeight`; the CSS Module
+ * applies it (clamped between min and max) and turns on overflow only
+ * past the cap.
+ *
+ * The `min-height` / `max-height` envelope keeps the field one row
+ * minimum (so it doesn't collapse when empty) and roughly twelve rows
+ * maximum (so it never eats the message list). Both bounds use the
+ * same line-height token the textarea text uses, so the math stays
+ * consistent across font scaling.
+ */
+
+.autogrow {
+  height: var(--auto-height, auto);
+  min-height: calc(var(--font-size-md) * var(--line-height-normal) + var(--space-4));
+  max-height: calc(var(--font-size-md) * var(--line-height-normal) * 12 + var(--space-4));
+  resize: none;
+  overflow-y: auto;
+}

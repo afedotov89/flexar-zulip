@@ -34,6 +34,7 @@ import type {
   GetUsersResult,
   RegisterQueueOptions,
   RegisterQueueResult,
+  RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
 } from "./types";
@@ -242,6 +243,29 @@ export class ApiClient {
       this.#credentials,
     );
     return { id: body.id };
+  }
+
+  /**
+   * Render Markdown to sanitised HTML using the server's renderer.
+   * `POST /api/v1/messages/render`.
+   *
+   * The compose box uses this to drive its preview pane: client-side
+   * Markdown rendering would duplicate Zulip's server-side renderer, so
+   * the preview asks the server for the same HTML the recipient will
+   * see. The returned string is rendered through the same
+   * `MessageContent` pipeline as fetched message bodies (sanitiser → DOM
+   * injection), so it inherits the same XSS boundary.
+   */
+  async renderMarkdown(content: string): Promise<string> {
+    const body = await sendRequest<RenderMarkdownResult>(
+      {
+        method: "POST",
+        path: "/messages/render",
+        params: { content },
+      },
+      this.#credentials,
+    );
+    return body.rendered;
   }
 
   // --- Reactions ----------------------------------------------------

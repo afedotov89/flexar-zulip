@@ -50,6 +50,89 @@ export function emptyMessagesSnapshot(): MessagesSnapshot {
 }
 
 /**
+ * Insert one optimistic-echo message into the cache (Phase 2.2). Phase
+ * 2.2's compose-send writes through here so the user's freshly sent
+ * message appears in the feed immediately, before the REST response or
+ * the live `message` event lands.
+ *
+ * The id must be a *local* id distinguishable from real ids (Zulip ids
+ * are positive integers — the compose layer uses negatives). Inserting
+ * is otherwise the same as a normal ingest: the message goes into the
+ * `messages` map; if `flags` is supplied, those are written into the
+ * `flags` map under the same id. Returns a new snapshot.
+ */
+export function insertOptimisticMessage(
+  snapshot: MessagesSnapshot,
+  message: Message,
+  flags?: readonly MessageFlag[],
+): MessagesSnapshot {
+  const messages = { ...snapshot.messages, [message.id]: message };
+  if (flags === undefined) {
+    return { ...snapshot, messages };
+  }
+  return {
+    messages,
+    flags: { ...snapshot.flags, [message.id]: [...flags] },
+  };
+}
+
+/**
+ * Reconcile an optimistic-echo entry with the real message the server
+ * assigned an id to (Phase 2.2). Removes the optimistic entry under
+ * `localId` and — if the real message is not already in the cache (the
+ * `message` event may have raced ahead) — inserts it under its real id.
+ * Either ordering yields the same final cache. Returns a new snapshot.
+ *
+ * The optimistic and real entries are never both retained: the real id
+ * is the canonical one once the server has assigned it; the local id is
+ * never seen again.
+ */
+export function reconcileOptimisticMessage(
+  snapshot: MessagesSnapshot,
+  localId: MessageId,
+  realMessage: Message,
+): MessagesSnapshot {
+  let messages = snapshot.messages;
+  let flags = snapshot.flags;
+
+  // Drop the optimistic entry, if present.
+  if (localId in messages || localId in flags) {
+    messages = { ...messages };
+    flags = { ...flags };
+    delete messages[localId];
+    delete flags[localId];
+  }
+
+  // Insert the real message only if it is not already there: a `message`
+  // event for our own send may have arrived before the REST response,
+  // in which case the cache already holds the canonical entry (with
+  // the viewer's flags) and we must not clobber it.
+  if (!(realMessage.id in messages)) {
+    messages = { ...messages, [realMessage.id]: realMessage };
+  }
+  return { messages, flags };
+}
+
+/**
+ * Drop an optimistic-echo entry from the cache (Phase 2.2). Used on
+ * send failure to remove the message that never made it. A no-op if
+ * the id is unknown.
+ */
+export function removeOptimisticMessage(
+  snapshot: MessagesSnapshot,
+  localId: MessageId,
+): MessagesSnapshot {
+  if (!(localId in snapshot.messages) && !(localId in snapshot.flags)) {
+    return snapshot;
+  }
+  const messages = { ...snapshot.messages };
+  const flags = { ...snapshot.flags };
+  delete messages[localId];
+  delete flags[localId];
+  return { messages, flags };
+}
+
+/**
  * Bulk-insert fetched messages into the cache. Phase 1.6's history
  * fetch writes through here. Each message's optional per-viewer flags
  * are merged into the `flags` map; omit `flagsById` for sources (like

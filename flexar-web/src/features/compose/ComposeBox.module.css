@@ -1,0 +1,102 @@
+/*
+ * Compose box (Phase 2.1). Docked at the bottom of the centre column,
+ * under the message list. All design values are tokens; only pure-
+ * layout literals (flex, gap, 100%) appear bare.
+ */
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The "choose a conversation" placeholder shown when no narrow is set. */
+.hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Recipient row: channel + topic, or DM recipients. */
+.recipientRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.fieldLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+/* Mode tab row (Write / Preview). */
+.modeRow {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.modeButton {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.modeButton:hover {
+  color: var(--color-text);
+  background-color: var(--color-hover);
+}
+
+.modeButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+}
+
+.modeButtonActive {
+  color: var(--color-text);
+  background-color: var(--color-active);
+}
+
+/* Bottom action row: keyboard hint + Send button. */
+.actionsRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.hintInline {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.errorRow {
+  /*
+   * The Banner already carries its own padding; this row exists only
+   * so the error sits between the textarea and the send action with
+   * the same gap as the rest of the form.
+   */
+  display: block;
+}
+
+/* Visually hidden label for the textarea (kept for screen readers). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+}

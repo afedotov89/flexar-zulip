@@ -254,6 +254,25 @@ describe("request encoding", () => {
     expect(body.has("topic")).toBe(false);
   });
 
+  it("renderMarkdown posts content as a form field and returns rendered HTML", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      rendered: "<p><strong>foo</strong></p>",
+    });
+
+    const html = await client().renderMarkdown("**foo**");
+
+    expect(html).toBe("<p><strong>foo</strong></p>");
+    expect(calls[0].url).toBe("/api/v1/messages/render");
+    expect(calls[0].init.method).toBe("POST");
+    expect(headersOf(0)["Content-Type"]).toBe(
+      "application/x-www-form-urlencoded",
+    );
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("content")).toBe("**foo**");
+  });
+
   it("issues a DELETE with form body for removeReaction", async () => {
     mockJsonResponse({ result: "success", msg: "" });
 

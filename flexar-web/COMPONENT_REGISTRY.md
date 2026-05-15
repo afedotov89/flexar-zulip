@@ -191,7 +191,8 @@ Starred `/narrow/is/starred`, Reactions `/narrow/has/reaction/sender/me`.
 `registerQueue(opts?)`; `getEvents(queueId, lastEventId)`;
 `getMessages(opts)`; `sendMessage(params)`; `addReaction(msgId, r)` /
 `removeReaction(msgId, r)`; `getSubscriptions()`; `getStreams(opts?)`;
-`getUsers(opts?)`; `getOwnUser()`; `getTopics(streamId)` → `Topic[]` (1.5a).
+`getUsers(opts?)`; `getOwnUser()`; `getTopics(streamId)` → `Topic[]` (1.5a);
+`renderMarkdown(content)` → `string` (HTML, 2.1+2.2).
 
 Realtime register/long-poll — это транспортные вызовы; цикл подписки и
 диспатч событий (`src/realtime/`) — отдельная Фаза 1.2. TanStack
@@ -261,6 +262,7 @@ CSS-Modules-фикс.
 | `LeftSidebar` | ✅ | `src/features/leftSidebar/` | Левая навигация: секция ВИДЫ (`BUILTIN_VIEWS`, с иконками), полный список ЛС (`dmConversationsStore`), список каналов с полными топиками (`topicsStore`, ленивая загрузка на раскрытии; сворачивание per-channel и per-section), счётчики непрочитанного (`unreadStore`-бакеты, у Mentions — `getMentionsCount`), фильтр-инпут, кнопка «+» (пока no-op). Навигация — `useNarrowNavigation`; активный пункт — `useCurrentView`/`useCurrentNarrow`; loading — по статусу `realtimeConnection`. Смонтирован в левый `<aside>` `AppShell`. Per-channel цвет — через CSS-var-ref. |
 | `MessageFeed` | ✅ | `src/features/messageFeed/` | Центральная лента (1.6): виртуализированный список (`@tanstack/react-virtual`), recipient-бары (канал›топик / ЛС), дата-разделители, строка сообщения (аватар/отправитель/время/контент/hover-тулбар), группировка последовательных сообщений, состояния loading/empty/error, дозагрузка старых/новых по скроллу. Читает narrow из `useCurrentNarrow`, тянет историю `apiClient.getMessages` → `messagesStore.ingest`, живые события — из `messagesStore`; `useFeedWindow` владеет per-narrow окном (порядок ids + пагинация + live-reconcile через `matchesNarrow`). `MessageContent` (1.7) — рендерит `rendered_content`: DOMPurify-санитайз → `dangerouslySetInnerHTML` → event-delegation (спойлеры toggle, narrow-ссылки → router, внешние → `_blank rel=noopener`). Стили — `:global()` под root-классом, токены, свет/тёмная. Смонтирован в `src/pages/Feed/`. |
 | `RightSidebar` | ✅ | `src/features/rightSidebar/` | Правая колонка (1.8): список пользователей с `PresenceDot`, контекстная секция «в этом канале»/«в этом разговоре» (из `useCurrentNarrow`) + полный справочник, фильтр пользователей, loading-скелетоны. Сортировка: presence-группы → боты → деактивированные, внутри — алфавит. Смонтирован в правый `<aside>` `AppShell`. |
+| `ComposeBox` | ✅ | `src/features/compose/` | Compose-бокс (Фаза 2.1+2.2): пре-фил из текущего narrow (channel+topic / DM / hint для empty), автоувеличивающийся `Textarea`, Write/Preview-табы (preview через новый `apiClient.renderMarkdown` + санитайз), отправка через `apiClient.sendMessage` с **оптимистичным эхо** в `messagesStore` и реконсиляцией по `message`-событию (отрицательные local-id, race-safe). Enter — send, Shift+Enter — newline. Failure → `Banner` + сохранение драфта в textarea. Смонтирован под `MessageList` в `MessageFeed`. **Живой протык на стенде — ✅ сообщение отправилось и появилось в ленте.** |
 
 **Доборка 1.5a — закрыто:** иконки видов, `dmConversationsStore`,
 `topicsStore`+`getTopics`, `mentions`-бакет. Остаток: бейдж Starred —
