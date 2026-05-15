@@ -1,4 +1,4 @@
-// Flexar Hub Web — compose box (Phase 2.1 + 2.2).
+// Flexar Hub Web — compose box (Phase 2.1 + 2.2 + 2.4).
 //
 // Mounted at the bottom of the centre column under `MessageFeed`. The
 // compose mode (channel vs DM) and the recipient/topic are derived
@@ -29,9 +29,18 @@
 // (`apiClient.renderMarkdown`) and feeds the sanitised HTML through
 // `MessageContent` — the same XSS boundary as fetched messages.
 //
-// Drafts (auto-save / restore) and recipient/topic typeahead are
-// explicitly out of scope (Phases 2.3 / 2.4). Compose state lives in
-// component state only.
+// Drafts (Phase 2.4):
+//
+//   - The compose body is autosaved (debounced ~500 ms) into
+//     `useDraftsStore` under a stable per-conversation key derived
+//     from the URL pre-fill (`draftKeyFor`). One draft per
+//     conversation destination.
+//   - When the body becomes empty, the draft is deleted (no zombie
+//     empty drafts cluttering the Drafts page).
+//   - On a successful send, the draft is deleted.
+//   - When the user navigates back to a conversation that has a saved
+//     draft, the body is restored from the draft on mount/narrow
+//     change. The narrow's recipient/topic remain the source of truth.
 
 import {
   useCallback,
@@ -48,6 +57,7 @@ import { Input } from "../../components/Input";
 import { apiClient, isApiError } from "../../api";
 import type { Narrow, StreamId, User, UserId } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
+import { useDraftsStore } from "../../stores/draftsStore";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useTopicsStore } from "../../stores/topicsStore";
@@ -57,6 +67,7 @@ import {
   composeFromNarrow,
   type ComposeFromNarrow,
 } from "./composeFromNarrow";
+import { destinationFor, draftKeyFor } from "./draftKey";
 import {
   buildOptimisticMessage,
   nextLocalId,
@@ -97,6 +108,13 @@ const EMPTY_FORM: FormState = {
   recipientsInput: "",
   content: "",
 };
+
+/**
+ * Wait this long after the last keystroke before persisting the body
+ * (Phase 2.4). 500 ms is the same range as compose-typeahead debounces
+ * and is short enough that a reload right after typing keeps the body.
+ */
+const AUTOSAVE_DEBOUNCE_MS = 500;
 
 function describeError(error: unknown): string {
   if (isApiError(error)) {
@@ -193,6 +211,12 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const insertOptimistic = useMessagesStore((s) => s.insertOptimistic);
   const reconcileOptimistic = useMessagesStore((s) => s.reconcileOptimistic);
   const removeOptimistic = useMessagesStore((s) => s.removeOptimistic);
+  // Drafts (Phase 2.4). The actions are stable identities (zustand
+  // returns the same function reference across selector calls), so the
+  // autosave effect can depend on them without re-firing.
+  const saveDraftAction = useDraftsStore((s) => s.saveDraft);
+  const deleteDraftAction = useDraftsStore((s) => s.deleteDraft);
+  const getDraftAction = useDraftsStore((s) => s.getDraft);
 
   // Derive the pre-fill any time the narrow or the auth identity
   // changes. The user can override it in the form state below.
@@ -232,23 +256,86 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   // We deliberately key on the *derived* shape (channel id + topic, or
   // sorted recipient ids) rather than the narrow reference so going
   // from `/narrow/channel/7` to `/narrow/channel/7/topic/x` only
-  // changes the topic, not the body.
+  // changes the topic — the body is then restored from the draft for
+  // the new key (or cleared if there is no draft).
   const prefillKey = useMemo(() => prefillKeyOf(fromNarrow), [fromNarrow]);
   const lastPrefillKeyRef = useRef<string | null>(null);
 
-  // Apply the pre-fill once per narrow change. We never overwrite the
-  // user's typed content — only the recipient/topic fields are reset
-  // to the new narrow's pre-fill (this matches the chat-app convention
-  // that the in-progress draft survives navigation).
+  // The per-conversation draft key for autosave/restore (Phase 2.4).
+  // `null` for the unaddressed compose state.
+  const draftKey = useMemo(() => draftKeyFor(fromNarrow), [fromNarrow]);
+  // Whether the current `form.content` was just restored from a saved
+  // draft — drives the small "Restored from draft" affordance below
+  // the compose. Cleared as soon as the user types or navigates.
+  const [showRestoredHint, setShowRestoredHint] = useState(false);
+
+  // Apply the pre-fill on every narrow change. The recipient/topic
+  // fields come from the narrow; the body comes from the saved draft
+  // for this destination (if any), otherwise blank. We do NOT preserve
+  // the previous narrow's body across the swap — that body is already
+  // saved as its own draft by the autosave effect below.
   useEffect(() => {
     if (lastPrefillKeyRef.current === prefillKey) {
       return;
     }
     lastPrefillKeyRef.current = prefillKey;
     setErrorMessage(null);
-    setForm((current) => applyPrefill(current, fromNarrow, getUser, getStream));
+    const restored =
+      draftKey !== null ? getDraftAction(draftKey) : undefined;
+    setForm((current) => {
+      const withRecipients = applyPrefill(
+        current,
+        fromNarrow,
+        getUser,
+        getStream,
+      );
+      return { ...withRecipients, content: restored?.content ?? "" };
+    });
+    setShowRestoredHint(
+      restored !== undefined && restored.content.trim() !== "",
+    );
     setMode("write");
-  }, [prefillKey, fromNarrow, getUser, getStream]);
+  }, [prefillKey, fromNarrow, getUser, getStream, draftKey, getDraftAction]);
+
+  // Debounced autosave. On every change to `form.content` (or the draft
+  // key), schedule a save 500ms later. If the body is empty, schedule a
+  // delete instead. The cleanup cancels any pending timer so a fast
+  // re-edit collapses to a single save, and an unmount mid-debounce
+  // does not leave a stray timer behind.
+  useEffect(() => {
+    // No destination → nothing to save (channel without an id, or the
+    // unaddressed empty narrow). Don't burn a localStorage write per
+    // keystroke for a draft the user can't return to.
+    if (draftKey === null) {
+      return;
+    }
+    const destination = destinationFor(fromNarrow);
+    if (destination === null) {
+      return;
+    }
+    const trimmed = form.content.trim();
+    const timer = window.setTimeout(() => {
+      if (trimmed === "") {
+        deleteDraftAction(draftKey);
+        return;
+      }
+      saveDraftAction({
+        key: draftKey,
+        destination,
+        content: form.content,
+        updatedAt: Date.now(),
+      });
+    }, AUTOSAVE_DEBOUNCE_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    draftKey,
+    fromNarrow,
+    form.content,
+    saveDraftAction,
+    deleteDraftAction,
+  ]);
 
   // Convenience: which "shape" of form is showing right now. Driven by
   // the user's mode-toggling actions, but defaults to whatever the
@@ -406,8 +493,15 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         // optimistic entry; if the live `message` event already
         // arrived, the cache entry from the event is preserved.
         reconcileOptimistic(localId, { ...optimistic, id: result.id });
+        // The draft for this destination has been delivered; drop it
+        // synchronously so the autosave debounce does not re-save the
+        // (still-rendered) body in the gap before the textarea clears.
+        if (draftKey !== null) {
+          deleteDraftAction(draftKey);
+        }
         // Clear only the body — keep recipient/topic for the next msg.
         setForm((current) => ({ ...current, content: "" }));
+        setShowRestoredHint(false);
         // Return focus to the textarea so the user can keep typing.
         textareaNode?.focus();
       } catch (cause) {
@@ -432,6 +526,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       reconcileOptimistic,
       removeOptimistic,
       textareaNode,
+      draftKey,
+      deleteDraftAction,
     ],
   );
 
@@ -607,6 +703,11 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
           <label className={styles.srOnly} htmlFor="compose-content">
             Message
           </label>
+          {showRestoredHint && (
+            <p className={styles.restoredHint} aria-live="polite">
+              Restored from draft
+            </p>
+          )}
           <AutoGrowTextarea
             id="compose-content"
             ref={setTextareaRef}
@@ -617,6 +718,9 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
                 content: event.target.value,
               }));
               setCursor(event.target.selectionStart ?? event.target.value.length);
+              if (showRestoredHint) {
+                setShowRestoredHint(false);
+              }
             }}
             onKeyDown={onTextareaKeyDown}
             onSelect={(event) =>

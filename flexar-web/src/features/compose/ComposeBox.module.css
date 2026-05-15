@@ -89,6 +89,17 @@
   display: block;
 }
 
+/*
+ * "Restored from draft" affordance shown above the textarea when the
+ * compose body was just rehydrated from a saved draft. Subtle and
+ * dismissed implicitly when the user types (Phase 2.4).
+ */
+.restoredHint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 /* Visually hidden label for the textarea (kept for screen readers). */
 .srOnly {
   position: absolute;
