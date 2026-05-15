@@ -1,3 +1,8 @@
+/*
+ * Admin: organization settings page (Phase 5.2). Token-only design
+ * values; mirrors the rhythm of the personal-settings page.
+ */
+
 .page {
   display: flex;
   flex: 1;
@@ -14,6 +19,91 @@
   color: var(--color-text);
 }
 
-.placeholder {
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.controlInline {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.muted {
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+.iconPreview {
+  width: var(--space-12);
+  height: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.streamList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.streamRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.streamName {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

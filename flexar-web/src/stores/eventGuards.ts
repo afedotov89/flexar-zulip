@@ -11,10 +11,12 @@
 // has that member's shape — the server guarantees it.
 
 import type {
+  DefaultStreamsEvent,
   DeleteMessageEvent,
   MessageEvent,
   PresenceEvent,
   ReactionEvent,
+  RealmEvent,
   RealmUserEvent,
   ScheduledMessagesEvent,
   ServerEvent,
@@ -100,4 +102,17 @@ export function isUserSettingsUpdateEvent(
   event: ServerEvent,
 ): event is UserSettingsUpdateEvent {
   return event.type === "user_settings";
+}
+
+export function isRealmEvent(event: ServerEvent): event is RealmEvent {
+  return (
+    event.type === "realm" &&
+    (event.op === "update" || event.op === "update_dict")
+  );
+}
+
+export function isDefaultStreamsEvent(
+  event: ServerEvent,
+): event is DefaultStreamsEvent {
+  return event.type === "default_streams";
 }

@@ -1,4 +1,4 @@
-// Pure hydration logic for the realm store (Phase 1.3).
+// Pure hydration logic for the realm store (Phase 1.3, extended in 5.2).
 //
 // "Realm" is the organization-level metadata a chat client renders:
 // name, branding URLs, behavioural limits. Zulip's `register` response
@@ -7,15 +7,12 @@
 // `fetch_event_types` requested — the domain `Realm` type models them
 // all as optional for exactly this reason.
 //
-// Unlike the other server-state areas, realm has no precisely-modelled
-// realm-update event: the `realm`/`realm_user`-settings long tail is
-// absorbed by `UnknownEvent` and not yet typed in `src/domain`. So this
-// reducer is hydration-only — it projects the register snapshot's
-// `realm_*` keys onto the `Realm` shape — and the store carries no
-// event reducer. When realm-update events are modelled (through the
-// orchestrator), an `applyRealmEvent` reducer would join this file.
+// Phase 5.2 added `applyRealmEvent` to fold realm-update events on top
+// of the hydrated snapshot, so admin edits in the org-settings page
+// (and from any other admin's session) appear live without waiting for
+// a re-register.
 
-import type { Realm } from "../domain";
+import type { Realm, RealmEvent } from "../domain";
 import type { InitialState } from "../realtime";
 
 /**
@@ -37,9 +34,22 @@ const REALM_KEYS = [
   "max_stream_name_length",
   "max_stream_description_length",
   "realm_allow_message_editing",
+  "realm_message_content_edit_limit_seconds",
+  "realm_message_content_delete_limit_seconds",
+  "realm_message_retention_days",
+  "realm_message_edit_history_visibility_policy",
+  "realm_invite_required",
+  "realm_waiting_period_threshold",
   "realm_mandatory_topics",
   "realm_empty_topic_display_name",
 ] as const satisfies readonly (keyof Realm)[];
+
+/**
+ * Set of modelled `Realm` keys, used by `applyRealmEvent` to pick the
+ * right storage key for an event's `property`. Derived from the same
+ * `REALM_KEYS` list to keep the two in sync.
+ */
+const REALM_KEY_SET: ReadonlySet<string> = new Set(REALM_KEYS);
 
 /**
  * Project the `realm_*` / limit keys of a register snapshot onto a
@@ -62,4 +72,64 @@ export function realmFromInitialState(state: InitialState): Realm {
     }
   }
   return realm;
+}
+
+/**
+ * Pick the `Realm` storage key for an event's `property` name. The
+ * server emits `realm` events with bare property names matching the
+ * REST API (e.g. `name`, `description`, `allow_message_editing`); the
+ * snapshot — and therefore our `Realm` shape — stores most of the same
+ * fields with a `realm_` prefix. A few snapshot keys (the `max_*`
+ * limits) are unprefixed in both places, hence the two-step lookup:
+ * try the prefixed key first, then the bare name.
+ *
+ * Returns `undefined` for properties the `Realm` shape does not model;
+ * callers ignore those rather than letting unmodelled keys leak into
+ * the store.
+ */
+export function realmKeyForProperty(property: string): keyof Realm | undefined {
+  const prefixed = `realm_${property}`;
+  if (REALM_KEY_SET.has(prefixed)) {
+    return prefixed as keyof Realm;
+  }
+  if (REALM_KEY_SET.has(property)) {
+    return property as keyof Realm;
+  }
+  return undefined;
+}
+
+/**
+ * Fold one `realm` event onto the current realm state. Pure and
+ * immutable: returns the same object when the event touches no
+ * modelled key, or a new object with the changed keys merged.
+ *
+ *   - `op: "update"` carries a single `property` + `value`.
+ *   - `op: "update_dict"` carries a `data` map of several properties
+ *     applied atomically.
+ *
+ * Properties the `Realm` shape does not model are silently ignored —
+ * the server's realm-event surface is wider than what this client
+ * renders, and a re-register catches anything we missed.
+ */
+export function applyRealmEvent(realm: Realm, event: RealmEvent): Realm {
+  if (event.op === "update") {
+    const key = realmKeyForProperty(event.property);
+    if (key === undefined) {
+      return realm;
+    }
+    return { ...realm, [key]: event.value };
+  }
+  // op === "update_dict": merge each modelled key from `data`.
+  let next: Realm | null = null;
+  for (const [property, value] of Object.entries(event.data)) {
+    const key = realmKeyForProperty(property);
+    if (key === undefined) {
+      continue;
+    }
+    if (next === null) {
+      next = { ...realm };
+    }
+    (next as Record<string, unknown>)[key] = value;
+  }
+  return next ?? realm;
 }

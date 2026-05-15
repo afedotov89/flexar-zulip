@@ -54,6 +54,18 @@ export interface Realm {
   max_stream_description_length?: number;
   /** Whether the organization permits message editing. */
   realm_allow_message_editing?: boolean;
+  /** Edit-time limit in seconds; `0` means unlimited. */
+  realm_message_content_edit_limit_seconds?: number;
+  /** Delete-time limit in seconds; `0` means unlimited. */
+  realm_message_content_delete_limit_seconds?: number;
+  /** Realm-wide message retention in days; `-1` means forever. */
+  realm_message_retention_days?: number;
+  /** Server enum naming who can see message edit history. */
+  realm_message_edit_history_visibility_policy?: string;
+  /** Whether invitations are required to join the organization. */
+  realm_invite_required?: boolean;
+  /** Days a new account waits before having full-member permissions. */
+  realm_waiting_period_threshold?: number;
   /** Whether the organization is configured to require message topics. */
   realm_mandatory_topics?: boolean;
   /**

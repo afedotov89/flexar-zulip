@@ -1,0 +1,20 @@
+/*
+ * Admin: invite channel picker (Phase 5.4). Token-only.
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 12rem;
+  padding: var(--space-2);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
