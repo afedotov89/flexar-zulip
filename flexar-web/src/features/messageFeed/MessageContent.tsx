@@ -40,6 +40,7 @@ import {
   sanitizeRenderedContent,
 } from "../../lib/renderedContent";
 import { useRealmStore } from "../../stores/realmStore";
+import { decorateEmojis } from "./renderedContent/emoji";
 import { decorateLinks } from "./renderedContent/links";
 import { decorateSpoilers, toggleSpoiler } from "./renderedContent/spoilers";
 import styles from "./MessageContent.module.css";
@@ -79,6 +80,7 @@ export function MessageContent({
     if (container !== null) {
       decorateSpoilers(container);
       decorateLinks(container, realmUrl);
+      decorateEmojis(container);
     }
   }, [sanitizedHtml, realmUrl]);
 
