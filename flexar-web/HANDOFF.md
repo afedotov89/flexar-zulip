@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4 закрыта целиком** — последним вошёл 4.7 (виджет опросов + voting). Готовы перейти к Фазе 5.
+**Последнее обновление:** 2026-05-15, **Фаза 5.1 закрыта** (личные настройки: профиль/предпочтения/уведомления через PATCH /settings + `useUserSettingsStore`).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `53baae234d` 5.1 — личные настройки (`/settings` + `useUserSettingsStore` + PATCH /settings)
+- `09c768d6c0` HANDOFF — 4.7 заметка
 - `74e3e9515e` 4.7 — виджет опросов (poll widget viewer + voting + add-option)
 - `97185d326f` HANDOFF — 4.8 заметка
 - `835e32513d` 4.8 — стили link-previews (`.message_inline_image`, `.message_embed`)
@@ -325,6 +327,22 @@ unicode emoji (коммит `2723e343a2`).
   Live-протык на стенде ⏳ ждёт владельца.
 
 **🎯 Фаза 4 фиче-комплит** — 4.1+4.2+4.3+4.4+4.5+4.6+4.7+4.8 закрыты.
+
+### Фаза 5 — частично:
+- ✅ **5.1 Личные настройки** — `apiClient.updateOwnSettings(...)`
+  для PATCH /settings (Phase-5.1 подмножество: full_name +
+  twenty_four_hour_time + enable_sounds + enable_desktop_notifications
+  + receives_typing_notifications + starred_message_counts);
+  domain `UserSettingsUpdateEvent` + `user_settings` в
+  `DEFAULT_EVENT_TYPES`; `useUserSettingsStore` (Record<string,
+  unknown> с `getBoolean`/`getNumber`/`getString` селекторами,
+  hydrate из снапшота, fold realtime user_settings update events);
+  страница `/settings` (Профиль / Предпочтения / Уведомления;
+  toggle-row autosave, display-name explicit save); кнопка
+  «Настройки» в navbar. Account-level (пароль/ключ/аватар) намеренно
+  out-of-scope. 1019 unit-тестов; гейты зелёные. Live ⏳.
+- ⏳ **5.2** настройки организации; **5.3** управление каналами;
+  **5.4** управление пользователями; **5.5** подписки
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

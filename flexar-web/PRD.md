@@ -607,7 +607,7 @@ keyboard-driven).
 - [ ] **Гейт Фазы 4:** общий протык
 
 ### Фаза 5 — Настройки и управление
-- [ ] 5.1 Личные настройки — И · [ ] П
+- [x] 5.1 Личные настройки — ✅И (`apiClient.updateOwnSettings(...)` PATCH /settings, подмножество ~6 полей; domain `UserSettingsUpdateEvent` + `user_settings` event subscription; `useUserSettingsStore` с `getBoolean/getNumber/getString` + hydrate snapshot + fold update events; `/settings` страница: Профиль/Предпочтения/Уведомления, toggle-row autosave + display-name explicit-save; navbar-кнопка «Настройки») · [~] П (компонент смонтирован, unit ✅, live на стенде ⏳ ждёт владельца). **Note:** account-level (пароль / API key / аватар) намеренно out-of-scope (safety + Zulip account screen).
 - [ ] 5.2 Настройки организации (админ) — И · [ ] П
 - [ ] 5.3 Управление каналами — И · [ ] П
 - [ ] 5.4 Управление пользователями — И · [ ] П
