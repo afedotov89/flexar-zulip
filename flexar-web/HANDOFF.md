@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.6 закрыта** (edit-history viewer добавлен в actions menu).
+**Последнее обновление:** 2026-05-15, **Фаза 4.5 закрыта** (отложенные сообщения: API + store + schedule popover + /scheduled).
 
 ---
 
@@ -30,6 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `e3465b6b0d` 4.5 — отложенные сообщения (API + store + popover + /scheduled)
 - `3e566ce6c5` 4.6 — edit-history viewer (modal in actions menu)
 - `f4fc972afb` HANDOFF — fill in 4.3 commit hash
 - `e61e606763` 4.3 — typing indicators (send + receive), live POST /typing ✅
@@ -233,8 +234,20 @@ unicode emoji (коммит `2723e343a2`).
   history" в `MessageActionsMenu` гейтнут на `last_edit_timestamp !==
   undefined`; fetch на open, cancel на close, error через Banner.
   966 unit-тестов.
+- ✅ **4.5 Отложенные сообщения** — `apiClient.getScheduledMessages`/
+  `createScheduledMessage`/`updateScheduledMessage`/
+  `deleteScheduledMessage`; `useScheduledMessagesStore` (lazy fetch +
+  realtime add/update/remove + reset on re-register; `scheduled_messages`
+  в `DEFAULT_EVENT_TYPES`); `ScheduleSendButton`+`SchedulePopover`
+  в actionsRow ComposeBox (4 пресета: завтра 09:00/15:00, понедельник
+  09:00/15:00 + datetime-local picker, min=now+1мин); специальный вид
+  «Отложенные» (`/scheduled`) добавлен в `BUILTIN_VIEWS` и
+  `Feed`-диспетчер; страница `Scheduled` показывает destination +
+  delivery time + body preview + cancel; failed messages выделены
+  danger-границей. 985 unit-тестов; гейты зелёные. Live-протык на
+  стенде ⏳ ждёт владельца.
 - ⏳ **4.1** загрузки файлов; **4.2** медиа/лайтбокс; **4.4** presence;
-  **4.5** отложенные сообщения; **4.7** виджеты; **4.8** превью ссылок
+  **4.7** виджеты; **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

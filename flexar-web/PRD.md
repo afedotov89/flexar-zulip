@@ -600,7 +600,7 @@ keyboard-driven).
 - [ ] 4.2 Медиа / лайтбокс — И · [ ] П
 - [x] 4.3 Typing-индикаторы — ✅И · ✅П (apiClient.sendTyping; useTypingStore с TTL-pruning; TypingIndicator над compose; useTypingEmitter с debounced start/stop; live ✅: POST /api/v1/typing)
 - [ ] 4.4 Presence — И · [ ] П
-- [ ] 4.5 Отложенные сообщения — И · [ ] П
+- [x] 4.5 Отложенные сообщения — ✅И (`apiClient.getScheduledMessages`/`createScheduledMessage`/`updateScheduledMessage`/`deleteScheduledMessage`; `useScheduledMessagesStore` с lazy-fetch + realtime add/update/remove; `scheduled_messages` в `DEFAULT_EVENT_TYPES`; `ScheduleSendButton`+`SchedulePopover` в compose actionsRow с 4 пресетами + datetime-local; `/scheduled` спец-вид; failed-сообщения подсвечены) · [~] П (компонент смонтирован, unit ✅, live на стенде ⏳ ждёт владельца)
 - [x] 4.6 История правок — ✅И · ✅П (apiClient.getMessageHistory + EditHistoryModal в actions menu, гейтнут на edited)
 - [ ] 4.7 Виджеты (опросы/todo) — И · [ ] П
 - [ ] 4.8 Превью ссылок — И · [ ] П
