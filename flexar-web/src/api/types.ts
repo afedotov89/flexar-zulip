@@ -185,6 +185,16 @@ export interface MarkAsReadResult {
 }
 
 /**
+ * Response of `GET /api/v1/messages/{message_id}/history`. The
+ * server-side shape carries every modified field per edit; the
+ * domain `MessageEdit` already models the union of fields a snapshot
+ * may carry.
+ */
+export interface GetMessageHistoryResult {
+  message_history: import("../domain").MessageEdit[];
+}
+
+/**
  * Parameters for `sendTyping` (`POST /api/v1/typing`). Discriminated
  * on `type`: a direct conversation carries the `to` list of recipient
  * user ids; a channel typing event carries `streamId` + `topic`.

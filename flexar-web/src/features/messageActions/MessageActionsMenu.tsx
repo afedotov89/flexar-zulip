@@ -46,6 +46,8 @@ export interface MessageActionsMenuProps {
   onEditRequested: () => void;
   /** Open the delete confirmation modal. */
   onDeleteRequested: () => void;
+  /** Open the edit-history modal (Phase 4.6). Only surfaced for edited messages. */
+  onViewHistoryRequested: () => void;
   /** Surface a transient error (e.g. star/unstar / mark-unread REST failure). */
   onActionError: (message: string) => void;
   /** Surface a transient success notice (e.g. "Link copied"). */
@@ -64,6 +66,7 @@ export function MessageActionsMenu({
   viewerId,
   onEditRequested,
   onDeleteRequested,
+  onViewHistoryRequested,
   onActionError,
   onActionNotice,
 }: MessageActionsMenuProps): React.JSX.Element {
@@ -146,6 +149,16 @@ export function MessageActionsMenu({
     label: "Mark as unread from here",
     onSelect: handleMarkUnread,
   });
+  // View edit history — only for messages that have actually been
+  // edited (Phase 4.6). The server returns `last_edit_timestamp` on
+  // those; on never-edited messages the field is absent.
+  if (message.last_edit_timestamp !== undefined) {
+    items.push({
+      id: "view-history",
+      label: "View edit history",
+      onSelect: onViewHistoryRequested,
+    } satisfies DropdownMenuItem);
+  }
   if (isOwnMessage) {
     items.push({ id: "sep-own", separator: true });
     items.push({

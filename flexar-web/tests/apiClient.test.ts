@@ -342,6 +342,54 @@ describe("request encoding", () => {
     expect(JSON.parse(body.get("messages") as string)).toEqual([4, 8, 15]);
   });
 
+  it("getMessageHistory GETs /messages/{id}/history and returns message_history", async () => {
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      message_history: [
+        { user_id: 1, timestamp: 1000, prev_content: "old" },
+        { user_id: 1, timestamp: 2000, prev_topic: "old", topic: "new" },
+      ],
+    });
+
+    const entries = await client().getMessageHistory(7);
+
+    expect(entries).toHaveLength(2);
+    expect(entries[0].prev_content).toBe("old");
+    expect(calls[0].url).toBe("/api/v1/messages/7/history");
+    expect(calls[0].init.method).toBe("GET");
+  });
+
+  it("sendTyping POSTs to /typing with type=stream + stream_id + topic", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().sendTyping({
+      op: "start",
+      type: "stream",
+      streamId: 11,
+      topic: "release",
+    });
+
+    expect(calls[0].url).toBe("/api/v1/typing");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("op")).toBe("start");
+    expect(body.get("type")).toBe("stream");
+    expect(body.get("stream_id")).toBe("11");
+    expect(body.get("topic")).toBe("release");
+  });
+
+  it("sendTyping POSTs to /typing with type=direct + JSON-encoded recipients", async () => {
+    mockJsonResponse({ result: "success", msg: "" });
+
+    await client().sendTyping({ op: "stop", type: "direct", to: [5, 7] });
+
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("op")).toBe("stop");
+    expect(body.get("type")).toBe("direct");
+    expect(JSON.parse(body.get("to") as string)).toEqual([5, 7]);
+  });
+
   it("markAllAsRead POSTs to /mark_all_as_read and surfaces the job id", async () => {
     mockJsonResponse({
       result: "success",

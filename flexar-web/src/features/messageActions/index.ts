@@ -17,4 +17,8 @@ export {
   DeleteConfirmModal,
   type DeleteConfirmModalProps,
 } from "./DeleteConfirmModal";
+export {
+  EditHistoryModal,
+  type EditHistoryModalProps,
+} from "./EditHistoryModal";
 export { buildMessageLink, type MessageLinkContext } from "./messageLink";

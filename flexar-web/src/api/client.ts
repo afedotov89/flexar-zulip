@@ -12,6 +12,7 @@
 // bootstrap payload) come from `./types`. Errors surface as `ApiError`.
 
 import type {
+  MessageEdit,
   MessageId,
   ReactionType,
   ServerEvent,
@@ -401,6 +402,24 @@ export class ApiClient {
       this.#credentials,
     );
     return { partiallyCompletedId: body.partially_completed_id };
+  }
+
+  /**
+   * Fetch a message's edit history.
+   * `GET /api/v1/messages/{messageId}/history`.
+   *
+   * Returns the chronological list of edit snapshots — each snapshot
+   * carries only the fields that changed in that edit (content, topic,
+   * channel) plus the editor's user id and the timestamp. The first
+   * entry is the original snapshot. Older servers may return fewer
+   * fields; `MessageEdit` already models the union.
+   */
+  async getMessageHistory(messageId: MessageId): Promise<MessageEdit[]> {
+    const body = await sendRequest<{ message_history: MessageEdit[] }>(
+      { method: "GET", path: `/messages/${messageId}/history` },
+      this.#credentials,
+    );
+    return body.message_history;
   }
 
   /**

@@ -31,6 +31,7 @@ export type {
   GetOwnUserResult,
   GetSingleMessageResult,
   GetStreamsResult,
+  GetMessageHistoryResult,
   GetSubscriptionsResult,
   GetTopicsResult,
   GetUsersResult,

@@ -43,6 +43,7 @@ import type { EmojiIdentity, Message } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
 import {
   DeleteConfirmModal,
+  EditHistoryModal,
   EditMessageForm,
   MessageActionsMenu,
 } from "../messageActions";
@@ -76,6 +77,8 @@ interface HoverActionsProps {
   onEditRequested: () => void;
   /** Open the delete confirmation modal. */
   onDeleteRequested: () => void;
+  /** Open the edit-history viewer modal (Phase 4.6). */
+  onViewHistoryRequested: () => void;
   /** Surface a transient error from a menu action. */
   onActionError: (message: string) => void;
   /** Surface a transient success notice from a menu action. */
@@ -92,6 +95,7 @@ function HoverActions({
   onPickReaction,
   onEditRequested,
   onDeleteRequested,
+  onViewHistoryRequested,
   onActionError,
   onActionNotice,
 }: HoverActionsProps): React.JSX.Element {
@@ -112,6 +116,7 @@ function HoverActions({
         viewerId={viewerId}
         onEditRequested={onEditRequested}
         onDeleteRequested={onDeleteRequested}
+        onViewHistoryRequested={onViewHistoryRequested}
         onActionError={onActionError}
         onActionNotice={onActionNotice}
       />
@@ -133,6 +138,7 @@ export function MessageRow({
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
@@ -176,6 +182,12 @@ export function MessageRow({
     setActionError(null);
     setActionNotice(null);
     setIsDeleteOpen(true);
+  }, []);
+
+  const handleViewHistoryRequested = useCallback(() => {
+    setActionError(null);
+    setActionNotice(null);
+    setIsHistoryOpen(true);
   }, []);
 
   const handleActionError = useCallback((message: string) => {
@@ -252,6 +264,7 @@ export function MessageRow({
           onPickReaction={handleToolbarPick}
           onEditRequested={handleEditRequested}
           onDeleteRequested={handleDeleteRequested}
+          onViewHistoryRequested={handleViewHistoryRequested}
           onActionError={handleActionError}
           onActionNotice={handleActionNotice}
         />
@@ -261,6 +274,11 @@ export function MessageRow({
         open={isDeleteOpen}
         message={message}
         onClose={() => setIsDeleteOpen(false)}
+      />
+      <EditHistoryModal
+        open={isHistoryOpen}
+        message={message}
+        onClose={() => setIsHistoryOpen(false)}
       />
     </article>
   );

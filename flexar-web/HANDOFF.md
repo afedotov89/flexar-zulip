@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 4.3 закрыта** (typing indicators send + receive, live POST /typing verified).
+**Последнее обновление:** 2026-05-15, **Фаза 4.6 закрыта** (edit-history viewer добавлен в actions menu).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `<TBD>` 4.6 — edit-history viewer (modal in actions menu)
+- `f4fc972afb` HANDOFF — fill in 4.3 commit hash
 - `e61e606763` 4.3 — typing indicators (send + receive), live POST /typing ✅
 - `8b8eca0070` HANDOFF — fill in 3.1 commit hash
 - `85b91cda8f` 3.1 — search bar (parser + Navbar input → narrow), live ✅
@@ -224,9 +226,15 @@ unicode emoji (коммит `2723e343a2`).
   flush на send/destination-change/unmount). 958 unit-тестов. Live ✅:
   набор текста в textarea → `POST /api/v1/typing` ушёл единожды
   (debounced).
+- ✅ **4.6 История правок** — `apiClient.getMessageHistory(id)`;
+  `EditHistoryModal` (Modal с list edit-snapshots: автор, timestamp,
+  summary через `summariseEntry` [content / topic-move / channel-move /
+  multiple], collapsible diff с prev_content); пункт "View edit
+  history" в `MessageActionsMenu` гейтнут на `last_edit_timestamp !==
+  undefined`; fetch на open, cancel на close, error через Banner.
+  966 unit-тестов.
 - ⏳ **4.1** загрузки файлов; **4.2** медиа/лайтбокс; **4.4** presence;
-  **4.5** отложенные сообщения; **4.6** история правок; **4.7** виджеты;
-  **4.8** превью ссылок
+  **4.5** отложенные сообщения; **4.7** виджеты; **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

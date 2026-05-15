@@ -100,6 +100,7 @@ describe("MessageActionsMenu — ownership gating", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -122,6 +123,7 @@ describe("MessageActionsMenu — ownership gating", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -154,6 +156,7 @@ describe("MessageActionsMenu — ownership gating", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -176,6 +179,7 @@ describe("MessageActionsMenu — star toggle", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -206,6 +210,7 @@ describe("MessageActionsMenu — star toggle", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={onActionError}
         onActionNotice={vi.fn()}
       />,
@@ -231,6 +236,7 @@ describe("MessageActionsMenu — star toggle", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -262,6 +268,7 @@ describe("MessageActionsMenu — mark unread", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -300,6 +307,7 @@ describe("MessageActionsMenu — copy link", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={onActionNotice}
       />,
@@ -333,6 +341,7 @@ describe("MessageActionsMenu — copy link", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={onActionError}
         onActionNotice={vi.fn()}
       />,
@@ -358,6 +367,7 @@ describe("MessageActionsMenu — edit / delete intents", () => {
         viewerId={VIEWER_ID}
         onEditRequested={onEditRequested}
         onDeleteRequested={vi.fn()}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
@@ -377,6 +387,7 @@ describe("MessageActionsMenu — edit / delete intents", () => {
         viewerId={VIEWER_ID}
         onEditRequested={vi.fn()}
         onDeleteRequested={onDeleteRequested}
+        onViewHistoryRequested={vi.fn()}
         onActionError={vi.fn()}
         onActionNotice={vi.fn()}
       />,
