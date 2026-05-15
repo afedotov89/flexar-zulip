@@ -4,7 +4,10 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **полная bug-sweep ревизия**: все 15 багов из сплошного live-протыка пофикшены архитектурно (apply_markdown=true в register/getMessages, peer_add fold subscribers list, useOverlayPosition flip+clamp, lightbox `overlayScrimStrong` token, единый `describeApiError` + RU i18n sweep). Re-protyk на стенде: всё LIVE ✅.
+**Последнее обновление:** 2026-05-15, **bug-sweep + 2nd RU i18n sweep + согласован план 5.2/5.3/5.4**:
+- Все 15 багов из сплошного live-протыка пофикшены архитектурно (apply_markdown=true в register/getMessages, peer_add fold subscribers list, useOverlayPosition flip+clamp, lightbox `overlayScrimStrong` token, единый `describeApiError` + RU i18n sweep). Re-protyk на стенде: всё LIVE ✅.
+- 2-й RU i18n sweep (commit `9c1d2167d3`): Navbar/AppShell/MarkAsRead/feed empty&error/dates/Spinner/Login/ComposePreview/typing/Modal/NotFound/Feed/Scheduled/StatusButton/SearchBar — все user-facing строки RU, тесты в lock-step.
+- **План Фазы 5 (5.2/5.3/5.4) согласован с владельцем — см. ниже.**
 
 ---
 
@@ -358,6 +361,92 @@ unicode emoji (коммит `2723e343a2`).
   others (5.4). Гейты зелёные.
 - ⏳ **5.2** настройки организации; **5.3** управление каналами;
   **5.4** управление пользователями
+
+#### План 5.2/5.3/5.4 (согласован 2026-05-15)
+
+**Принцип:** не копировать legacy Zulip — у них в админке 60+ полей в трёх
+секциях (профиль / settings / permissions), много legacy (advertise in
+communities directory, custom welcome bot text, demo-org warnings,
+two-tier billing, light/dark logos). Делаем minimal современный набор
+по мотивам Slack/Linear/Notion. Smотрим Zulip как карту фич, не образец.
+
+**5.2 Настройки организации (`/admin/organization`)** — minimal-set:
+- Профиль: name, description, icon (без org-type marketing, без separate
+  light/dark logos)
+- Сообщения: allow editing + edit time limit, delete time limit, message
+  retention (days), edit history visibility
+- Каналы: who can create public/private channels (role-based dropdown:
+  any / admin / moderator), default streams (add/remove)
+- Пользователи: invite required (boolean), waiting period для новичков,
+  кто может приглашать (role-based)
+- **Save-pattern:** autosave per-toggle (как 5.1); explicit save для
+  text-полей с blur. Никаких save/discard widget'ов как у Zulip.
+- **Что НЕ делаем:** group-permissions конструктор (direct_members +
+  direct_subgroups — слишком сложно), auth methods, linkifiers,
+  playgrounds, custom profile fields, exports, deactivate organization.
+
+**5.3 Управление каналами** — расширение `/channels` + `/channels/:id`:
+- На `/channels`: добавить кнопку «Создать канал» → Modal (name +
+  description + privacy public/private + начальные подписчики).
+- Per-channel detail page `/channels/:id`: rename, description, privacy
+  toggle (public/private), archive (danger button), retention override,
+  список подписчиков с add/remove (admin — любых, обычный юзер — только
+  себя), кто может постить (role dropdown), кто может управлять (role
+  dropdown).
+- **Что НЕ делаем:** channel-folders management, per-channel notification
+  settings (это в личных настройках 5.1).
+
+**5.4 Управление пользователями (`/admin/users` + `/admin/invites`)**:
+- `/admin/users`: ОДИН список с табами-фильтрами (Активные /
+  Деактивированные / Боты — НЕ 4 списка как у Zulip), text-search,
+  dropdown по роли. Per-row actions: change role (dropdown),
+  deactivate/reactivate (icon-button с confirm-modal), Edit (modal с
+  full_name).
+- `/admin/invites`: список pending invites + Send invite modal (email +
+  role + expiration + начальные каналы) + revoke + resend + create
+  reusable link.
+- Bots: read-only список в `/admin/users` (создание/удаление ботов —
+  отдельный кусок, не в этой итерации).
+- **Что НЕ делаем:** imported users sub-tab (legacy migration tool).
+
+**Entry point — современный UX (avatar dropdown):**
+- Кнопки «Настройки» и «Выйти» из navbar **переезжают** в DropdownMenu,
+  привязанный к email/avatar в navbar.
+- Пункты dropdown: Профиль / Настройки → `/settings` ─── (если admin)
+  ─── Администрирование → `/admin/users` (по дефолту) / Выйти.
+- Освобождает navbar, читается как Slack/Linear/Notion-pattern.
+
+**Роуты (плоско, без AdminLayout — решение владельца):**
+- `/admin/organization` (5.2)
+- `/admin/users` (5.4 список)
+- `/admin/invites` (5.4 invites)
+- `/channels/:id` (5.3 detail)
+- `/channels` уже есть (расширить)
+- Гард: `RequireAdmin` HOC поверх `RequireAuth` для всех `/admin/*`.
+
+**API/events добавки (~15 новых apiClient методов):**
+- Realm: `updateRealm`, `uploadRealmIcon`
+- Channels: `createChannel`, `getStreamById`, `updateChannel`,
+  `archiveChannel`, `getChannelSubscribers`
+- Default streams: `addDefaultStream`, `removeDefaultStream`
+- Users: `updateUser`, `deactivateUser`, `reactivateUser`
+- Invites: `getInvites`, `sendInvites`, `createReusableInviteLink`,
+  `revokeInvite`, `resendInvite`
+
+**DEFAULT_EVENT_TYPES добавки:** `realm`, `default_streams`.
+
+**Domain types добавки:** `Invite` (api/types.ts), `RealmUpdateEvent` и
+`DefaultStreamsEvent` (events.ts).
+
+**Порядок реализации (параллельно после shared infra):**
+1. Группа A (sequential): shared infra — `isAdmin` selector, navbar
+   dropdown, `RequireAdmin` guard, `realm` event добавлен в
+   `DEFAULT_EVENT_TYPES`, `RealmUpdateEvent` type, новые apiClient методы
+   (закрытый контракт).
+2. Группы B/C/D параллельно после A: 5.4 / 5.3 / 5.2.
+3. Live-протык на стенде (см. memory `live-protyk-mandatory.md` —
+   обязателен после каждой фичи).
+4. Гейты + commit + HANDOFF update.
 
 ### Live-протык на стенде (`a.fedotov@friflex.com`) — сессия 2026-05-15
 Прошёл сквозной протык **7 фич** на стенде, найдено и пофикшено
