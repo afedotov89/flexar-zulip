@@ -31,6 +31,7 @@ import type { Message, Narrow } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { ComposeBox } from "../compose";
+import { TypingIndicator } from "../typing";
 import { MarkAsReadButton } from "./MarkAsReadButton";
 import { MessageList } from "./MessageList";
 import { buildFeedRows } from "./feedItems";
@@ -93,6 +94,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
     return (
       <div className={styles.feed}>
         <LoadingState />
+        <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>
     );
@@ -117,6 +119,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
             </button>
           </Banner>
         </div>
+        <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>
     );
@@ -131,6 +134,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
             Messages sent to this view will show up here.
           </p>
         </div>
+        <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>
     );

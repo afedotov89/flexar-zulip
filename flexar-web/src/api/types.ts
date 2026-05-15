@@ -185,6 +185,29 @@ export interface MarkAsReadResult {
 }
 
 /**
+ * Parameters for `sendTyping` (`POST /api/v1/typing`). Discriminated
+ * on `type`: a direct conversation carries the `to` list of recipient
+ * user ids; a channel typing event carries `streamId` + `topic`.
+ *
+ * `op` is `"start"` when the user has begun typing and `"stop"` when
+ * they've finished or backed out. The dispatcher emits `start` once
+ * per typing burst and `stop` after a debounce — see `ComposeBox`.
+ */
+export type SendTypingParams =
+  | {
+      op: "start" | "stop";
+      type: "direct";
+      /** Recipient user ids for the DM conversation. */
+      to: UserId[];
+    }
+  | {
+      op: "start" | "stop";
+      type: "stream";
+      streamId: number;
+      topic: string;
+    };
+
+/**
  * Response of `GET /api/v1/messages/{message_id}` with
  * `apply_markdown=false`.
  *

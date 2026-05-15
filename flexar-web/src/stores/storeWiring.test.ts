@@ -73,10 +73,11 @@ const { useUnreadStore } = await import("./unreadStore");
 const { useDmConversationsStore } = await import("./dmConversationsStore");
 const { useTopicsStore } = await import("./topicsStore");
 const { useRealmEmojiStore } = await import("./realmEmojiStore");
+const { useTypingStore } = await import("./typingStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 9;
+const STORE_COUNT = 10;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -93,6 +94,7 @@ describe("server-state stores — wiring", () => {
     useDmConversationsStore.setState({ conversations: [] });
     useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
     useRealmEmojiStore.setState({ emojiById: {} });
+    useTypingStore.setState({ buckets: {} });
   });
 
   it("every store subscribes at module load", () => {

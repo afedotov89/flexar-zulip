@@ -76,6 +76,7 @@ import {
 } from "./optimisticMessage";
 import { ComposePreview } from "./ComposePreview";
 import { EmojiPickerButton } from "./EmojiPicker";
+import { useTypingEmitter } from "./useTypingEmitter";
 import {
   ChannelRowContent,
   EmojiRowContent,
@@ -351,6 +352,26 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const topicsForChannel =
     channelStreamId !== undefined ? topicsByChannel[channelStreamId] ?? [] : [];
 
+  // Resolve the DM recipient ids from the comma-separated input — also
+  // what the typing emitter needs as its destination handle. The
+  // computation is the same one the send-path uses (see `parseRecipients`).
+  const dmRecipientIds = useMemo(
+    () =>
+      formMode === "direct" ? parseRecipients(form.recipientsInput, users) : [],
+    [formMode, form.recipientsInput, users],
+  );
+
+  // Send `start` / `stop` typing events to the server in step with
+  // user activity (Phase 4.3). The hook owns the debounced state
+  // machine; the textarea calls `onActivity()` on every change and
+  // the send path calls `sendStop()` after a successful send.
+  const typing = useTypingEmitter({
+    fromNarrow,
+    channelStreamId,
+    topic: form.topic.trim(),
+    dmRecipientIds,
+  });
+
   // Textarea typeahead (`@` / `#` / `:`). The `onApply` callback
   // updates the controlled value and queues the new cursor position;
   // a separate effect commits the cursor to the DOM after the value
@@ -503,6 +524,10 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         // Clear only the body — keep recipient/topic for the next msg.
         setForm((current) => ({ ...current, content: "" }));
         setShowRestoredHint(false);
+        // The user is no longer composing — flush an immediate `stop`
+        // so other clients drop the typing indicator without waiting
+        // for the server-side TTL (Phase 4.3).
+        typing.sendStop();
         // Return focus to the textarea so the user can keep typing.
         textareaNode?.focus();
       } catch (cause) {
@@ -529,6 +554,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       textareaNode,
       draftKey,
       deleteDraftAction,
+      typing,
     ],
   );
 
@@ -746,6 +772,10 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
               if (showRestoredHint) {
                 setShowRestoredHint(false);
               }
+              // Keep the server-side typing indicator alive while the
+              // user is actively typing (Phase 4.3). The emitter owns
+              // the debounce + idle-stop state machine.
+              typing.onActivity();
             }}
             onKeyDown={onTextareaKeyDown}
             onSelect={(event) =>

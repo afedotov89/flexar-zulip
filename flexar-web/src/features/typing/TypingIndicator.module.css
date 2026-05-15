@@ -1,0 +1,17 @@
+/*
+ * Typing indicator (Phase 4.3). Thin status line that sits above the
+ * compose box; muted, italic, single-line.
+ */
+
+.indicator {
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+
+  /* min-height locks the row so it doesn't jump as the indicator
+     appears / disappears between renders. */
+  min-height: var(--space-5);
+  line-height: var(--line-height-tight);
+}

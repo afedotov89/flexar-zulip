@@ -43,6 +43,7 @@ import type {
   RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
+  SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
 } from "./types";
@@ -424,6 +425,38 @@ export class ApiClient {
       this.#credentials,
     );
     return body.raw_content;
+  }
+
+  // --- Typing -------------------------------------------------------
+
+  /**
+   * Notify the server that the user has started or stopped typing.
+   * `POST /api/v1/typing`. Other queue subscribers receive a `typing`
+   * event with the same payload.
+   *
+   * The compose box emits `start` once per typing burst and `stop`
+   * after a debounce / on send / on conversation change. The server
+   * itself also expires `start` events after ~15s without a `stop`,
+   * so a missed `stop` (network glitch) decays gracefully.
+   */
+  async sendTyping(params: SendTypingParams): Promise<void> {
+    const wire: Params =
+      params.type === "stream"
+        ? {
+            op: params.op,
+            type: "stream",
+            stream_id: params.streamId,
+            topic: params.topic,
+          }
+        : {
+            op: params.op,
+            type: "direct",
+            to: params.to,
+          };
+    await sendRequest<unknown>(
+      { method: "POST", path: "/typing", params: wire },
+      this.#credentials,
+    );
   }
 
   // --- Reactions ----------------------------------------------------

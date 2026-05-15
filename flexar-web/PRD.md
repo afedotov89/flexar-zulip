@@ -598,7 +598,7 @@ keyboard-driven).
 ### Фаза 4 — Богатые фичи
 - [ ] 4.1 Загрузки файлов — И · [ ] П
 - [ ] 4.2 Медиа / лайтбокс — И · [ ] П
-- [ ] 4.3 Typing-индикаторы — И · [ ] П
+- [x] 4.3 Typing-индикаторы — ✅И · ✅П (apiClient.sendTyping; useTypingStore с TTL-pruning; TypingIndicator над compose; useTypingEmitter с debounced start/stop; live ✅: POST /api/v1/typing)
 - [ ] 4.4 Presence — И · [ ] П
 - [ ] 4.5 Отложенные сообщения — И · [ ] П
 - [ ] 4.6 История правок — И · [ ] П

@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 3 фиче-комплит** (3.1 search live-verified — последняя из Фазы 3).
+**Последнее обновление:** 2026-05-15, **Фаза 4.3 закрыта** (typing indicators send + receive, live POST /typing verified).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `<TBD>` 4.3 — typing indicators (send + receive), live POST /typing ✅
+- `8b8eca0070` HANDOFF — fill in 3.1 commit hash
 - `85b91cda8f` 3.1 — search bar (parser + Navbar input → narrow), live ✅
 - `7a4a3c839b` HANDOFF — fill in 3.5 commit hash
 - `6304de67c0` 3.5 — уведомления (desktop Notification API + Web Audio sound + dispatcher)
@@ -212,6 +214,19 @@ unicode emoji (коммит `2723e343a2`).
   результаты показаны.
 
 **🎯 Фаза 3 фиче-комплит** — 3.1+3.2+3.3+3.4+3.5+3.6 закрыты.
+
+### Фаза 4 — частично:
+- ✅ **4.3 Typing-индикаторы** — `apiClient.sendTyping`; `useTypingStore`
+  (бакеты `dm:<sortedIds>` / `channel:<id>:<topic>`, gate на own-sender,
+  TTL ~15с, чистый pruneStale-редьюсер); `TypingIndicator` над compose
+  (`useTypingFor(narrow)` + `formatTypingNames` 1/2/N+others);
+  `useTypingEmitter` в ComposeBox (debounced start/stop, idle-stop 5с,
+  flush на send/destination-change/unmount). 958 unit-тестов. Live ✅:
+  набор текста в textarea → `POST /api/v1/typing` ушёл единожды
+  (debounced).
+- ⏳ **4.1** загрузки файлов; **4.2** медиа/лайтбокс; **4.4** presence;
+  **4.5** отложенные сообщения; **4.6** история правок; **4.7** виджеты;
+  **4.8** превью ссылок
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

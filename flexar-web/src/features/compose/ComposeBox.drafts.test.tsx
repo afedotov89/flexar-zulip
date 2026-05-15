@@ -24,10 +24,13 @@ vi.mock("../../realtime", () => ({
   },
 }));
 
-const { sendMessageMock, renderMarkdownMock } = vi.hoisted(() => ({
-  sendMessageMock: vi.fn(),
-  renderMarkdownMock: vi.fn(),
-}));
+const { sendMessageMock, renderMarkdownMock, sendTypingMock } = vi.hoisted(
+  () => ({
+    sendMessageMock: vi.fn(),
+    renderMarkdownMock: vi.fn(),
+    sendTypingMock: vi.fn(() => Promise.resolve()),
+  }),
+);
 vi.mock("../../api", async () => {
   const actual =
     await vi.importActual<typeof import("../../api")>("../../api");
@@ -36,6 +39,7 @@ vi.mock("../../api", async () => {
     apiClient: {
       sendMessage: sendMessageMock,
       renderMarkdown: renderMarkdownMock,
+      sendTyping: sendTypingMock,
     },
   };
 });

@@ -19,6 +19,7 @@ import type {
   ServerEvent,
   StreamEvent,
   SubscriptionEvent,
+  TypingEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
 } from "../domain";
@@ -67,4 +68,8 @@ export function isSubscriptionEvent(
 
 export function isPresenceEvent(event: ServerEvent): event is PresenceEvent {
   return event.type === "presence";
+}
+
+export function isTypingEvent(event: ServerEvent): event is TypingEvent {
+  return event.type === "typing";
 }

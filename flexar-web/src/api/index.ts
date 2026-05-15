@@ -41,6 +41,7 @@ export type {
   RenderMarkdownResult,
   SendMessageParams,
   SendMessageResult,
+  SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
 } from "./types";
