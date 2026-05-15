@@ -22,6 +22,7 @@ import { IconButton } from "../../components/IconButton";
 import { Spinner } from "../../components/Spinner";
 import { apiClient } from "../../api";
 import type { ScheduledMessage, UserId } from "../../domain";
+import { useRealmStore } from "../../stores/realmStore";
 import { useScheduledMessagesStore } from "../../stores/scheduledMessagesStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
@@ -40,13 +41,22 @@ export function Scheduled(): React.JSX.Element {
 
   const streamsMap = useStreamsStore((s) => s.streams);
   const usersMap = useUsersStore((s) => s.users);
+  const emptyTopicDisplayName = useRealmStore(
+    (s) => s.realm?.realm_empty_topic_display_name,
+  );
 
-  // Trigger the bootstrap fetch on first mount. The store guards
-  // against double-fetch, so a remount during the same session is
-  // idempotent.
+  // Trigger the bootstrap fetch on first mount, AND every time the
+  // store's loadStatus drops back to "idle" (which happens whenever a
+  // realtime re-register fires `wireStore.hydrate` and resets the
+  // bag). Without the `loadStatus` dependency the page would race
+  // with the initial register: the fetch would land first, the
+  // register-time hydrate would clear it, and the user would see an
+  // empty list despite the server holding data.
   useEffect(() => {
-    void loadScheduledMessages();
-  }, [loadScheduledMessages]);
+    if (loadStatus === "idle") {
+      void loadScheduledMessages();
+    }
+  }, [loadStatus, loadScheduledMessages]);
 
   const messages = list();
 
@@ -103,6 +113,7 @@ export function Scheduled(): React.JSX.Element {
               message,
               (id) => streamsMap[id]?.name,
               (id) => usersMap[id]?.full_name,
+              emptyTopicDisplayName,
             )}
           />
         ))}
@@ -164,21 +175,27 @@ function ScheduledRow({
  * Render a one-line label for the scheduled message's destination.
  * Mirrors `Drafts`' `describeDestination` but keys off the wire
  * `to`/`type`/`topic` shape rather than the local Draft type.
+ *
+ * The empty topic (`topic === ""`) is the realm's "(no topic)"
+ * channel-default — the realm sets a friendly display name in
+ * `realm_empty_topic_display_name` (e.g. "general chat"). Render
+ * that when present, falling back to `(no topic)` so the row stays
+ * readable.
  */
 function describeDestination(
   message: ScheduledMessage,
   getStreamName: (id: number) => string | undefined,
   getUserName: (id: UserId) => string | undefined,
+  emptyTopicDisplayName: string | undefined,
 ): string {
   if (message.type === "stream") {
     const streamId =
       typeof message.to === "number" ? message.to : message.to[0] ?? 0;
     const channelName = getStreamName(streamId) ?? `Channel ${streamId}`;
     const topic = message.topic ?? "";
-    if (topic === "") {
-      return `# ${channelName}`;
-    }
-    return `# ${channelName} > ${topic}`;
+    const displayedTopic =
+      topic === "" ? (emptyTopicDisplayName ?? "(no topic)") : topic;
+    return `# ${channelName} > ${displayedTopic}`;
   }
   const recipients = Array.isArray(message.to) ? message.to : [message.to];
   const names = recipients.map(
