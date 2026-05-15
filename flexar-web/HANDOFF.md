@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 3.4 закрыта** (mark-all-read live-verified).
+**Последнее обновление:** 2026-05-15, **Фаза 3.6 закрыта** (emoji-picker live-verified).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `<TBD>` 3.6 — эмодзи-пикер для compose + кастомные realm-эмодзи store, live ✅
+- `ed7a002dfc` HANDOFF — fill in 3.4 commit hash
 - `0fd37adc0c` 3.4 — управление непрочитанным (mark-as-read on scroll + mark-all-read), live ✅
 - `1fb0da3b55` 3.3 — действия над сообщением (меню+edit+delete+star+copy+mark-unread), live ✅
 - `36b79f1131` 3.2 — реакции (чипы + `ReactionPicker` + optimistic, live-протык ✅)
@@ -171,8 +173,17 @@ unicode emoji (коммит `2723e343a2`).
   combined-feed → кнопка появилась → клик → unread очищены, кнопка
   скрылась, ошибок в консоли нет; channel-narrow без unread → кнопки
   нет (правильно). 915 unit-тестов.
-- ⏳ **3.1** поиск; **3.5** уведомления; **3.6** эмодзи-пикер для compose +
-  custom realm emoji
+- ✅ **3.6 Эмодзи** — `useRealmEmojiStore` (гидрация из `realm_emoji`
+  снапшота, селекторы `getByName`/`listActive`, `realm_emoji` добавлен
+  в `DEFAULT_EVENT_TYPES` для register); `ComposeEmojiPicker` (Popover
+  + поиск + 8-колоночная сетка с unicode-corpus и realm-эмодзи через
+  `<img>`; keyboard navigation как в ReactionPicker); `EmojiPickerButton`
+  (smiley IconButton в `actionsRow` ComposeBox); `insertAtCursor` в
+  ComposeBox для вставки `:shortcode:` в textarea на каретку. Live ✅:
+  открыл пикер → нашёл `fire` → клик → `:fire:` вставился в textarea
+  на позицию каретки, popover закрылся, фокус вернулся в textarea.
+  924 unit-теста.
+- ⏳ **3.1** поиск; **3.5** уведомления
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky

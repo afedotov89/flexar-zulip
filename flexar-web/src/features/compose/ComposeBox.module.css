@@ -67,15 +67,15 @@
   background-color: var(--color-active);
 }
 
-/* Bottom action row: keyboard hint + Send button. */
+/* Bottom action row: emoji picker (left) | keyboard hint | Send. */
 .actionsRow {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  justify-content: flex-end;
 }
 
 .hintInline {
+  margin-left: auto;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }

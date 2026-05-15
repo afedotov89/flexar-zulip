@@ -75,6 +75,7 @@ import {
   type OptimisticSender,
 } from "./optimisticMessage";
 import { ComposePreview } from "./ComposePreview";
+import { EmojiPickerButton } from "./EmojiPicker";
 import {
   ChannelRowContent,
   EmojiRowContent,
@@ -531,6 +532,30 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     ],
   );
 
+  // Splice text into the textarea at the current caret (Phase 3.6 — the
+  // emoji picker uses this to insert `:shortcode:`). The cursor lands
+  // just after the inserted text; the textarea autofocuses so the user
+  // can keep typing without a click. Falls back to a plain append when
+  // the textarea node is not yet wired (the picker cannot be opened in
+  // that state, but the guard keeps the call total).
+  const insertAtCursor = useCallback(
+    (text: string): void => {
+      const textarea = textareaNode;
+      const start = textarea?.selectionStart ?? form.content.length;
+      const end = textarea?.selectionEnd ?? form.content.length;
+      const next =
+        form.content.slice(0, start) + text + form.content.slice(end);
+      const nextCursor = start + text.length;
+      pendingTextareaCursor.current = nextCursor;
+      setForm((current) => ({ ...current, content: next }));
+      setCursor(nextCursor);
+      if (showRestoredHint) {
+        setShowRestoredHint(false);
+      }
+    },
+    [form.content, textareaNode, showRestoredHint],
+  );
+
   // Keyboard model: typeahead first (so Enter/Tab/Arrows/Escape navigate
   // the panel when it is open), then send. Shift+Enter inserts a newline.
   // The composition guard avoids sending mid-IME composition (e.g. CJK).
@@ -780,6 +805,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       )}
 
       <div className={styles.actionsRow}>
+        <EmojiPickerButton onPick={insertAtCursor} disabled={sending} />
         <span className={styles.hintInline} aria-hidden="true">
           Enter to send, Shift+Enter for a new line
         </span>

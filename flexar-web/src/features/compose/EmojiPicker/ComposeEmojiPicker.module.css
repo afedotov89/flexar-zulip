@@ -1,0 +1,71 @@
+/*
+ * Compose emoji picker (Phase 3.6). Mirrors `ReactionPicker.module.css`
+ * — same popover panel layout, same grid rhythm — but adds an `<img>`
+ * affordance for realm emoji.
+ */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: var(--container-width-xs);
+  max-width: var(--container-width-sm);
+}
+
+.searchRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-1);
+  max-height: calc(var(--space-12) * 4);
+  padding: var(--space-1);
+  overflow-y: auto;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: var(--space-0);
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast);
+}
+
+.cell:hover {
+  background-color: var(--color-hover);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.glyph {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+/* Realm emoji are images — pin to the cell's height with a small inset. */
+.realmGlyph {
+  width: var(--font-size-xl);
+  height: var(--font-size-xl);
+  object-fit: contain;
+}
+
+.empty {
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}

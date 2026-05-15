@@ -112,6 +112,7 @@ export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "subscription",
   "stream",
   "realm_user",
+  "realm_emoji",
   "presence",
   "typing",
   "update_message_flags",

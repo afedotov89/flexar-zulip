@@ -592,7 +592,7 @@ keyboard-driven).
 - [x] 3.3 Действия над сообщением — ✅И · ✅П (star/copy-link/mark-unread + edit/delete own only; live ✅; **deferred:** move/resolve topic, view source, quote-reply)
 - [x] 3.4 Управление непрочитанным — ✅И · ✅П (mark-as-read on scroll [виртуализатор → видимые ряды → дебаунс] + `MarkAsReadButton` контекст-aware [combined/channel/topic]; live ✅)
 - [ ] 3.5 Уведомления — И · [ ] П
-- [ ] 3.6 Эмодзи — И · [ ] П
+- [x] 3.6 Эмодзи — ✅И · ✅П (`useRealmEmojiStore` + `ComposeEmojiPicker` [unicode-corpus + realm-emoji] + `EmojiPickerButton` в actionsRow; кастом эмодзи реалма уже рендерятся в `MessageContent` как `<img>`; live ✅: вставка `:fire:` в каретку textarea)
 - [ ] **Гейт Фазы 3:** Playwright-набор фазы зелёный · общий протык
 
 ### Фаза 4 — Богатые фичи

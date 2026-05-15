@@ -72,10 +72,11 @@ const { usePresenceStore } = await import("./presenceStore");
 const { useUnreadStore } = await import("./unreadStore");
 const { useDmConversationsStore } = await import("./dmConversationsStore");
 const { useTopicsStore } = await import("./topicsStore");
+const { useRealmEmojiStore } = await import("./realmEmojiStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 8;
+const STORE_COUNT = 9;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -91,6 +92,7 @@ describe("server-state stores — wiring", () => {
     useUnreadStore.setState({ unread: emptyUnreadBuckets() });
     useDmConversationsStore.setState({ conversations: [] });
     useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
+    useRealmEmojiStore.setState({ emojiById: {} });
   });
 
   it("every store subscribes at module load", () => {
@@ -118,6 +120,22 @@ describe("server-state stores — wiring", () => {
       active_timestamp: 1000,
     });
     expect(useUnreadStore.getState().isUnread(500)).toBe(true);
+  });
+
+  it("hydrates the realm-emoji store from the realm_emoji map", () => {
+    emitInitialState({
+      realm_emoji: {
+        "1": {
+          id: "1",
+          name: "rocket",
+          source_url: "/static/realm/1.png",
+          still_url: null,
+          deactivated: false,
+          author_id: null,
+        },
+      },
+    });
+    expect(useRealmEmojiStore.getState().getByName("rocket")?.id).toBe("1");
   });
 
   it("re-hydrates every store on a second snapshot (re-register)", () => {
