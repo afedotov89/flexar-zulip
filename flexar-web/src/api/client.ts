@@ -15,6 +15,7 @@ import type {
   MessageEdit,
   MessageId,
   ReactionType,
+  ScheduledMessage,
   ServerEvent,
   Stream,
   Subscription,
@@ -25,6 +26,8 @@ import { narrowToWire } from "./narrow";
 import { sendRequest, type Params } from "./request";
 import type {
   ApiKeyResult,
+  CreateScheduledMessageParams,
+  CreateScheduledMessageResult,
   Credentials,
   DeleteMessageResult,
   EditMessageParams,
@@ -47,6 +50,7 @@ import type {
   SendTypingParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
+  UpdateScheduledMessageParams,
 } from "./types";
 
 /** Options for `getStreams` (`GET /api/v1/streams`). */
@@ -474,6 +478,105 @@ export class ApiClient {
           };
     await sendRequest<unknown>(
       { method: "POST", path: "/typing", params: wire },
+      this.#credentials,
+    );
+  }
+
+  // --- Scheduled messages -------------------------------------------
+
+  /**
+   * List the user's undelivered scheduled messages, ordered by
+   * `scheduled_delivery_timestamp` ascending.
+   * `GET /api/v1/scheduled_messages`.
+   */
+  async getScheduledMessages(): Promise<ScheduledMessage[]> {
+    const body = await sendRequest<{ scheduled_messages: ScheduledMessage[] }>(
+      { method: "GET", path: "/scheduled_messages" },
+      this.#credentials,
+    );
+    return body.scheduled_messages;
+  }
+
+  /**
+   * Schedule a new message for future delivery.
+   * `POST /api/v1/scheduled_messages`.
+   *
+   * `to`, the recipient list for direct messages, and the delivery
+   * timestamp are JSON-encoded server-side; the request transport
+   * stringifies arrays for us. The response carries only the new
+   * `scheduled_message_id` — the realtime `scheduled_messages add`
+   * event delivers the full record.
+   */
+  async createScheduledMessage(
+    params: CreateScheduledMessageParams,
+  ): Promise<CreateScheduledMessageResult> {
+    const wire: Params =
+      params.type === "channel"
+        ? {
+            type: "channel",
+            to: params.to,
+            topic: params.topic,
+            content: params.content,
+            scheduled_delivery_timestamp: params.scheduledDeliveryTimestamp,
+          }
+        : {
+            type: "direct",
+            to: params.to,
+            content: params.content,
+            scheduled_delivery_timestamp: params.scheduledDeliveryTimestamp,
+          };
+    const body = await sendRequest<{ scheduled_message_id: number }>(
+      { method: "POST", path: "/scheduled_messages", params: wire },
+      this.#credentials,
+    );
+    return { scheduledMessageId: body.scheduled_message_id };
+  }
+
+  /**
+   * Edit an existing scheduled message.
+   * `PATCH /api/v1/scheduled_messages/{scheduledMessageId}`.
+   *
+   * Pass only the fields that change. When the server has already
+   * tried and failed to send (`failed: true`) the caller MUST also
+   * pass `scheduledDeliveryTimestamp`; the API rejects updates that
+   * leave a failed message without a fresh delivery time.
+   */
+  async updateScheduledMessage(
+    scheduledMessageId: number,
+    params: UpdateScheduledMessageParams,
+  ): Promise<void> {
+    const wire: Params = {
+      type:
+        params.type === "channel"
+          ? "channel"
+          : params.type === "direct"
+            ? "direct"
+            : undefined,
+      to: params.to,
+      topic: params.topic,
+      content: params.content,
+      scheduled_delivery_timestamp: params.scheduledDeliveryTimestamp,
+    };
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: `/scheduled_messages/${scheduledMessageId}`,
+        params: wire,
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Cancel a scheduled message.
+   * `DELETE /api/v1/scheduled_messages/{scheduledMessageId}`.
+   */
+  async deleteScheduledMessage(scheduledMessageId: number): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "DELETE",
+        path: `/scheduled_messages/${scheduledMessageId}`,
+      },
       this.#credentials,
     );
   }

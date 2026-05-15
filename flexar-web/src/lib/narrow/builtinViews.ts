@@ -42,7 +42,8 @@ export type BuiltinViewId =
   | "mentions"
   | "reactions"
   | "starred"
-  | "drafts";
+  | "drafts"
+  | "scheduled";
 
 /**
  * A built-in view that is just a narrow: navigating to it lands on a
@@ -147,6 +148,13 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
     label: "Черновики",
     icon: "drafts",
     path: "/drafts",
+  },
+  {
+    id: "scheduled",
+    kind: "special",
+    label: "Отложенные",
+    icon: "schedule",
+    path: "/scheduled",
   },
 ];
 

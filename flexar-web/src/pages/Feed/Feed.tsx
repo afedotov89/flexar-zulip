@@ -20,6 +20,7 @@ import type { Narrow } from "../../domain";
 import { useCurrentNarrow, useCurrentView } from "../../lib/narrow";
 import { MessageFeed } from "../../features/messageFeed";
 import { Drafts } from "../Drafts";
+import { Scheduled } from "../Scheduled";
 import styles from "./Feed.module.css";
 
 // The Combined-feed narrow, as a module constant so the index route
@@ -31,12 +32,16 @@ export function Feed() {
   const view = useCurrentView();
   const narrow = useCurrentNarrow();
 
-  // Special views (Inbox / Recent / Drafts) are not narrow feeds.
-  // Drafts (Phase 2.4) has its own screen; Inbox / Recent are still
-  // placeholders pending their own phases.
+  // Special views (Inbox / Recent / Drafts / Scheduled) are not narrow
+  // feeds. Drafts (Phase 2.4) and Scheduled (Phase 4.5) have their own
+  // screens; Inbox / Recent are still placeholders pending their own
+  // phases.
   if (view?.kind === "special") {
     if (view.id === "drafts") {
       return <Drafts />;
+    }
+    if (view.id === "scheduled") {
+      return <Scheduled />;
     }
     return (
       <div className={styles.feed}>

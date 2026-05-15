@@ -29,6 +29,7 @@ import type {
   UnixTimestamp,
   UserId,
 } from "./primitives";
+import type { ScheduledMessage } from "./scheduledMessage";
 import type { Stream, Subscription, TopicVisibilityPolicy } from "./stream";
 import type { Presence, PresenceMap, User } from "./user";
 
@@ -337,6 +338,42 @@ export interface UserTopicEvent extends EventBase {
   visibility_policy: TopicVisibilityPolicy;
 }
 
+/**
+ * One or more scheduled messages were created. Sent both when the
+ * sender's own client created the scheduled message and (in principle)
+ * to other concurrent sessions of the same user. The full
+ * `ScheduledMessage` shape is included so the store can insert without
+ * a follow-up `GET /scheduled_messages`.
+ */
+export interface ScheduledMessagesAddEvent extends EventBase {
+  type: "scheduled_messages";
+  op: "add";
+  scheduled_messages: ScheduledMessage[];
+}
+
+/** A scheduled message was edited. */
+export interface ScheduledMessagesUpdateEvent extends EventBase {
+  type: "scheduled_messages";
+  op: "update";
+  scheduled_message: ScheduledMessage;
+}
+
+/**
+ * A scheduled message was deleted (cancelled by the user, sent
+ * successfully, or removed by the server after a final failure).
+ */
+export interface ScheduledMessagesRemoveEvent extends EventBase {
+  type: "scheduled_messages";
+  op: "remove";
+  scheduled_message_id: number;
+}
+
+/** All `scheduled_messages` event variants. */
+export type ScheduledMessagesEvent =
+  | ScheduledMessagesAddEvent
+  | ScheduledMessagesUpdateEvent
+  | ScheduledMessagesRemoveEvent;
+
 /** Periodic keepalive sent when the queue has no events to deliver. */
 export interface HeartbeatEvent extends EventBase {
   type: "heartbeat";
@@ -373,5 +410,6 @@ export type ServerEvent =
   | TypingEvent
   | UserStatusEvent
   | UserTopicEvent
+  | ScheduledMessagesEvent
   | HeartbeatEvent
   | UnknownEvent;

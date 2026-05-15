@@ -46,6 +46,10 @@ export const icons = {
   star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z" />',
   drafts:
     '<path d="M7 3h7l5 5v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><polyline points="14 3 14 8 19 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="16" x2="13" y2="16" />',
+  schedule:
+    '<rect x="4" y="6" width="16" height="14" rx="2" /><line x1="4" y1="10" x2="20" y2="10" /><line x1="9" y1="4" x2="9" y2="8" /><line x1="15" y1="4" x2="15" y2="8" /><circle cx="12" cy="15" r="2" />',
+  trash:
+    '<polyline points="4 7 20 7" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" /><line x1="10" y1="11" x2="10" y2="18" /><line x1="14" y1="11" x2="14" y2="18" />',
 } as const;
 
 export type IconName = keyof typeof icons;

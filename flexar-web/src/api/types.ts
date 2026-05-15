@@ -16,6 +16,7 @@ import type {
   Stream,
   Subscription,
   Topic,
+  UnixTimestamp,
   User,
   UserId,
 } from "../domain";
@@ -315,3 +316,55 @@ export interface GetUsersResult {
  * `User`, so the domain `User` type describes it.
  */
 export type GetOwnUserResult = User;
+
+/**
+ * Parameters for `createScheduledMessage`
+ * (`POST /api/v1/scheduled_messages`). Discriminated on `type`: a
+ * channel-bound scheduled message carries the destination channel id
+ * and topic; a direct-message scheduled message carries the list of
+ * recipient user ids. The wire `type` accepts both `direct` and the
+ * legacy `private`; we send `direct` (the modern label) per the API
+ * docs' recommendation.
+ */
+export type CreateScheduledMessageParams =
+  | {
+      type: "channel";
+      /** Destination channel id. */
+      to: number;
+      topic: string;
+      content: string;
+      /** Unix seconds (UTC) when the server should attempt delivery. */
+      scheduledDeliveryTimestamp: UnixTimestamp;
+    }
+  | {
+      type: "direct";
+      /** Recipient user ids. */
+      to: UserId[];
+      content: string;
+      /** Unix seconds (UTC) when the server should attempt delivery. */
+      scheduledDeliveryTimestamp: UnixTimestamp;
+    };
+
+/** Response of `POST /api/v1/scheduled_messages`. */
+export interface CreateScheduledMessageResult {
+  /** Server-assigned id of the new scheduled message. */
+  scheduledMessageId: number;
+}
+
+/**
+ * Parameters for `updateScheduledMessage`
+ * (`PATCH /api/v1/scheduled_messages/{scheduled_message_id}`). Every
+ * field is optional — pass only what changed. Updating a scheduled
+ * message that already failed to send requires
+ * `scheduledDeliveryTimestamp`; the UI enforces this at call sites.
+ */
+export interface UpdateScheduledMessageParams {
+  /** New destination kind; carries its own required-field rules. */
+  type?: "channel" | "direct";
+  /** New destination — channel id, or recipient user ids. */
+  to?: number | UserId[];
+  topic?: string;
+  content?: string;
+  scheduledDeliveryTimestamp?: UnixTimestamp;
+}
+

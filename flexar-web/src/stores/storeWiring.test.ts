@@ -74,10 +74,11 @@ const { useDmConversationsStore } = await import("./dmConversationsStore");
 const { useTopicsStore } = await import("./topicsStore");
 const { useRealmEmojiStore } = await import("./realmEmojiStore");
 const { useTypingStore } = await import("./typingStore");
+const { useScheduledMessagesStore } = await import("./scheduledMessagesStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 10;
+const STORE_COUNT = 11;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -95,6 +96,10 @@ describe("server-state stores — wiring", () => {
     useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
     useRealmEmojiStore.setState({ emojiById: {} });
     useTypingStore.setState({ buckets: {} });
+    useScheduledMessagesStore.setState({
+      scheduledMessages: {},
+      loadStatus: "idle",
+    });
   });
 
   it("every store subscribes at module load", () => {
@@ -313,6 +318,74 @@ describe("server-state stores — wiring", () => {
     emitInitialState();
     expect(useTopicsStore.getState().topicsByChannel).toEqual({});
     expect(useTopicsStore.getState().loadStatus).toEqual({});
+  });
+
+  it("folds scheduled-messages add/update/remove events into the store", () => {
+    emitEvent({
+      id: 11,
+      type: "scheduled_messages",
+      op: "add",
+      scheduled_messages: [
+        {
+          scheduled_message_id: 7,
+          type: "stream",
+          to: 10,
+          topic: "release",
+          content: "Reminder",
+          rendered_content: "<p>Reminder</p>",
+          scheduled_delivery_timestamp: 1000,
+          failed: false,
+        },
+      ],
+    });
+    expect(useScheduledMessagesStore.getState().get(7)?.content).toBe(
+      "Reminder",
+    );
+
+    emitEvent({
+      id: 12,
+      type: "scheduled_messages",
+      op: "update",
+      scheduled_message: {
+        scheduled_message_id: 7,
+        type: "stream",
+        to: 10,
+        topic: "release",
+        content: "Edited",
+        rendered_content: "<p>Edited</p>",
+        scheduled_delivery_timestamp: 2000,
+        failed: false,
+      },
+    });
+    expect(useScheduledMessagesStore.getState().get(7)?.content).toBe("Edited");
+
+    emitEvent({
+      id: 13,
+      type: "scheduled_messages",
+      op: "remove",
+      scheduled_message_id: 7,
+    });
+    expect(useScheduledMessagesStore.getState().get(7)).toBeUndefined();
+  });
+
+  it("clears the scheduled-messages store on re-register", () => {
+    useScheduledMessagesStore.setState({
+      scheduledMessages: {
+        7: {
+          scheduled_message_id: 7,
+          type: "private",
+          to: [2],
+          content: "x",
+          rendered_content: "<p>x</p>",
+          scheduled_delivery_timestamp: 100,
+          failed: false,
+        },
+      },
+      loadStatus: "loaded",
+    });
+    emitInitialState();
+    expect(useScheduledMessagesStore.getState().scheduledMessages).toEqual({});
+    expect(useScheduledMessagesStore.getState().loadStatus).toBe("idle");
   });
 
   it("ignores event types a store does not own", () => {

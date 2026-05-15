@@ -15,7 +15,7 @@ import {
 } from "./builtinViews";
 
 describe("BUILTIN_VIEWS registry", () => {
-  it("lists the seven built-in views in sidebar order", () => {
+  it("lists the eight built-in views in sidebar order", () => {
     expect(BUILTIN_VIEWS.map((view) => view.id)).toEqual([
       "inbox",
       "recent",
@@ -24,14 +24,15 @@ describe("BUILTIN_VIEWS registry", () => {
       "reactions",
       "starred",
       "drafts",
+      "scheduled",
     ]);
   });
 
-  it("classifies inbox / recent / drafts as special views", () => {
+  it("classifies inbox / recent / drafts / scheduled as special views", () => {
     const specialIds = BUILTIN_VIEWS.filter(
       (view) => view.kind === "special",
     ).map((view) => view.id);
-    expect(specialIds).toEqual(["inbox", "recent", "drafts"]);
+    expect(specialIds).toEqual(["inbox", "recent", "drafts", "scheduled"]);
   });
 
   it("classifies combined / mentions / reactions / starred as narrow views", () => {
@@ -64,6 +65,7 @@ describe("BUILTIN_VIEWS registry", () => {
       reactions: "smile",
       starred: "star",
       drafts: "drafts",
+      scheduled: "schedule",
     });
   });
 
@@ -75,6 +77,7 @@ describe("BUILTIN_VIEWS registry", () => {
       inbox: "/inbox",
       recent: "/recent",
       drafts: "/drafts",
+      scheduled: "/scheduled",
     });
   });
 

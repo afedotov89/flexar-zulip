@@ -16,6 +16,7 @@ import type {
   PresenceEvent,
   ReactionEvent,
   RealmUserEvent,
+  ScheduledMessagesEvent,
   ServerEvent,
   StreamEvent,
   SubscriptionEvent,
@@ -72,4 +73,10 @@ export function isPresenceEvent(event: ServerEvent): event is PresenceEvent {
 
 export function isTypingEvent(event: ServerEvent): event is TypingEvent {
   return event.type === "typing";
+}
+
+export function isScheduledMessagesEvent(
+  event: ServerEvent,
+): event is ScheduledMessagesEvent {
+  return event.type === "scheduled_messages";
 }

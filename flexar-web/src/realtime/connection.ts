@@ -118,6 +118,7 @@ export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "update_message_flags",
   "user_status",
   "user_topic",
+  "scheduled_messages",
   "heartbeat",
 ];
 

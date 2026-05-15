@@ -76,7 +76,9 @@ import {
 } from "./optimisticMessage";
 import { ComposePreview } from "./ComposePreview";
 import { EmojiPickerButton } from "./EmojiPicker";
+import { ScheduleSendButton } from "./Schedule";
 import { useTypingEmitter } from "./useTypingEmitter";
+import type { CreateScheduledMessageParams } from "../../api/types";
 import {
   ChannelRowContent,
   EmojiRowContent,
@@ -372,6 +374,48 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     dmRecipientIds,
   });
 
+  // Build the create-params for a schedule-send action (Phase 4.5).
+  // Mirrors the destination resolution in `onSubmit`: returns `null`
+  // when the form is not in a sendable state (no channel, no topic,
+  // no recipients, empty body). The parent passes a chosen send-time
+  // separately, so this lookup is destination-only — the `Schedule`
+  // sub-feature stamps `scheduledDeliveryTimestamp` itself.
+  const buildScheduleParams = useCallback(
+    (): CreateScheduledMessageParams | null => {
+      const content = form.content.trim();
+      if (content === "" || formMode === "none") {
+        return null;
+      }
+      if (formMode === "channel") {
+        const streamId = resolveChannel(form.channelInput, streams);
+        const topic = form.topic.trim();
+        if (streamId === undefined || topic === "") {
+          return null;
+        }
+        return {
+          type: "channel",
+          to: streamId,
+          topic,
+          content,
+          // Replaced by the parent before the API call. Required by
+          // the type, so we stamp a placeholder here.
+          scheduledDeliveryTimestamp: 0,
+        };
+      }
+      const recipientIds = parseRecipients(form.recipientsInput, users);
+      if (recipientIds.length === 0) {
+        return null;
+      }
+      return {
+        type: "direct",
+        to: recipientIds,
+        content,
+        scheduledDeliveryTimestamp: 0,
+      };
+    },
+    [form, formMode, streams, users],
+  );
+
   // Textarea typeahead (`@` / `#` / `:`). The `onApply` callback
   // updates the controlled value and queues the new cursor position;
   // a separate effect commits the cursor to the DOM after the value
@@ -557,6 +601,23 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       typing,
     ],
   );
+
+  // Once the schedule API call succeeds (Phase 4.5), mirror the
+  // post-send cleanup — drop the draft, clear the body, return focus
+  // to the textarea — but skip the optimistic-cache reconciliation:
+  // a scheduled message is not a sent message, so it does not appear
+  // in the feed. The realtime `scheduled_messages add` event keeps
+  // the Scheduled list fresh; nothing else needs touching here.
+  const handleScheduled = useCallback((): void => {
+    if (draftKey !== null) {
+      deleteDraftAction(draftKey);
+    }
+    setForm((current) => ({ ...current, content: "" }));
+    setShowRestoredHint(false);
+    setErrorMessage(null);
+    typing.sendStop();
+    textareaNode?.focus();
+  }, [draftKey, deleteDraftAction, textareaNode, typing]);
 
   // Splice text into the textarea at the current caret (Phase 3.6 — the
   // emoji picker uses this to insert `:shortcode:`). The cursor lands
@@ -836,6 +897,12 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
 
       <div className={styles.actionsRow}>
         <EmojiPickerButton onPick={insertAtCursor} disabled={sending} />
+        <ScheduleSendButton
+          buildParams={buildScheduleParams}
+          canSchedule={canSend}
+          onScheduled={handleScheduled}
+          onError={setErrorMessage}
+        />
         <span className={styles.hintInline} aria-hidden="true">
           Enter to send, Shift+Enter for a new line
         </span>
