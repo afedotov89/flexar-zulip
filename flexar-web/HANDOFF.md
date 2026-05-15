@@ -30,7 +30,7 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
-- `<TBD>` 4.6 — edit-history viewer (modal in actions menu)
+- `3e566ce6c5` 4.6 — edit-history viewer (modal in actions menu)
 - `f4fc972afb` HANDOFF — fill in 4.3 commit hash
 - `e61e606763` 4.3 — typing indicators (send + receive), live POST /typing ✅
 - `8b8eca0070` HANDOFF — fill in 3.1 commit hash
