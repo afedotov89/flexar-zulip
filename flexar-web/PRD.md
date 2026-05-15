@@ -611,7 +611,7 @@ keyboard-driven).
 - [ ] 5.2 Настройки организации (админ) — И · [ ] П
 - [ ] 5.3 Управление каналами — И · [ ] П
 - [ ] 5.4 Управление пользователями — И · [ ] П
-- [ ] 5.5 Подписки — И · [ ] П
+- [x] 5.5 Подписки — ✅И (`apiClient.subscribe({subscriptions: [{name, description?}], principals?, ...})` POST + `unsubscribe({subscriptions: [name], principals?})` DELETE `/users/me/subscriptions`; `/channels` browse-page subscribed-first sort + search filter + per-row Subscribe/Unsubscribe; sidebar `+` в `ChannelsSection` навигирует на `/channels` вместо no-op; realtime sub events уже фолдят) · [~] П (компонент смонтирован, гейты ✅, live на стенде ⏳)
 - [ ] **Гейт Фазы 5:** общий протык
 
 ### Фаза 6 — Сквозное и полировка

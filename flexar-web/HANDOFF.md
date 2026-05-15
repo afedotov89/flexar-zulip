@@ -4,7 +4,7 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-15, **Фаза 5.1 закрыта** (личные настройки: профиль/предпочтения/уведомления через PATCH /settings + `useUserSettingsStore`).
+**Последнее обновление:** 2026-05-15, **Фаза 5.5 закрыта** (subscribe/unsubscribe + `/channels` browse-page; sidebar «+» теперь навигирует).
 
 ---
 
@@ -30,6 +30,8 @@
   **Следующее — гейт Фазы 1** (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `9370f321d4` 5.5 — subscribe/unsubscribe + browse-channels (`/channels`)
+- `c7088b1d81` HANDOFF — 5.1 заметка
 - `53baae234d` 5.1 — личные настройки (`/settings` + `useUserSettingsStore` + PATCH /settings)
 - `09c768d6c0` HANDOFF — 4.7 заметка
 - `74e3e9515e` 4.7 — виджет опросов (poll widget viewer + voting + add-option)
@@ -341,8 +343,18 @@ unicode emoji (коммит `2723e343a2`).
   toggle-row autosave, display-name explicit save); кнопка
   «Настройки» в navbar. Account-level (пароль/ключ/аватар) намеренно
   out-of-scope. 1019 unit-тестов; гейты зелёные. Live ⏳.
+- ✅ **5.5 Подписки** — `apiClient.subscribe({subscriptions:
+  [{name, description?}], principals?, …})` для POST + `unsubscribe(
+  {subscriptions: [name], principals?})` для DELETE
+  `/users/me/subscriptions`. `/channels` browse-page: subscribed
+  first → alphabetical, search-фильтр, per-row Subscribe/Unsubscribe
+  с loading-state; realtime `subscription add | remove` события
+  фолдят в `streamsStore` без явной optimistic-обвязки. Sidebar's
+  «+» в `ChannelsSection` теперь навигирует на `/channels` (был
+  no-op). Out of scope: per-channel settings (5.3), admin remove
+  others (5.4). Гейты зелёные.
 - ⏳ **5.2** настройки организации; **5.3** управление каналами;
-  **5.4** управление пользователями; **5.5** подписки
+  **5.4** управление пользователями
 
 Открытые мелкие доработки (не блокеры, отдельным проходом):
 KaTeX-шрифты (1.7), click-to-narrow по меншенам (1.7), pinned-sticky
