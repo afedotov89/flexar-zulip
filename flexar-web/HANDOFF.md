@@ -4,12 +4,29 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-16, **Фаза 5.2/5.3/5.4 фиче-комплит**:
+**Последнее обновление:** 2026-05-16, **Фаза 5.2/5.3/5.4 фиче-комплит + live-протык на стенде ✅**:
 - 5 коммитов закрыли всю админку: shared infra → 18 apiClient методов
   → 5.4 пользователи + 5.3 каналы → 5.4 invites + 5.2 организация.
-- **1096 unit-тестов** (+72 за Фазу 5). Все гейты зелёные.
-- **Live-протык — ⏳ ждёт владельца** (паролем на стенд).
-- Предыдущее: 2-й RU i18n sweep (`9c1d2167d3`); полная bug-sweep ревизия — все 15 багов из сплошного live-протыка пофикшены архитектурно.
+- **Live-протык на стенде** (`a.fedotov@friflex.com`, owner) — все 6
+  точек админки оттыканы успешно: navbar dropdown (Настройки/
+  Администрирование/Выйти с правильными иконками); `/admin/users`
+  (3 юзера + табы + role-filter + EditUserModal); `/admin/invites`
+  (4 multiuse-link'а + SendInviteModal с ChannelPicker); `/admin/
+  organization` (Profile/Сообщения/Доступ/Каналы по умолчанию);
+  `/channels` с «Создать канал» + name → Link; `/channels/:id`
+  (rename + privacy/history/retention toggles + subscribers list +
+  «Опасная зона» с Архивировать).
+- Найдены и пофикшены 2 бага архитектурно (commit `ce1841b01e`):
+  (1) `GET /default_streams → 405` (endpoint не существует в Zulip
+  API) — переделали `defaultStreamsStore` на чтение из
+  register-snapshot `realm_default_streams`; (2) глобальный danger
+  Banner за `<img onError>` иконки — заменён на локальный
+  `iconBroken` + span-фолбэк.
+- **1092 unit-теста** (+68 за Фазу 5, -4 за удалённые тесты
+  несуществующего endpoint'а). Все гейты зелёные.
+- Предыдущее: 2-й RU i18n sweep (`9c1d2167d3`); полная bug-sweep
+  ревизия — все 15 багов из сплошного live-протыка пофикшены
+  архитектурно.
 
 ---
 
@@ -37,6 +54,8 @@
   ждёт владельца на стенде (см. «Следующее действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `ce1841b01e` 5.2-fix — default_streams живут в register snapshot (был 405 на GET); icon onError → silent span-фолбэк (был ложный danger Banner)
+- `a50847221e` HANDOFF + PRD — Фаза 5 фиче-комплит, мастер-чеклист обновлён
 - `b791359aac` 5.4 invites + 5.2 organization settings (8 + 20 unit-тестов; +28)
 - `faeafbf00e` 5.4 admin users + 5.3 channel management (11 + 15 unit-тестов; +26)
 - `72b24d0b00` 5.x apiClient — 18 admin methods (realm/channels/users/invites; +18 unit)
