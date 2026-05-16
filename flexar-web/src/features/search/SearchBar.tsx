@@ -11,15 +11,35 @@
 // (suggesting `from:` users, `channel:` channels, …) is a future
 // refinement and out of this phase's scope.
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "../../components/Input";
 import { useNarrowNavigation } from "../../lib/narrow";
 import { parseSearchQuery } from "../../lib/search";
+import { useSearchFocusStore } from "./searchFocusSignal";
 import styles from "./SearchBar.module.css";
 
 export function SearchBar(): React.JSX.Element {
   const [value, setValue] = useState("");
   const { goToNarrow } = useNarrowNavigation();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // External focus signal — bumped by the `search` shortcut
+  // (Ctrl/Cmd+K). When the tick changes we focus + select-all so the
+  // user can immediately type over any leftover query.
+  const focusTick = useSearchFocusStore((state) => state.tick);
+  const lastFocusTickRef = useRef(focusTick);
+  useEffect(() => {
+    if (lastFocusTickRef.current === focusTick) {
+      return;
+    }
+    lastFocusTickRef.current = focusTick;
+    const input = inputRef.current;
+    if (input === null) {
+      return;
+    }
+    input.focus();
+    input.select();
+  }, [focusTick]);
 
   const onSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -43,6 +63,7 @@ export function SearchBar(): React.JSX.Element {
   return (
     <form className={styles.bar} role="search" onSubmit={onSubmit}>
       <Input
+        ref={inputRef}
         size="sm"
         type="search"
         value={value}

@@ -13,6 +13,7 @@ import { LeftSidebar } from "../../features/leftSidebar";
 import { RightSidebar } from "../../features/rightSidebar";
 import { Lightbox } from "../../features/lightbox";
 import { NotificationCenter } from "../../features/notifications";
+import { GlobalShortcuts, KeyboardHelpOverlay } from "../../features/keyboard";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -48,6 +49,15 @@ export function AppShell() {
         this component renders the overlay when one is open.
       */}
       <Lightbox />
+
+      {/*
+        Keyboard layer (Phase 6.1). `GlobalShortcuts` registers the
+        always-on chords (Cmd/Ctrl+K, `c`, `i`/`m`/`s`/`d`) and
+        renders nothing; `KeyboardHelpOverlay` shows the catalogue
+        Modal in response to `?`.
+      */}
+      <GlobalShortcuts />
+      <KeyboardHelpOverlay />
     </div>
   );
 }

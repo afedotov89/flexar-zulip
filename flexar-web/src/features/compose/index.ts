@@ -5,3 +5,4 @@
 // not built here); the only public export is the component itself.
 
 export { ComposeBox, type ComposeBoxProps } from "./ComposeBox";
+export { useComposeFocusStore } from "./composeFocusSignal";

@@ -55,6 +55,7 @@ import { DateSeparator } from "./DateSeparator";
 import { MessageRow } from "./MessageRow";
 import { RecipientBar } from "./RecipientBar";
 import type { FeedRow } from "./feedItems";
+import { useFeedKeyboard } from "./useFeedKeyboard";
 import { useMarkVisibleAsRead } from "./useMarkVisibleAsRead";
 import styles from "./MessageList.module.css";
 
@@ -211,6 +212,11 @@ export function MessageList({
     virtualizer,
     scrollRef,
   });
+
+  // Feed-scope keyboard shortcuts (j / k / arrows / Home / End / r).
+  // Active only while a message list is mounted — special views
+  // (Inbox, Drafts) don't get j/k.
+  useFeedKeyboard({ rows, virtualizer, scrollRef });
 
   const virtualRows = virtualizer.getVirtualItems();
 

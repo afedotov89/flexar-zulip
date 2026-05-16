@@ -37,6 +37,7 @@ import { useRealmStore } from "../../stores/realmStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { useComposeFocusStore } from "./composeFocusSignal";
 import {
   composeFromNarrow,
   type ComposeFromNarrow,
@@ -142,6 +143,27 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const setTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
     setTextareaNode(node);
   }, []);
+
+  // External focus signal — bumped by `c` / `r` shortcuts (see
+  // `composeFocusSignal`). We subscribe to the bump counter and focus
+  // the textarea whenever it ticks while the textarea is mounted.
+  const composeFocusTick = useComposeFocusStore((state) => state.tick);
+  const lastComposeFocusTickRef = useRef(composeFocusTick);
+  useEffect(() => {
+    if (lastComposeFocusTickRef.current === composeFocusTick) {
+      return;
+    }
+    lastComposeFocusTickRef.current = composeFocusTick;
+    if (textareaNode === null) {
+      return;
+    }
+    textareaNode.focus();
+    // Place the caret at the end so the user can keep typing without
+    // overwriting existing content. matches what `restore from draft`
+    // and the schedule send-menu return path do.
+    const end = textareaNode.value.length;
+    textareaNode.setSelectionRange(end, end);
+  }, [composeFocusTick, textareaNode]);
 
   const prefillKey = useMemo(() => prefillKeyOf(fromNarrow), [fromNarrow]);
   const lastPrefillKeyRef = useRef<string | null>(null);
