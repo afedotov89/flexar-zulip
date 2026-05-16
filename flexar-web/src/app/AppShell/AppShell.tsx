@@ -12,6 +12,7 @@ import { Navbar } from "../Navbar";
 import { LeftSidebar } from "../../features/leftSidebar";
 import { RightSidebar } from "../../features/rightSidebar";
 import { Lightbox } from "../../features/lightbox";
+import { NetworkStatusBanner } from "../../features/networkStatus";
 import { NotificationCenter } from "../../features/notifications";
 import { GlobalShortcuts, KeyboardHelpOverlay } from "../../features/keyboard";
 import styles from "./AppShell.module.css";
@@ -20,6 +21,15 @@ export function AppShell() {
   return (
     <div className={styles.shell}>
       <Navbar />
+
+      {/*
+        Network-status banner (Phase 6.8). Renders nothing while
+        everything is healthy; surfaces a strip when the browser is
+        offline, the realtime layer is reconnecting, or we just came
+        back from an outage. Sits between the navbar and the body so
+        it pushes the columns down rather than overlaying them.
+      */}
+      <NetworkStatusBanner />
 
       <div className={styles.body}>
         <aside className={styles.leftSidebar} aria-label="Каналы и навигация">

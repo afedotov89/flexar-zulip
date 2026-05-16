@@ -1,0 +1,11 @@
+/*
+ * Network-status banner wrapper (Phase 6.8).
+ *
+ * Sits between the navbar and the body, so the banner pushes the
+ * three-column layout down (rather than overlaying it). A thin
+ * horizontal padding matches the rest of the shell.
+ */
+
+.wrap {
+  padding: var(--space-2) var(--space-4) 0;
+}
