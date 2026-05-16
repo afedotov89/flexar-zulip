@@ -22,6 +22,31 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      // Push the big always-needed third-party deps into their own
+      // long-lived chunks: they change rarely, so the browser can
+      // cache them across releases. The runtime+app chunk shrinks
+      // by the size of these deps. See PRD §6.6.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // React core + routing + query — every page needs them.
+            "vendor-react": [
+              "react",
+              "react-dom",
+              "react-router-dom",
+              "@tanstack/react-query",
+            ],
+            // Sanitiser pulled in only on the message-feed path but
+            // big enough (~40kb) to deserve its own chunk so a code
+            // change in our code doesn't bust its cache.
+            "vendor-dompurify": ["dompurify"],
+            // The virtualizer is its own moderate chunk.
+            "vendor-virtual": ["@tanstack/react-virtual"],
+          },
+        },
+      },
+    },
     test: {
       globals: true,
       environment: "jsdom",

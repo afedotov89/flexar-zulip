@@ -1,0 +1,16 @@
+/*
+ * Route-level Suspense fallback (Phase 6.6).
+ *
+ * Centred spinner that fills whatever space the lazy page would have
+ * occupied — typically the AppShell's centre column. Pure-layout
+ * literals only.
+ */
+
+.fallback {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  min-height: 12rem;
+}
