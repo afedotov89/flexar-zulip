@@ -127,3 +127,47 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
+
+/* ---- Mobile drawer toggles (6.4) -------------------------------- */
+
+/*
+ * Both toggles live in the navbar but are only displayed at the
+ * breakpoints where the corresponding sidebar collapses to a drawer.
+ * On wider screens the sidebars are pinned columns and the toggles
+ * have no job.
+ */
+
+.drawerToggleLeft,
+.drawerToggleRight {
+  display: none;
+}
+
+@media (width <= 1023px) {
+  .drawerToggleRight {
+    display: inline-flex;
+  }
+
+  /* At tablet width, free up navbar space by hiding the verbose
+   * theme-toggle label and the account-email span. The buttons are
+   * still reachable; their icons stay. */
+  .themeToggle {
+    display: none;
+  }
+
+  .accountEmail {
+    display: none;
+  }
+}
+
+@media (width <= 767px) {
+  .drawerToggleLeft {
+    display: inline-flex;
+  }
+
+  /* On phones, drop the brand text — the hamburger and Flexar Hub
+   * logo together would crowd the navbar; the brand sits in the
+   * window title and on the login page. */
+  .brand {
+    display: none;
+  }
+}

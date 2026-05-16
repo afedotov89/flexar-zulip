@@ -95,6 +95,7 @@ export const icons = {
     '<path d="M3 11 21 3 13 21l-2-8Z" /><line x1="11" y1="13" x2="21" y2="3" />',
   maximize:
     '<polyline points="4 9 4 4 9 4" /><polyline points="15 4 20 4 20 9" /><polyline points="20 15 20 20 15 20" /><polyline points="9 20 4 20 4 15" />',
+  menu: '<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />',
 } as const;
 
 export type IconName = keyof typeof icons;

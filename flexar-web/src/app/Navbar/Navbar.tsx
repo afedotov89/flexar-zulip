@@ -17,11 +17,13 @@ import { useNavigate } from "react-router-dom";
 import { DropdownMenu } from "../../components/DropdownMenu";
 import type { DropdownMenuEntry } from "../../components/DropdownMenu";
 import { Icon } from "../../components/Icon";
+import { IconButton } from "../../components/IconButton";
 import { SearchBar } from "../../features/search";
 import { StatusButton } from "../../features/userStatus";
 import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../theme";
+import { useDrawerStore } from "../AppShell/drawerStore";
 import styles from "./Navbar.module.css";
 
 export function Navbar(): React.JSX.Element {
@@ -32,6 +34,28 @@ export function Navbar(): React.JSX.Element {
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const isAdmin = useIsAdmin();
+
+  // Drawer toggles — only visible at the corresponding breakpoints
+  // via CSS (`.drawerToggleLeft` mobile-only, `.drawerToggleRight`
+  // tablet-and-below).
+  const drawerOpen = useDrawerStore((s) => s.open);
+  const openLeftDrawer = useDrawerStore((s) => s.openLeft);
+  const openRightDrawer = useDrawerStore((s) => s.openRight);
+  const closeDrawer = useDrawerStore((s) => s.close);
+  const toggleLeft = (): void => {
+    if (drawerOpen === "left") {
+      closeDrawer();
+    } else {
+      openLeftDrawer();
+    }
+  };
+  const toggleRight = (): void => {
+    if (drawerOpen === "right") {
+      closeDrawer();
+    } else {
+      openRightDrawer();
+    }
+  };
 
   function handleLogout(): void {
     logout();
@@ -75,6 +99,24 @@ export function Navbar(): React.JSX.Element {
 
   return (
     <header className={styles.navbar}>
+      {/*
+        Mobile-only: opens the left sidebar as a drawer. Hidden at
+        ≥768px where the sidebar is a pinned column. Sits at the very
+        start of the navbar so the chat icon order matches the
+        sidebar's screen position.
+      */}
+      <span className={styles.drawerToggleLeft}>
+        <IconButton
+          icon="menu"
+          variant="ghost"
+          aria-label={
+            drawerOpen === "left" ? "Закрыть боковую панель" : "Открыть боковую панель"
+          }
+          aria-expanded={drawerOpen === "left"}
+          onClick={toggleLeft}
+        />
+      </span>
+
       <div className={styles.brand}>Flexar Hub</div>
 
       <div className={styles.search}>
@@ -82,6 +124,21 @@ export function Navbar(): React.JSX.Element {
       </div>
 
       <div className={styles.actions}>
+        {/*
+          Tablet-and-below: opens the right sidebar (members) as a
+          drawer. Hidden at ≥1024px where the right column is pinned.
+        */}
+        <span className={styles.drawerToggleRight}>
+          <IconButton
+            icon="users"
+            variant="ghost"
+            aria-label={
+              drawerOpen === "right" ? "Закрыть участников" : "Показать участников"
+            }
+            aria-expanded={drawerOpen === "right"}
+            onClick={toggleRight}
+          />
+        </span>
         <button
           type="button"
           className={styles.themeToggle}

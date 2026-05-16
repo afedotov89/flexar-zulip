@@ -1,13 +1,30 @@
 // Flexar Hub Web — app-shell layout (Phase 0.5; left sidebar 1.5;
-// right sidebar 1.8).
+// right sidebar 1.8; responsive drawers 6.4).
 //
 // The structural skeleton of the chat UI: a full-width navbar above a
 // three-column body (left navigation, center message feed, right
 // contextual panel). The left column hosts the Phase 1.5 `LeftSidebar`
 // feature; the right column hosts the Phase 1.8 `RightSidebar` feature.
 // The center column hosts the routed page via React Router's <Outlet />.
+//
+// ── Responsive (6.4) ────────────────────────────────────────────────
+//
+// Three breakpoints, in CSS:
+//   ≥1024px  desktop  — both sidebars are pinned columns; the center
+//                       fills what's left.
+//   768–1023 tablet  — left sidebar pinned, right sidebar collapsed
+//                      into a drawer behind a hamburger.
+//   <768px   mobile   — both sidebars are drawers.
+//
+// The drawer-open/close state lives in `useDrawerStore`. Opening a
+// drawer renders an overlay backdrop (`.drawerBackdrop`) the user can
+// tap to dismiss; pressing Escape also closes. A route change closes
+// both — the user just navigated to a new view, so the side panel has
+// done its job. The wider-screen layout ignores the store entirely,
+// so toggling at desktop is a harmless no-op.
 
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "../Navbar";
 import { LeftSidebar } from "../../features/leftSidebar";
 import { RightSidebar } from "../../features/rightSidebar";
@@ -15,9 +32,53 @@ import { Lightbox } from "../../features/lightbox";
 import { NetworkStatusBanner } from "../../features/networkStatus";
 import { NotificationCenter } from "../../features/notifications";
 import { GlobalShortcuts, KeyboardHelpOverlay } from "../../features/keyboard";
+import { useDrawerStore } from "./drawerStore";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
+  const drawerOpen = useDrawerStore((s) => s.open);
+  const closeDrawer = useDrawerStore((s) => s.close);
+  const location = useLocation();
+
+  // Close any open drawer on a route change. Drawers are a way to
+  // pick a destination; once a destination is picked, the drawer's
+  // job is done and the user wants the feed to be the focus.
+  useEffect(() => {
+    closeDrawer();
+  }, [location.pathname, closeDrawer]);
+
+  // Escape closes an open drawer. We attach the listener only while
+  // a drawer is open so it doesn't shadow any feature-level Escape
+  // handling the rest of the time.
+  useEffect(() => {
+    if (drawerOpen === null) {
+      return undefined;
+    }
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeDrawer();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [drawerOpen, closeDrawer]);
+
+  // Body-scroll lock while a drawer is open — otherwise the page
+  // underneath scrolls when the user pans the drawer on touch.
+  useEffect(() => {
+    if (drawerOpen === null) {
+      return undefined;
+    }
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [drawerOpen]);
+
   return (
     <div className={styles.shell}>
       <Navbar />
@@ -32,7 +93,13 @@ export function AppShell() {
       <NetworkStatusBanner />
 
       <div className={styles.body}>
-        <aside className={styles.leftSidebar} aria-label="Каналы и навигация">
+        <aside
+          className={`${styles.leftSidebar}${
+            drawerOpen === "left" ? ` ${styles.drawerOpen}` : ""
+          }`}
+          aria-label="Каналы и навигация"
+          aria-hidden={drawerOpen !== null && drawerOpen !== "left"}
+        >
           <LeftSidebar />
         </aside>
 
@@ -40,9 +107,30 @@ export function AppShell() {
           <Outlet />
         </main>
 
-        <aside className={styles.rightSidebar} aria-label="О беседе">
+        <aside
+          className={`${styles.rightSidebar}${
+            drawerOpen === "right" ? ` ${styles.drawerOpen}` : ""
+          }`}
+          aria-label="О беседе"
+          aria-hidden={drawerOpen !== null && drawerOpen !== "right"}
+        >
           <RightSidebar />
         </aside>
+
+        {/*
+          The drawer backdrop is a click-target that dismisses the
+          open drawer. It is positioned by CSS (`fixed`, scrim colour)
+          and only displayed when a drawer is open — hidden at every
+          breakpoint when the store is closed.
+        */}
+        {drawerOpen !== null && (
+          <button
+            type="button"
+            className={styles.drawerBackdrop}
+            aria-label="Закрыть панель"
+            onClick={closeDrawer}
+          />
+        )}
       </div>
 
       {/*
