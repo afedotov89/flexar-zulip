@@ -14,7 +14,7 @@
 // ── States ──────────────────────────────────────────────────────────
 //
 //   loading  — the initial fetch is in flight: skeleton rows.
-//   error    — the initial fetch failed: a `Banner` with a retry.
+//   error    — the initial fetch failed: an `EmptyState` with a retry.
 //   empty    — the fetch succeeded but the narrow has no messages.
 //   ready    — the normal case: the virtualized list, plus a
 //              `historyLimited` notice when the server truncated
@@ -26,6 +26,8 @@
 
 import { useMemo } from "react";
 import { Banner } from "../../components/Banner";
+import { Button } from "../../components/Button";
+import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import type { Message, Narrow } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
@@ -103,22 +105,17 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   if (window.status === "error") {
     return (
       <div className={styles.feed}>
-        <div className={styles.notice}>
-          <Banner
-            tone="danger"
-            title="Не удалось загрузить сообщения"
-            onDismiss={undefined}
-          >
-            {window.error ?? "Что-то пошло не так при загрузке."}{" "}
-            <button
-              type="button"
-              className={styles.retryButton}
-              onClick={window.retry}
-            >
+        <EmptyState
+          tone="error"
+          icon="error"
+          title="Не удалось загрузить сообщения"
+          description={window.error ?? "Что-то пошло не так при загрузке."}
+          action={
+            <Button variant="secondary" size="sm" onClick={window.retry}>
               Попробовать снова
-            </button>
-          </Banner>
-        </div>
+            </Button>
+          }
+        />
         <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>
@@ -128,12 +125,11 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   if (rows.length === 0) {
     return (
       <div className={styles.feed}>
-        <div className={styles.empty}>
-          <p className={styles.emptyTitle}>Здесь пока нет сообщений</p>
-          <p className={styles.emptyHint}>
-            Сообщения, отправленные в этот вид, появятся здесь.
-          </p>
-        </div>
+        <EmptyState
+          icon="inbox"
+          title="Здесь пока нет сообщений"
+          description="Сообщения, отправленные в этот вид, появятся здесь."
+        />
         <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>

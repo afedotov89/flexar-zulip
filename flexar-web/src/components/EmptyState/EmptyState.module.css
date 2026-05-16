@@ -1,0 +1,64 @@
+/*
+ * EmptyState primitive (Phase 6.7).
+ *
+ * Centred panel with optional icon + title + description + action.
+ * Token-driven sizing scales with the surrounding type ramp; the
+ * tone classes only swap the icon colour and (for `muted`) tighten
+ * the padding for sidebar-style contexts.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.iconSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.empty .iconSlot {
+  color: var(--color-text-muted);
+}
+
+.error .iconSlot {
+  color: var(--color-danger);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: var(--container-width-sm);
+}
+
+.action {
+  display: inline-flex;
+  margin-top: var(--space-2);
+}
+
+/* The muted tone is for inline sub-lists (sidebars, popovers). */
+.muted {
+  padding: var(--space-3) var(--space-2);
+}
+
+.muted .title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
