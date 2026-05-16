@@ -10,6 +10,7 @@
 
 import { useCallback, useState } from "react";
 import { Modal } from "../../components/Modal";
+import { useI18n } from "../../lib/i18n";
 import {
   KEYMAP,
   formatShortcut,
@@ -19,6 +20,7 @@ import styles from "./KeyboardHelpOverlay.module.css";
 
 export function KeyboardHelpOverlay(): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const { m } = useI18n();
 
   useKeyboardShortcut(
     "help",
@@ -35,7 +37,7 @@ export function KeyboardHelpOverlay(): React.JSX.Element {
     <Modal
       open={open}
       onClose={() => setOpen(false)}
-      title="Горячие клавиши"
+      title={m.keyboard.helpTitle}
       size="md"
     >
       <div className={styles.groups}>
@@ -50,7 +52,7 @@ export function KeyboardHelpOverlay(): React.JSX.Element {
                     {entry.chords.map((chord, index) => (
                       <span key={index} className={styles.chordWrap}>
                         {index > 0 && (
-                          <span className={styles.chordSep}>или</span>
+                          <span className={styles.chordSep}>{m.keyboard.or}</span>
                         )}
                         <kbd className={styles.kbd}>
                           {formatShortcut(chord)}

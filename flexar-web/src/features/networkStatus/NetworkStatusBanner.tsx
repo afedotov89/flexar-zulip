@@ -33,6 +33,7 @@
 import { useEffect, useState } from "react";
 import { Banner } from "../../components/Banner";
 import type { ConnectionStatus } from "../../realtime";
+import { useI18n } from "../../lib/i18n";
 import { useRealtimeStatus } from "../../lib/hooks/useRealtimeStatus";
 import { useNetworkOnline } from "../../lib/hooks/useNetworkOnline";
 import styles from "./NetworkStatusBanner.module.css";
@@ -52,6 +53,7 @@ type Display = "none" | "offline" | "reconnecting" | "reconnected";
 export function NetworkStatusBanner(): React.JSX.Element | null {
   const realtimeStatus = useRealtimeStatus();
   const isOnline = useNetworkOnline();
+  const { m } = useI18n();
   const display = useDisplay(realtimeStatus, isOnline);
 
   if (display === "none") {
@@ -60,17 +62,12 @@ export function NetworkStatusBanner(): React.JSX.Element | null {
 
   return (
     <div className={styles.wrap}>
-      {display === "offline" && (
-        <Banner tone="danger">
-          Нет соединения с интернетом. Сообщения и обновления приостановлены
-          — мы продолжим, как только связь вернётся.
-        </Banner>
-      )}
+      {display === "offline" && <Banner tone="danger">{m.network.offline}</Banner>}
       {display === "reconnecting" && (
-        <Banner tone="warning">Восстанавливаем соединение с сервером…</Banner>
+        <Banner tone="warning">{m.network.reconnecting}</Banner>
       )}
       {display === "reconnected" && (
-        <Banner tone="success">Соединение восстановлено.</Banner>
+        <Banner tone="success">{m.network.reconnected}</Banner>
       )}
     </div>
   );

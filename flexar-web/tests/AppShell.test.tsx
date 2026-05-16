@@ -3,6 +3,7 @@ import { afterEach, vi } from "vitest";
 import { App } from "../src/app/App";
 import { apiClient } from "../src/api";
 import { useAuthStore } from "../src/stores/authStore";
+import { useLocaleStore } from "../src/lib/i18n";
 
 // The app-shell renders inside the full provider stack (ThemeProvider ->
 // QueryClientProvider -> RouterProvider), so these tests drive the real
@@ -16,6 +17,9 @@ beforeEach(() => {
   document.documentElement.removeAttribute("data-theme");
   document.getElementById("flexar-hub-theme-tokens")?.remove();
   window.history.pushState({}, "", "/");
+  // The locale store uses `persist`; ensure each test starts from
+  // RU regardless of what a previous test left in storage.
+  useLocaleStore.setState({ locale: "ru" });
   // Stage a signed-in session so RequireAuth renders the AppShell. The
   // store is the live singleton; no component is mounted at this point
   // (RTL's auto-cleanup unmounted the previous test), so a bare
@@ -72,7 +76,7 @@ describe("AppShell", () => {
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     const toggle = screen.getByRole("button", {
-      name: "Переключить на тёмную тему",
+      name: "Тёмная тема",
     });
 
     act(() => {
@@ -81,7 +85,7 @@ describe("AppShell", () => {
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
     expect(
-      screen.getByRole("button", { name: "Переключить на светлую тему" }),
+      screen.getByRole("button", { name: "Светлая тема" }),
     ).toBeInTheDocument();
   });
 });

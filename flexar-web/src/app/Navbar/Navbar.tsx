@@ -20,6 +20,7 @@ import { Icon } from "../../components/Icon";
 import { IconButton } from "../../components/IconButton";
 import { SearchBar } from "../../features/search";
 import { StatusButton } from "../../features/userStatus";
+import { useI18n, useLocaleStore } from "../../lib/i18n";
 import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../theme";
@@ -28,7 +29,13 @@ import styles from "./Navbar.module.css";
 
 export function Navbar(): React.JSX.Element {
   const { theme, toggleTheme } = useTheme();
-  const nextThemeLabel = theme === "light" ? "тёмную" : "светлую";
+  const { m } = useI18n();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  const nextThemeLabel =
+    theme === "light"
+      ? m.navbar.themeToggleToDark
+      : m.navbar.themeToggleToLight;
 
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
@@ -72,16 +79,25 @@ export function Navbar(): React.JSX.Element {
   const accountMenuItems: DropdownMenuEntry[] = [
     {
       id: "settings",
-      label: "Настройки",
+      label: m.navbar.settings,
       icon: "settings",
       onSelect: () => void navigate("/settings"),
+    },
+    // Language switcher: a single entry that toggles between ru ↔ en.
+    // Cleaner than nested submenus while we only ship two locales.
+    {
+      id: "language",
+      label:
+        locale === "ru" ? m.language.english : m.language.russian,
+      icon: "globe",
+      onSelect: () => setLocale(locale === "ru" ? "en" : "ru"),
     },
     ...(isAdmin
       ? ([
           { id: "admin-sep", separator: true },
           {
             id: "admin",
-            label: "Администрирование",
+            label: m.navbar.administration,
             icon: "shield",
             onSelect: () => void navigate("/admin/users"),
           },
@@ -90,7 +106,7 @@ export function Navbar(): React.JSX.Element {
     { id: "logout-sep", separator: true },
     {
       id: "logout",
-      label: "Выйти",
+      label: m.navbar.logout,
       icon: "log-out",
       danger: true,
       onSelect: handleLogout,
@@ -110,14 +126,16 @@ export function Navbar(): React.JSX.Element {
           icon="menu"
           variant="ghost"
           aria-label={
-            drawerOpen === "left" ? "Закрыть боковую панель" : "Открыть боковую панель"
+            drawerOpen === "left"
+              ? m.navbar.drawerCloseLeft
+              : m.navbar.drawerOpenLeft
           }
           aria-expanded={drawerOpen === "left"}
           onClick={toggleLeft}
         />
       </span>
 
-      <div className={styles.brand}>Flexar Hub</div>
+      <div className={styles.brand}>{m.navbar.brand}</div>
 
       <div className={styles.search}>
         <SearchBar />
@@ -133,7 +151,9 @@ export function Navbar(): React.JSX.Element {
             icon="users"
             variant="ghost"
             aria-label={
-              drawerOpen === "right" ? "Закрыть участников" : "Показать участников"
+              drawerOpen === "right"
+                ? m.navbar.drawerCloseRight
+                : m.navbar.drawerOpenRight
             }
             aria-expanded={drawerOpen === "right"}
             onClick={toggleRight}
@@ -143,9 +163,9 @@ export function Navbar(): React.JSX.Element {
           type="button"
           className={styles.themeToggle}
           onClick={toggleTheme}
-          aria-label={`Переключить на ${nextThemeLabel} тему`}
+          aria-label={nextThemeLabel}
         >
-          {theme === "light" ? "Тёмная" : "Светлая"} тема
+          {nextThemeLabel}
         </button>
         {session != null && (
           <div className={styles.account}>
@@ -155,7 +175,7 @@ export function Navbar(): React.JSX.Element {
                 <button
                   type="button"
                   className={styles.accountTrigger}
-                  aria-label="Меню аккаунта"
+                  aria-label={m.navbar.accountMenu}
                   title={session.email}
                 >
                   <Icon name="user" size="sm" />
@@ -165,7 +185,7 @@ export function Navbar(): React.JSX.Element {
               }
               items={accountMenuItems}
               placement="bottom"
-              aria-label="Меню аккаунта"
+              aria-label={m.navbar.accountMenu}
             />
           </div>
         )}

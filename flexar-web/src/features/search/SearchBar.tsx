@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "../../components/Input";
+import { useI18n } from "../../lib/i18n";
 import { useNarrowNavigation } from "../../lib/narrow";
 import { parseSearchQuery } from "../../lib/search";
 import { useSearchFocusStore } from "./searchFocusSignal";
@@ -22,6 +23,7 @@ export function SearchBar(): React.JSX.Element {
   const [value, setValue] = useState("");
   const { goToNarrow } = useNarrowNavigation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { m } = useI18n();
 
   // External focus signal — bumped by the `search` shortcut
   // (Ctrl/Cmd+K). When the tick changes we focus + select-all so the
@@ -68,8 +70,8 @@ export function SearchBar(): React.JSX.Element {
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Поиск (например from:, channel:, topic:, is:starred, …)"
-        aria-label="Поиск сообщений"
+        placeholder={m.search.placeholder}
+        aria-label={m.search.ariaLabel}
         iconLeft="search"
         autoComplete="off"
       />

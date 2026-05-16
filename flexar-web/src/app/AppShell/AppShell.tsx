@@ -32,10 +32,12 @@ import { Lightbox } from "../../features/lightbox";
 import { NetworkStatusBanner } from "../../features/networkStatus";
 import { NotificationCenter } from "../../features/notifications";
 import { GlobalShortcuts, KeyboardHelpOverlay } from "../../features/keyboard";
+import { useI18n } from "../../lib/i18n";
 import { useDrawerStore } from "./drawerStore";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
+  const { m } = useI18n();
   const drawerOpen = useDrawerStore((s) => s.open);
   const closeDrawer = useDrawerStore((s) => s.close);
   const location = useLocation();
@@ -88,7 +90,7 @@ export function AppShell() {
         — see WAI-ARIA APG.
       */}
       <a href="#main-content" className={styles.skipLink}>
-        Перейти к сообщениям
+        {m.shell.skipToContent}
       </a>
       <Navbar />
 
@@ -106,7 +108,7 @@ export function AppShell() {
           className={`${styles.leftSidebar}${
             drawerOpen === "left" ? ` ${styles.drawerOpen}` : ""
           }`}
-          aria-label="Каналы и навигация"
+          aria-label={m.shell.leftSidebarAria}
           aria-hidden={drawerOpen !== null && drawerOpen !== "left"}
         >
           <LeftSidebar />
@@ -124,7 +126,7 @@ export function AppShell() {
           className={`${styles.rightSidebar}${
             drawerOpen === "right" ? ` ${styles.drawerOpen}` : ""
           }`}
-          aria-label="О беседе"
+          aria-label={m.shell.rightSidebarAria}
           aria-hidden={drawerOpen !== null && drawerOpen !== "right"}
         >
           <RightSidebar />
@@ -140,7 +142,7 @@ export function AppShell() {
           <button
             type="button"
             className={styles.drawerBackdrop}
-            aria-label="Закрыть панель"
+            aria-label={m.shell.closeDrawer}
             onClick={closeDrawer}
           />
         )}
