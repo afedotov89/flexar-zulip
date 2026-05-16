@@ -33,7 +33,6 @@ export type {
   EditMessagePropagateMode,
   EditMessageResult,
   GetChannelSubscribersResult,
-  GetDefaultStreamsResult,
   GetEventsResult,
   GetInvitesResult,
   GetMessagesOptions,

@@ -81,17 +81,6 @@ export function AdminOrganization(): React.JSX.Element {
   const storesLoading = useStoresLoading();
 
   const defaultStreamIds = useDefaultStreamsStore((s) => s.defaultStreams);
-  const defaultStreamsStatus = useDefaultStreamsStore((s) => s.loadStatus);
-  const loadDefaultStreams = useDefaultStreamsStore(
-    (s) => s.loadDefaultStreams,
-  );
-
-  // Lazy-fetch the default-channels list once the store is hydrated.
-  useEffect(() => {
-    if (!storesLoading) {
-      void loadDefaultStreams();
-    }
-  }, [storesLoading, loadDefaultStreams]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -124,12 +113,11 @@ export function AdminOrganization(): React.JSX.Element {
         </Banner>
       )}
 
-      <ProfileSection realm={realm} onSubmit={submit} onError={setError} />
+      <ProfileSection realm={realm} onSubmit={submit} />
       <MessagesSection realm={realm} onSubmit={submit} />
       <AccessSection realm={realm} onSubmit={submit} />
       <DefaultStreamsSection
         defaultStreamIds={defaultStreamIds}
-        loading={defaultStreamsStatus === "loading"}
         onError={setError}
       />
     </div>
@@ -143,19 +131,24 @@ interface SectionProps {
   onSubmit: (params: UpdateRealmParams) => Promise<void>;
 }
 
-interface ProfileSectionProps extends SectionProps {
-  onError: (message: string | null) => void;
-}
-
 function ProfileSection({
   realm,
   onSubmit,
-  onError,
-}: ProfileSectionProps): React.JSX.Element {
+}: SectionProps): React.JSX.Element {
   const [name, setName] = useState(realm.realm_name ?? "");
   const [description, setDescription] = useState(realm.realm_description ?? "");
   const [savingName, setSavingName] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  // Local fallback flag — if the icon URL fails to load (broken link,
+  // self-signed cert on the stand, …) we just show the "icon not set"
+  // text. Surfacing it as a page-wide danger Banner would be louder
+  // than the issue warrants.
+  const [iconBroken, setIconBroken] = useState(false);
+  // Re-arm the broken flag when the URL itself changes (e.g. after an
+  // icon upload eventually lands).
+  useEffect(() => {
+    setIconBroken(false);
+  }, [realm.realm_icon_url]);
 
   // Sync inputs when the store updates from outside (realtime echo,
   // re-register, or another admin's edit).
@@ -247,12 +240,12 @@ function ProfileSection({
 
       <div className={styles.row}>
         <span className={styles.label}>Иконка</span>
-        {iconUrl !== undefined && iconUrl !== "" ? (
+        {iconUrl !== undefined && iconUrl !== "" && !iconBroken ? (
           <img
             src={iconUrl}
             alt="Иконка организации"
             className={styles.iconPreview}
-            onError={() => onError("Не удалось загрузить иконку.")}
+            onError={() => setIconBroken(true)}
           />
         ) : (
           <span className={styles.muted}>Иконка не задана.</span>
@@ -437,13 +430,11 @@ function AccessSection({ realm, onSubmit }: SectionProps): React.JSX.Element {
 
 interface DefaultStreamsSectionProps {
   defaultStreamIds: StreamId[];
-  loading: boolean;
   onError: (message: string | null) => void;
 }
 
 function DefaultStreamsSection({
   defaultStreamIds,
-  loading,
   onError,
 }: DefaultStreamsSectionProps): React.JSX.Element {
   const streamsMap = useStreamsStore((s) => s.streams);
@@ -514,11 +505,7 @@ function DefaultStreamsSection({
         Новые пользователи автоматически подписываются на эти каналы.
       </p>
 
-      {loading ? (
-        <div className={styles.loading}>
-          <Spinner aria-label="Загрузка каналов" />
-        </div>
-      ) : sortedDefaults.length === 0 ? (
+      {sortedDefaults.length === 0 ? (
         <p className={styles.muted}>Список пуст.</p>
       ) : (
         <ul className={styles.streamList} aria-label="Каналы по умолчанию">

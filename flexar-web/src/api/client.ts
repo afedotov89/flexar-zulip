@@ -43,7 +43,6 @@ import type {
   EditMessageParams,
   EditMessageResult,
   GetChannelSubscribersResult,
-  GetDefaultStreamsResult,
   GetEventsResult,
   GetInvitesResult,
   GetMessagesOptions,
@@ -886,20 +885,12 @@ export class ApiClient {
   }
 
   // --- Admin: default streams (Phase 5.2) ----------------------------
-
-  /**
-   * Fetch the realm's list of default channels (the channels new users
-   * are auto-subscribed to). `GET /api/v1/default_streams`. The same
-   * list is also delivered through the `default_streams` realtime
-   * event whenever an admin changes it, but this is the bootstrap.
-   */
-  async getDefaultStreams(): Promise<number[]> {
-    const body = await sendRequest<GetDefaultStreamsResult>(
-      { method: "GET", path: "/default_streams" },
-      this.#credentials,
-    );
-    return body.default_streams;
-  }
+  //
+  // No `getDefaultStreams()` — the Zulip server doesn't expose a GET
+  // for `/default_streams` (only POST/DELETE for add/remove). The list
+  // arrives in the register snapshot as `realm_default_streams` and
+  // through the realtime `default_streams` event; see
+  // `useDefaultStreamsStore` for the read path.
 
   /** Add a channel to the realm's default-streams list. */
   async addDefaultStream(streamId: number): Promise<void> {

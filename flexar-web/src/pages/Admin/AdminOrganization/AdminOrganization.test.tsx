@@ -35,12 +35,10 @@ vi.mock("../../../realtime", () => ({
 
 const {
   updateRealmMock,
-  getDefaultStreamsMock,
   addDefaultStreamMock,
   removeDefaultStreamMock,
 } = vi.hoisted(() => ({
   updateRealmMock: vi.fn(),
-  getDefaultStreamsMock: vi.fn(),
   addDefaultStreamMock: vi.fn(),
   removeDefaultStreamMock: vi.fn(),
 }));
@@ -52,7 +50,6 @@ vi.mock("../../../api", async () => {
     ...actual,
     apiClient: {
       updateRealm: updateRealmMock,
-      getDefaultStreams: getDefaultStreamsMock,
       addDefaultStream: addDefaultStreamMock,
       removeDefaultStream: removeDefaultStreamMock,
     },
@@ -92,15 +89,12 @@ function seedStreams(streamIds: number[]): void {
 
 beforeEach(() => {
   updateRealmMock.mockReset();
-  getDefaultStreamsMock.mockReset();
   addDefaultStreamMock.mockReset();
   removeDefaultStreamMock.mockReset();
-  getDefaultStreamsMock.mockResolvedValue([]);
   useRealmStore.setState({ realm: null });
-  // Pre-mark the default-streams cache as loaded so `loadDefaultStreams`
-  // is a no-op for tests that don't explicitly drive it. Tests that do
-  // care about the bootstrap fetch reset the status to "idle" first.
-  useDefaultStreamsStore.setState({ defaultStreams: [], loadStatus: "loaded" });
+  // Default-streams now live in the register snapshot (no fetch path);
+  // tests seed the list directly via `useDefaultStreamsStore.setState`.
+  useDefaultStreamsStore.setState({ defaultStreams: [] });
   useStreamsStore.setState({ streams: {}, subscriptions: {} });
 });
 
@@ -114,10 +108,8 @@ describe("AdminOrganization — rendering", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Загрузка настроек");
   });
 
-  it("renders the four sections with current realm values", async () => {
+  it("renders the four sections with current realm values", () => {
     seedRealm();
-    // Drive the bootstrap fetch path so we can assert it fires.
-    useDefaultStreamsStore.setState({ defaultStreams: [], loadStatus: "idle" });
 
     render(<AdminOrganization />);
 
@@ -142,11 +134,6 @@ describe("AdminOrganization — rendering", () => {
     expect(
       screen.getByLabelText("Требовать приглашение для регистрации"),
     ).not.toBeChecked();
-
-    // Default-streams bootstrap fetch fires.
-    await waitFor(() => {
-      expect(getDefaultStreamsMock).toHaveBeenCalledTimes(1);
-    });
   });
 });
 
@@ -196,10 +183,7 @@ describe("AdminOrganization — default channels", () => {
   it("removes a channel through apiClient.removeDefaultStream", async () => {
     seedRealm();
     seedStreams([1, 2]);
-    useDefaultStreamsStore.setState({
-      defaultStreams: [1],
-      loadStatus: "loaded",
-    });
+    useDefaultStreamsStore.setState({ defaultStreams: [1] });
     removeDefaultStreamMock.mockResolvedValue(undefined);
 
     render(<AdminOrganization />);
@@ -216,10 +200,7 @@ describe("AdminOrganization — default channels", () => {
   it("adds a channel through apiClient.addDefaultStream from the modal", async () => {
     seedRealm();
     seedStreams([1, 2, 3]);
-    useDefaultStreamsStore.setState({
-      defaultStreams: [1],
-      loadStatus: "loaded",
-    });
+    useDefaultStreamsStore.setState({ defaultStreams: [1] });
     addDefaultStreamMock.mockResolvedValue(undefined);
 
     render(<AdminOrganization />);

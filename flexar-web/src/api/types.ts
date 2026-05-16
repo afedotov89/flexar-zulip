@@ -531,13 +531,6 @@ export interface GetChannelSubscribersResult {
   subscribers: UserId[];
 }
 
-// --- Admin: default streams (Phase 5.2) ----------------------------
-
-/** Response of `GET /api/v1/default_streams`. */
-export interface GetDefaultStreamsResult {
-  default_streams: number[];
-}
-
 // --- Admin: users (Phase 5.4) --------------------------------------
 
 /**

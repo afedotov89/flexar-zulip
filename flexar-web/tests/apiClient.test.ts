@@ -528,20 +528,6 @@ describe("admin", () => {
 
   // --- default streams ------------------------------------------------
 
-  it("getDefaultStreams returns the default_streams id list", async () => {
-    mockJsonResponse({
-      result: "success",
-      msg: "",
-      default_streams: [11, 22],
-    });
-
-    const ids = await client().getDefaultStreams();
-
-    expect(ids).toEqual([11, 22]);
-    expect(calls[0].url).toBe("/api/v1/default_streams");
-    expect(calls[0].init.method).toBe("GET");
-  });
-
   it("addDefaultStream POSTs the stream id", async () => {
     mockJsonResponse({ result: "success", msg: "" });
 

@@ -1,16 +1,18 @@
 // Server-state store: the realm's default-channel list (Phase 5.2).
 //
 // "Default channels" are the channels new accounts are auto-subscribed
-// to. The list isn't part of the register snapshot, so this store is
-// lazy-loaded — the org-settings page calls `loadDefaultStreams()` on
-// mount, which fires `GET /default_streams` and caches the response.
+// to. The list IS in the register snapshot, as `realm_default_streams`
+// (server-side it's gated on `default_streams` being in
+// `fetch_event_types`, which `DEFAULT_EVENT_TYPES` already includes).
+// There is no `GET /default_streams` endpoint on the Zulip server — it
+// only exposes `POST /default_streams` and `DELETE /default_streams`
+// for the add/remove mutations. The snapshot + realtime
+// `default_streams` event are the only read paths.
 //
-// Lifecycle, mirroring `topicsStore` / `scheduledMessagesStore`:
+// Lifecycle, mirroring the other server-state stores:
 //
-//   - On (re-)register the cache is reset to `idle` (see the file
-//     header in those stores). Admin actions during the gap may have
-//     changed the list, and a fresh fetch on next mount is the safe
-//     re-hydration.
+//   - On (re-)register, hydrate from the snapshot. Admin actions that
+//     happened during a queue gap are reflected in the next snapshot.
 //   - Realtime `default_streams` events carry the *full* new list (not
 //     a delta), so the reducer is a wholesale replace.
 //
@@ -19,73 +21,40 @@
 
 import { create } from "zustand";
 import type { StreamId } from "../domain";
-import { apiClient } from "../api";
 import { isDefaultStreamsEvent } from "./eventGuards";
 import { wireStore } from "./wireStore";
-
-/** Load state of the default-streams list. */
-export type DefaultStreamsLoadStatus =
-  | "idle"
-  | "loading"
-  | "loaded"
-  | "error";
 
 export interface DefaultStreamsState {
   /** Channel ids the realm auto-subscribes new users to. */
   defaultStreams: StreamId[];
-  /** Status of the bootstrap fetch. */
-  loadStatus: DefaultStreamsLoadStatus;
-  /**
-   * Fetch the realm's default-channels list. Idempotent: a call while
-   * a previous fetch is in flight, or after a successful load, is a
-   * no-op. After an error, calling again retries.
-   */
-  loadDefaultStreams: () => Promise<void>;
 }
 
 const EMPTY_LIST: StreamId[] = [];
 
-export const useDefaultStreamsStore = create<DefaultStreamsState>()(
-  (set, get) => ({
-    defaultStreams: EMPTY_LIST,
-    loadStatus: "idle",
-    loadDefaultStreams: async () => {
-      const status = get().loadStatus;
-      if (status === "loading" || status === "loaded") {
-        return;
-      }
-      set({ loadStatus: "loading" });
-      try {
-        const ids = await apiClient.getDefaultStreams();
-        set({ defaultStreams: ids, loadStatus: "loaded" });
-      } catch {
-        set({ loadStatus: "error" });
-      }
-    },
-  }),
-);
+export const useDefaultStreamsStore = create<DefaultStreamsState>()(() => ({
+  defaultStreams: EMPTY_LIST,
+}));
 
 // Wire to the realtime layer at module load — before `start()` runs.
 wireStore({
-  hydrate: () => {
-    // Default streams aren't in the register snapshot; on a re-register
-    // the cached list may be stale, so reset to idle and let the next
-    // mount of the admin page re-fetch.
-    useDefaultStreamsStore.setState({
-      defaultStreams: EMPTY_LIST,
-      loadStatus: "idle",
-    });
+  hydrate: (snapshot) => {
+    // `realm_default_streams` is the snapshot key when
+    // `default_streams` is in `fetch_event_types` (see
+    // `realtime/connection.ts`). Older server versions or unexpected
+    // shapes degrade to an empty list.
+    const raw = snapshot["realm_default_streams"];
+    const ids = Array.isArray(raw)
+      ? raw.filter((id): id is number => typeof id === "number")
+      : EMPTY_LIST;
+    useDefaultStreamsStore.setState({ defaultStreams: ids });
   },
   applyEvent: (event) => {
     if (!isDefaultStreamsEvent(event)) {
       return;
     }
     // Server sends the full new list, not a delta — wholesale replace.
-    // If we hadn't loaded yet, treat the event as the bootstrap and
-    // mark the cache loaded; otherwise just refresh the list.
     useDefaultStreamsStore.setState({
       defaultStreams: event.default_streams,
-      loadStatus: "loaded",
     });
   },
 });
