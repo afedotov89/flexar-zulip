@@ -27,6 +27,35 @@
   background-color: var(--color-bg);
 }
 
+/*
+ * Skip-link (6.2): visually hidden until keyboard focus, then snaps
+ * to a high-contrast pill at the top-left. The conventional
+ * "first-tab-stop" pattern — invisible to mouse users, immediately
+ * available to keyboard / screen-reader users.
+ */
+.skipLink {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: calc(var(--z-modal) + 2);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+  background-color: var(--color-accent);
+  border-radius: var(--radius-md);
+  transform: translateY(-200%);
+  transition: transform var(--duration-fast);
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .body {
   position: relative;
   display: flex;
@@ -67,6 +96,15 @@
   min-width: 0;
   overflow-y: auto;
   background-color: var(--color-bg);
+}
+
+/*
+ * The main content area is programmatically focusable (tabIndex=-1)
+ * so the skip-link's hash-jump lands focus on it. Skip the visible
+ * outline — the link itself already announced "you jumped here".
+ */
+.center:focus {
+  outline: none;
 }
 
 /* ---- Drawer backdrop -------------------------------------------- */

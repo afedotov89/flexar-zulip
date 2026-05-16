@@ -81,6 +81,15 @@ export function AppShell() {
 
   return (
     <div className={styles.shell}>
+      {/*
+        Skip-link for keyboard / screen-reader users. Visually
+        hidden until focused, jumps focus past the navbar straight
+        to the message feed. Conventional first-tab-stop pattern
+        — see WAI-ARIA APG.
+      */}
+      <a href="#main-content" className={styles.skipLink}>
+        Перейти к сообщениям
+      </a>
       <Navbar />
 
       {/*
@@ -103,7 +112,11 @@ export function AppShell() {
           <LeftSidebar />
         </aside>
 
-        <main className={styles.center}>
+        <main
+          id="main-content"
+          className={styles.center}
+          tabIndex={-1}
+        >
           <Outlet />
         </main>
 
