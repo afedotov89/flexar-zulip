@@ -1,5 +1,5 @@
 // Server-state store: channels and the viewer's subscriptions
-// (Phase 1.3).
+// (Phase 1.3, persist added 2-redesign).
 //
 // Holds two keyed collections for the read-path UI:
 //   - `streams`        — every channel visible to the user (the
@@ -13,10 +13,13 @@
 // `stream` and `subscription` events on top. The pure reducers live in
 // `./streamsReducer`.
 //
-// No `persist`: server state is re-fetched from `register` on every
-// connect and must not survive a reload as stale data.
+// `persist`: the directory is mirrored to `localStorage` so a hard
+// reload renders the sidebar channel list instantly from cache.
+// Register overwrites the cache as soon as it lands; the staleness
+// window is the few-second delay before the new snapshot arrives.
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { Stream, StreamId, Subscription } from "../domain";
 import { isStreamEvent, isSubscriptionEvent } from "./eventGuards";
 import {
@@ -41,13 +44,24 @@ export interface StreamsState {
   isSubscribed: (streamId: StreamId) => boolean;
 }
 
-export const useStreamsStore = create<StreamsState>()((_set, get) => ({
-  streams: {},
-  subscriptions: {},
-  getStream: (streamId) => get().streams[streamId],
-  getSubscription: (streamId) => get().subscriptions[streamId],
-  isSubscribed: (streamId) => streamId in get().subscriptions,
-}));
+export const useStreamsStore = create<StreamsState>()(
+  persist(
+    (_set, get) => ({
+      streams: {},
+      subscriptions: {},
+      getStream: (streamId) => get().streams[streamId],
+      getSubscription: (streamId) => get().subscriptions[streamId],
+      isSubscribed: (streamId) => streamId in get().subscriptions,
+    }),
+    {
+      name: "flexar-hub-streams",
+      partialize: (state) => ({
+        streams: state.streams,
+        subscriptions: state.subscriptions,
+      }),
+    },
+  ),
+);
 
 // Wire to the realtime layer at module load — before `start()` runs.
 wireStore({

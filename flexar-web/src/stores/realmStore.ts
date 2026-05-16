@@ -9,11 +9,14 @@
 // connect time, re-hydrates on every re-register, and folds `realm`
 // events on top through `applyRealmEvent` so admin edits arrive live.
 //
-// No `persist`: server state is re-fetched from `register` on every
-// connect and must not survive a reload as stale data (contrast
-// `authStore`, which persists the session).
+// `persist`: realm metadata mirrors to `localStorage` so the navbar
+// (org name, icon) and the compose-box length limits render instantly
+// after a hard reload — without it the UI sits on defaults until the
+// register snapshot lands. Register overwrites the cache the moment
+// it arrives.
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { Realm } from "../domain";
 import { isRealmEvent } from "./eventGuards";
 import { applyRealmEvent, realmFromInitialState } from "./realmReducer";
@@ -28,9 +31,17 @@ export interface RealmState {
   realm: Realm | null;
 }
 
-export const useRealmStore = create<RealmState>()(() => ({
-  realm: null,
-}));
+export const useRealmStore = create<RealmState>()(
+  persist(
+    () => ({
+      realm: null as Realm | null,
+    }),
+    {
+      name: "flexar-hub-realm",
+      partialize: (state) => ({ realm: state.realm }),
+    },
+  ),
+);
 
 // Wire to the realtime layer at module load — before `start()` runs.
 wireStore({

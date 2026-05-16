@@ -58,12 +58,16 @@ function LoadingRows(): React.JSX.Element {
 }
 
 export function RightSidebar(): React.JSX.Element {
-  const loading = useStoresLoading();
-
   // The whole user directory and presence map — subscribed as the
   // stable store objects, so a `realm_user` / `presence` event
   // re-renders without the selector looping the store.
   const users = useUsersStore((state) => state.users);
+  // Show skeletons only while BOTH conditions hold: realtime hasn't
+  // hydrated AND the users cache is empty. `useUsersStore` persists
+  // to localStorage (Phase 2-redesign), so a hard reload renders the
+  // cached directory immediately while register catches up.
+  const realtimeLoading = useStoresLoading();
+  const loading = realtimeLoading && Object.keys(users).length === 0;
   const presences = usePresenceStore((state) => state.presences);
   const getPresence = usePresenceStore((state) => state.getPresence);
   const getSubscription = useStreamsStore((state) => state.getSubscription);

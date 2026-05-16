@@ -27,6 +27,7 @@ import { ChannelsSection } from "./ChannelsSection";
 import { DirectMessagesSection } from "./DirectMessagesSection";
 import { ViewsSection } from "./ViewsSection";
 import { useStoresLoading } from "../../lib/hooks/useRealtimeStatus";
+import { useStreamsStore } from "../../stores/streamsStore";
 import styles from "./LeftSidebar.module.css";
 
 // The three collapsible sections, for the section-expanded state map.
@@ -44,7 +45,16 @@ function LoadingRows(): React.JSX.Element {
 }
 
 export function LeftSidebar(): React.JSX.Element {
-  const loading = useStoresLoading();
+  // Show skeletons only while BOTH conditions hold: realtime hasn't
+  // hydrated yet AND the streams cache is empty. `useStreamsStore`
+  // persists to localStorage (Phase 2-redesign), so after a hard
+  // reload the cached channels render immediately while the realtime
+  // register catches up in the background.
+  const realtimeLoading = useStoresLoading();
+  const streamsCount = useStreamsStore(
+    (s) => Object.keys(s.subscriptions).length,
+  );
+  const loading = realtimeLoading && streamsCount === 0;
 
   // Every section starts expanded.
   const [expanded, setExpanded] = useState<Record<SectionId, boolean>>({
