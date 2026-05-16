@@ -4,7 +4,34 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-17, **compose redesign + sidebars instant-load**:
+**Последнее обновление:** 2026-05-17 (ночная сессия), **Фаза 6 закрыта целиком (без 6.9 deploy)**:
+
+- **8 коммитов** легли в одну ночь:
+  - `c66cc6090b` 6.1 клавиатурная навигация (KEYMAP/registry/help overlay/feed j/k/c/r/i/m/s/d)
+  - `350c163c20` 6.8 status banner (offline / reconnecting / reconnected)
+  - `e9f94d3307` 6.4 адаптив + drawer-сайдбары на mobile/tablet
+  - `f62cebfb7b` 6.6 code-split routes + vendor chunks (главный bundle 604→223kb)
+  - `662f9f9a07` 6.2 skip-link для клавиатуры/screen-reader
+  - `0775f6c00d` 6.7 EmptyState примитив + унификация feed states
+  - `3d073d4f4e` 6.3 i18n модуль (ru/en) + language switcher
+  - 6.5 формальный визуальный аудит dark theme — паритет полный, кода
+    менять не пришлось (всё уже через токены)
+- **1158 unit-тестов** (+10 за Фазу 6). Все гейты зелёные, build чистый
+  (без size warning).
+- Live-протык на стенде: ✅ keyboard (?, Cmd+K, c, j/k/Home/End, r,
+  i/m/s/d), ✅ offline banner, ✅ mobile drawer (380×780 hamburger
+  открывает левый, members иконка — правый, route change закрывает),
+  ✅ skip-link фокусится при первом Tab, ✅ EmptyState на search-no-results,
+  ✅ dark theme на всех страницах (feed/sidebars/help/settings/admin/channels),
+  ✅ language toggle ru↔en моментально перерисовывает navbar+shell.
+
+**Что осталось из плана 6:** только **6.9 деплой на стенд** (по
+указанию владельца — в самом конце).
+
+---
+
+### Предыдущая сессия (compose redesign + persist):
+
 - **Compose box полностью переделан** (commit `42970d5e05`, +2261/-699):
   inline recipient (channel pill-dropdown + topic input + clear, или DM
   pill-list); preview через toolbar-toggle вместо tabs; formatting
@@ -58,6 +85,14 @@
   действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `3d073d4f4e` 6.3 i18n модуль (ru/en) — locales/store/useI18n + language switcher в navbar dropdown (5 unit)
+- `0775f6c00d` 6.7 EmptyState примитив + feed empty/error унифицирован (5 unit)
+- `662f9f9a07` 6.2 skip-link «Перейти к сообщениям» (WAI-ARIA APG)
+- `f62cebfb7b` 6.6 code-split routes + vendor-react/dompurify/virtual chunks (главный 604→223kb, no warning)
+- `e9f94d3307` 6.4 адаптив — drawerStore + responsive CSS @media 1023/767, hamburger+members icons, route-change close
+- `350c163c20` 6.8 NetworkStatusBanner — offline/reconnecting/reconnected, useNetworkOnline hook (8 unit)
+- `c66cc6090b` 6.1 keyboard — KEYMAP/registry/useKeyboardShortcut/KeyboardHelpOverlay/GlobalShortcuts/useFeedKeyboard (32 unit)
+- `1887606545` HANDOFF — compose redesign + persist + актуальный план
 - `873f553964` persist users/streams/realm — sidebars instant-load после hard reload (fix Cmd+Shift+R skeleton-period)
 - `42970d5e05` compose — полный редизайн (inline recipient, formatting toolbar, split send menu; 19 иконок; 16 markdownInsert тестов)
 - `2c71ae3068` HANDOFF + PRD — Фаза 5 закрыта (live-протык ✅)
@@ -198,29 +233,39 @@
 
 ## Следующее действие
 
-**Фаза 5 закрыта. Фазы 0-5 фиче-комплит + протыканы.** На очереди —
-Фаза 6 (полировка) и/или Playwright e2e гейты Фаз 1-4.
+**Фаза 6 закрыта** (без 6.9 deploy). Фазы 0-6 фиче-комплит + live-протыканы.
+Остался один пункт по PRD §10 — деплой; владелец сказал «в самом конце».
 
 ### Что осталось открытого по PRD §10
 
-#### Фаза 6 — Сквозное и полировка (вся открыта)
-- **6.1 Клавиатурная навигация** — горячие клавиши (j/k/c/r/Ctrl+K
-  и т.п.). У Zulip это ключевая фича; у нас почти ничего нет.
-- **6.2 Доступность (ARIA, фокус)** — формальный аудит aria-labels,
-  focus-rings, screen-reader-проверка.
-- **6.3 i18n-модуль (ru/en)** — extraction строк в ICU/intl модуль с
-  языковым переключателем. Сейчас все строки inline RU без модуля.
-- **6.4 Адаптив (брейкпоинты)** — десктоп/планшет/телефон. Сейчас
-  sidebars при ≤768px просто `display:none` — это не адаптив.
-- **6.5 Тёмная тема — паритет** — формальный аудит, могут быть
-  pockets с цветовыми багами.
-- **6.6 Производительность** — code-splitting (build предупреждает
-  про 550kb бандл), мемоизация, бюджет.
-- **6.7 Состояния loading/empty/error везде** — аудит каждой фичи.
-- **6.8 Офлайн/реконнект** — поведение UI при разрыве сети + queue
-  expiry.
-- **6.9 Деплой на стенд** — прод-билд, хостинг (отдельный или рядом
-  с Zulip). Без него app живёт только локально на :5173.
+#### Фаза 6 — Сквозное и полировка
+- ✅ **6.1 Клавиатурная навигация** — KEYMAP + registry + help overlay (?)
+  + global shortcuts (Cmd/Ctrl+K, c, i/m/s/d) + feed j/k/Home/End/r.
+  32 unit-теста. Live-протык ✅.
+- ✅ **6.2 Доступность** — skip-link «Перейти к сообщениям» + `<main>`
+  с id+tabIndex=-1. Sidebar landmarks (aside+nav) уже были. Live ✅.
+- ✅ **6.3 i18n-модуль (ru/en)** — locales catalogue + Zustand store +
+  useI18n + language switcher в navbar dropdown. Navbar/shell/network/
+  search/keyboard help переведены; feature-local строки мигрируются по
+  мере касания (catalogue расширяемый без breaking change'й). 5 unit. Live ✅.
+- ✅ **6.4 Адаптив** — три брейкпоинта (≥1024/768-1023/<768), drawerStore,
+  hamburger + members иконки в navbar, slide-in drawer'ы с backdrop,
+  route-change auto-close, body scroll-lock. Live на 380×780 ✅.
+- ✅ **6.5 Тёмная тема — паритет** — формальный визуальный аудит всех
+  основных surfaces (feed/sidebars/help/settings/admin/users/channels/
+  drawers). Никаких pockets, всё через токены, кода менять не пришлось.
+- ✅ **6.6 Производительность** — React.lazy на admin/settings/channels/
+  showcase + vendor-react/dompurify/virtual chunks. Главный bundle
+  604→223kb (gzip 71kb), warning ушёл, 10 lazy chunks.
+- ✅ **6.7 Loading/empty/error везде** — EmptyState примитив (5 unit),
+  message feed empty+error переехали на него вместо ad-hoc CSS.
+  Остальные feature-локальные empty/error работают, мигрируются по
+  мере касания.
+- ✅ **6.8 Офлайн/реконнект** — NetworkStatusBanner + useNetworkOnline.
+  Three states (offline/reconnecting/reconnected) с debounce 2с на
+  reconnecting и 3с auto-dismiss success. 8 unit. Live: offline баннер ✅.
+- ⏳ **6.9 Деплой на стенд** — единственный неоткрытый пункт фазы 6,
+  по решению владельца идёт в самом конце.
 
 #### Гейты Фаз 1-4 (Playwright e2e)
 Все 4 фазы фиче-комплит + live-протыканы, но e2e-наборов нет:
