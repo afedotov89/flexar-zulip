@@ -15,6 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../realtime", () => ({
   realtimeConnection: {
@@ -157,57 +158,61 @@ const dmNarrow: Narrow = [{ operator: "dm", operand: [5, 9] }];
 
 describe("ComposeBox — pre-fill from narrow", () => {
   it("pre-fills channel and topic from a channel+topic narrow", () => {
-    render(<ComposeBox narrow={channelTopicNarrow} />);
-    const channel = screen.getByLabelText("Канал") as HTMLInputElement;
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
+    // Channel pill-button now exposes the channel name as its
+    // aria-label (`Канал #<name>`).
+    expect(
+      screen.getByRole("button", { name: "Канал #engineering" }),
+    ).toBeInTheDocument();
     const topic = screen.getByLabelText("Тема") as HTMLInputElement;
-    expect(channel.value).toBe("engineering");
     expect(topic.value).toBe("deploys");
   });
 
   it("pre-fills channel only when the narrow has no topic", () => {
-    render(<ComposeBox narrow={channelOnlyNarrow} />);
-    const channel = screen.getByLabelText("Канал") as HTMLInputElement;
+    render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
+    expect(
+      screen.getByRole("button", { name: "Канал #engineering" }),
+    ).toBeInTheDocument();
     const topic = screen.getByLabelText("Тема") as HTMLInputElement;
-    expect(channel.value).toBe("engineering");
     expect(topic.value).toBe("");
   });
 
   it("pre-fills DM recipients from a dm narrow, stripping the viewer", () => {
-    render(<ComposeBox narrow={dmNarrow} />);
-    const recipients = screen.getByLabelText("Кому") as HTMLInputElement;
-    expect(recipients.value).toBe("Hamlet");
+    render(<MemoryRouter><ComposeBox narrow={dmNarrow} /></MemoryRouter>);
+    // DM recipient is now rendered as a chip with a Remove button.
+    expect(
+      screen.getByRole("button", { name: "Убрать Hamlet" }),
+    ).toBeInTheDocument();
   });
 
-  it("renders the 'choose a conversation' hint when the narrow has no recipient", () => {
-    render(<ComposeBox narrow={[]} />);
+  it("shows the 'choose a conversation' placeholder when the narrow has no recipient", () => {
+    render(<MemoryRouter><ComposeBox narrow={[]} /></MemoryRouter>);
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
+    expect(textarea.placeholder).toBe("Выберите канал или беседу…");
+    // Send is disabled with no destination.
     expect(
-      screen.getByText(
-        /Choose a channel or a direct-message conversation to start writing/,
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Отправить" })).toBeNull();
+      (screen.getByRole("button", { name: /Отправить/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 
-  it("renders the placeholder hint when the route has no narrow", () => {
-    render(<ComposeBox narrow={undefined} />);
-    expect(
-      screen.getByText(
-        /Choose a channel or a direct-message conversation to start writing/,
-      ),
-    ).toBeInTheDocument();
+  it("shows the placeholder when the route has no narrow", () => {
+    render(<MemoryRouter><ComposeBox narrow={undefined} /></MemoryRouter>);
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
+    expect(textarea.placeholder).toBe("Выберите канал или беседу…");
   });
 });
 
 describe("ComposeBox — send", () => {
   it("disables Send when the body is empty", () => {
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
     const send = screen.getByRole("button", { name: "Отправить" }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
   });
 
   it("sends a channel message via the Send button", async () => {
     sendMessageMock.mockResolvedValue({ id: 99 });
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "hello" } });
@@ -232,7 +237,7 @@ describe("ComposeBox — send", () => {
 
   it("sends on Enter and inserts a newline on Shift+Enter", async () => {
     sendMessageMock.mockResolvedValue({ id: 100 });
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
@@ -262,7 +267,7 @@ describe("ComposeBox — send", () => {
 
   it("sends a direct message to the resolved recipient ids", async () => {
     sendMessageMock.mockResolvedValue({ id: 101 });
-    render(<ComposeBox narrow={dmNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={dmNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "hi there" } });
@@ -286,7 +291,7 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
         resolveSend = resolve;
       }),
     );
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "echo me" } });
@@ -315,7 +320,7 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
 
   it("on failure removes the optimistic echo, surfaces a Banner, and keeps the draft", async () => {
     sendMessageMock.mockRejectedValue(new Error("boom"));
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "will fail" } });
@@ -340,7 +345,7 @@ describe("ComposeBox — optimistic echo and reconciliation", () => {
         resolveSend = resolve;
       }),
     );
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
 
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "race" } });

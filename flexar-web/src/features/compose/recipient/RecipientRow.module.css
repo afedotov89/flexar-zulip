@@ -1,0 +1,85 @@
+/*
+ * Compose recipient row — one compact line containing the channel
+ * selector + chevron + topic input (or the DM pill list).
+ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: var(--control-height-md);
+}
+
+.divider {
+  color: var(--color-text-muted);
+}
+
+.topicWrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 8rem;
+}
+
+.topicInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-6) var(--space-1) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast);
+}
+
+.topicInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.topicInput:focus {
+  background-color: var(--color-bg);
+  border-color: var(--color-border);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 0;
+}
+
+.topicInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.topicInput:hover:not(:disabled) {
+  background-color: var(--color-hover);
+}
+
+.clearButton {
+  position: absolute;
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+}
+
+.clearButton:hover {
+  color: var(--color-text);
+  background-color: var(--color-hover);
+}
+
+.clearButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}

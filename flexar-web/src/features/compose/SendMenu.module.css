@@ -1,0 +1,50 @@
+/*
+ * Send / Schedule split-button. The Send button and the chevron sit
+ * next to each other with a 1px primary-tone seam, so they read as
+ * one control.
+ */
+
+.group {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.sendButton {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--control-height-md) - var(--space-2));
+  padding: 0 var(--space-2);
+  color: var(--color-text-on-accent);
+  cursor: pointer;
+  background-color: var(--color-accent);
+  border: none;
+  border-left: 1px solid var(--color-accent-active);
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  transition: background-color var(--duration-fast);
+}
+
+.chevron:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.chevron:disabled {
+  cursor: not-allowed;
+  background-color: var(--color-accent);
+  opacity: 0.5;
+}
+
+.chevron:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+.chevron:active:not(:disabled) {
+  background-color: var(--color-accent-active);
+}

@@ -60,6 +60,41 @@ export const icons = {
     '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z" />',
   "log-out":
     '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />',
+  // Compose formatting toolbar (Phase 2-redesign).
+  eye:
+    '<path d="M2 12c2-5 6-8 10-8s8 3 10 8c-2 5-6 8-10 8s-8-3-10-8Z" /><circle cx="12" cy="12" r="3" />',
+  "eye-off":
+    '<path d="M3 3l18 18" /><path d="M2 12c2-5 6-8 10-8 2 0 4 .6 5.5 1.6" /><path d="M22 12c-2 5-6 8-10 8-1.5 0-3-.3-4.5-1" /><circle cx="12" cy="12" r="3" />',
+  pen:
+    '<path d="M14 4l6 6L8 22H2v-6Z" /><line x1="14" y1="4" x2="20" y2="10" />',
+  link:
+    '<path d="M10.5 13.5a4 4 0 0 0 5.7 0l3.3-3.3a4 4 0 0 0-5.7-5.7l-1.6 1.6" /><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-3.3 3.3a4 4 0 0 0 5.7 5.7l1.6-1.6" />',
+  bold:
+    '<path d="M7 4h6a3.5 3.5 0 0 1 0 7H7Z" /><path d="M7 11h7.5a3.75 3.75 0 0 1 0 8H7Z" />',
+  italic:
+    '<line x1="10" y1="4" x2="20" y2="4" /><line x1="4" y1="20" x2="14" y2="20" /><line x1="14" y1="4" x2="10" y2="20" />',
+  strikethrough:
+    '<line x1="4" y1="12" x2="20" y2="12" /><path d="M7 8a4 4 0 0 1 4-4h4a3 3 0 0 1 3 3" /><path d="M7 16a4 4 0 0 0 4 4h4a3 3 0 0 0 3-3v-1" />',
+  "ordered-list":
+    '<line x1="10" y1="6" x2="20" y2="6" /><line x1="10" y1="12" x2="20" y2="12" /><line x1="10" y1="18" x2="20" y2="18" /><path d="M4 4v4" /><path d="M3 8h3" /><path d="M3 13h3l-3 4h3" />',
+  "unordered-list":
+    '<line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line x1="9" y1="18" x2="20" y2="18" /><circle cx="4.5" cy="6" r="1.25" /><circle cx="4.5" cy="12" r="1.25" /><circle cx="4.5" cy="18" r="1.25" />',
+  quote:
+    '<path d="M5 17V11a3 3 0 0 1 3-3" /><path d="M5 17h4v-4H6" /><path d="M15 17V11a3 3 0 0 1 3-3" /><path d="M15 17h4v-4h-3" />',
+  "code-block":
+    '<polyline points="8 7 3 12 8 17" /><polyline points="16 7 21 12 16 17" /><line x1="14" y1="5" x2="10" y2="19" />',
+  math:
+    '<polyline points="3 13 6 17 14 5" /><line x1="14" y1="5" x2="21" y2="5" /><line x1="11" y1="14" x2="20" y2="14" /><line x1="11" y1="18" x2="20" y2="18" />',
+  poll:
+    '<line x1="4" y1="20" x2="20" y2="20" /><rect x="6" y="13" width="3" height="7" /><rect x="11" y="8" width="3" height="12" /><rect x="16" y="4" width="3" height="16" />',
+  todo:
+    '<polyline points="3 6 5 8 9 4" /><line x1="12" y1="6" x2="20" y2="6" /><polyline points="3 13 5 15 9 11" /><line x1="12" y1="13" x2="20" y2="13" /><polyline points="3 20 5 22 9 18" /><line x1="12" y1="20" x2="20" y2="20" />',
+  "help-circle":
+    '<circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 4.5 1.5c-.7.7-2 1.2-2 2.5" /><line x1="12" y1="17" x2="12" y2="17" />',
+  send:
+    '<path d="M3 11 21 3 13 21l-2-8Z" /><line x1="11" y1="13" x2="21" y2="3" />',
+  maximize:
+    '<polyline points="4 9 4 4 9 4" /><polyline points="15 4 20 4 20 9" /><polyline points="20 15 20 20 15 20" /><polyline points="9 20 4 20 4 15" />',
 } as const;
 
 export type IconName = keyof typeof icons;

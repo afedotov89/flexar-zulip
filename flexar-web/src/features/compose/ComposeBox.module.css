@@ -1,113 +1,83 @@
 /*
- * Compose box (Phase 2.1). Docked at the bottom of the centre column,
- * under the message list. All design values are tokens; only pure-
- * layout literals (flex, gap, 100%) appear bare.
+ * Compose box layout (redesigned). All design values are tokens; only
+ * pure-layout literals (flex, 100%, 0) appear bare.
+ *
+ * Vertical stack (top → bottom):
+ *   - banners (errors)
+ *   - recipient row (pill + topic / DM pills) — `low-attention` dim
+ *     while compose is not in focus
+ *   - "Restored from draft" hint (rare)
+ *   - editor wrap (textarea or preview)
+ *   - upload chips
+ *   - formatting toolbar
+ *   - bottom row (drafts | spacer | limit | send-menu)
  */
 
 .compose {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
 }
 
-/* The "choose a conversation" placeholder shown when no narrow is set. */
-.hint {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-/* Recipient row: channel + topic, or DM recipients. */
-.recipientRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.fieldLabel {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-}
-
-/* Mode tab row (Write / Preview). */
-.modeRow {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.modeButton {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-}
-
-.modeButton:hover {
-  color: var(--color-text);
-  background-color: var(--color-hover);
-}
-
-.modeButton:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: var(--space-1);
-}
-
-.modeButtonActive {
-  color: var(--color-text);
-  background-color: var(--color-active);
-}
-
-/* Bottom action row: emoji picker (left) | keyboard hint | Send. */
-.actionsRow {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.hintInline {
-  margin-left: auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.errorRow {
-  /*
-   * The Banner already carries its own padding; this row exists only
-   * so the error sits between the textarea and the send action with
-   * the same gap as the rest of the form.
-   */
+.bannerRow {
   display: block;
 }
 
-/*
- * "Restored from draft" affordance shown above the textarea when the
- * compose body was just rehydrated from a saved draft. Subtle and
- * dismissed implicitly when the user types (Phase 2.4).
- */
 .restoredHint {
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
-/* Visually hidden label for the textarea (kept for screen readers). */
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  border: 0;
+/* Editor wrap holds either the textarea (write mode) or the inline
+   preview pane. The textarea inherits its full set of states from
+   AutoGrowTextarea; we add a focus ring at this level so the
+   surrounding border doesn't flicker. */
+.editorWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--control-height-lg);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast);
+}
+
+.editorWrap:focus-within {
+  border-color: var(--color-accent);
+}
+
+.textarea {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: transparent;
+  border: none;
+}
+
+.textarea:focus {
+  outline: none;
+}
+
+.previewBox {
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--control-height-lg);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+.bottomRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
 }

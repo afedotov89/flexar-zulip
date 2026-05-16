@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../realtime", () => ({
   realtimeConnection: {
@@ -180,7 +181,7 @@ describe("ComposeBox — drafts autosave", () => {
   it("saves the body to the drafts store after the debounce settles", () => {
     vi.useFakeTimers();
     try {
-      render(<ComposeBox narrow={channelTopicNarrow} />);
+      render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
       const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: "in progress" } });
 
@@ -206,7 +207,7 @@ describe("ComposeBox — drafts autosave", () => {
   it("collapses rapid keystrokes to a single save with the latest body", () => {
     vi.useFakeTimers();
     try {
-      render(<ComposeBox narrow={channelTopicNarrow} />);
+      render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
       const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
       fireEvent.change(textarea, { target: { value: "abc" } });
@@ -245,7 +246,7 @@ describe("ComposeBox — drafts autosave", () => {
           },
         },
       });
-      render(<ComposeBox narrow={channelTopicNarrow} />);
+      render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
       const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
 
       // The mount restored "old body"; type to clear it.
@@ -263,13 +264,19 @@ describe("ComposeBox — drafts autosave", () => {
   it("does not autosave when the narrow has no destination", () => {
     vi.useFakeTimers();
     try {
-      // Empty narrow → mode === "none", no compose form → nothing to type.
-      // Render with a channel narrow that lacks a stream id by passing
-      // a search-only narrow, which also yields mode "none".
+      // Search-only narrow → mode === "none". The redesigned compose
+      // still renders the textarea (with a placeholder asking the
+      // user to pick a destination), but typing into it does NOT
+      // hit the draft store: the autosave effect early-returns when
+      // there is no destination key.
       const searchNarrow: Narrow = [{ operator: "search", operand: "x" }];
-      render(<ComposeBox narrow={searchNarrow} />);
-      // The compose box renders the placeholder hint, not a textarea.
-      expect(screen.queryByLabelText("Сообщение")).toBeNull();
+      render(<MemoryRouter><ComposeBox narrow={searchNarrow} /></MemoryRouter>);
+      const textarea = screen.getByLabelText(
+        "Сообщение",
+      ) as HTMLTextAreaElement;
+      // Textarea is disabled in "none" mode, so we drive the value
+      // imperatively to bypass the disabled guard.
+      fireEvent.change(textarea, { target: { value: "stray text" } });
       act(() => {
         vi.advanceTimersByTime(1000);
       });
@@ -294,7 +301,7 @@ describe("ComposeBox — drafts on send", () => {
       },
     });
 
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("old draft");
     fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
@@ -318,7 +325,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
         },
       },
     });
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("saved earlier");
     expect(screen.getByText("Восстановлено из черновика")).toBeInTheDocument();
@@ -337,7 +344,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
         },
       },
     });
-    render(<ComposeBox narrow={dmNarrowWith5} />);
+    render(<MemoryRouter><ComposeBox narrow={dmNarrowWith5} /></MemoryRouter>);
     const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
     expect(textarea.value).toBe("");
     expect(screen.queryByText("Восстановлено из черновика")).toBeNull();
@@ -360,7 +367,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
         },
       },
     });
-    render(<ComposeBox narrow={dmNarrowWith11} />);
+    render(<MemoryRouter><ComposeBox narrow={dmNarrowWith11} /></MemoryRouter>);
     expect(
       (screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value,
     ).toBe("for ophelia");
@@ -377,7 +384,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
         },
       },
     });
-    render(<ComposeBox narrow={channelTopicNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
     expect(screen.getByText("Восстановлено из черновика")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Сообщение"), {
       target: { value: "savedX" },
@@ -386,7 +393,7 @@ describe("ComposeBox — drafts restoration on mount", () => {
   });
 
   it("starts blank when a channel narrow has no saved draft", () => {
-    render(<ComposeBox narrow={channelOnlyNarrow} />);
+    render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
     expect(
       (screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value,
     ).toBe("");
