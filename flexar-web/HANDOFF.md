@@ -4,29 +4,30 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-16, **Фаза 5.2/5.3/5.4 фиче-комплит + live-протык на стенде ✅**:
-- 5 коммитов закрыли всю админку: shared infra → 18 apiClient методов
-  → 5.4 пользователи + 5.3 каналы → 5.4 invites + 5.2 организация.
-- **Live-протык на стенде** (`a.fedotov@friflex.com`, owner) — все 6
-  точек админки оттыканы успешно: navbar dropdown (Настройки/
-  Администрирование/Выйти с правильными иконками); `/admin/users`
-  (3 юзера + табы + role-filter + EditUserModal); `/admin/invites`
-  (4 multiuse-link'а + SendInviteModal с ChannelPicker); `/admin/
-  organization` (Profile/Сообщения/Доступ/Каналы по умолчанию);
-  `/channels` с «Создать канал» + name → Link; `/channels/:id`
-  (rename + privacy/history/retention toggles + subscribers list +
-  «Опасная зона» с Архивировать).
-- Найдены и пофикшены 2 бага архитектурно (commit `ce1841b01e`):
-  (1) `GET /default_streams → 405` (endpoint не существует в Zulip
-  API) — переделали `defaultStreamsStore` на чтение из
-  register-snapshot `realm_default_streams`; (2) глобальный danger
-  Banner за `<img onError>` иконки — заменён на локальный
-  `iconBroken` + span-фолбэк.
-- **1092 unit-теста** (+68 за Фазу 5, -4 за удалённые тесты
-  несуществующего endpoint'а). Все гейты зелёные.
-- Предыдущее: 2-й RU i18n sweep (`9c1d2167d3`); полная bug-sweep
-  ревизия — все 15 багов из сплошного live-протыка пофикшены
-  архитектурно.
+**Последнее обновление:** 2026-05-17, **compose redesign + sidebars instant-load**:
+- **Compose box полностью переделан** (commit `42970d5e05`, +2261/-699):
+  inline recipient (channel pill-dropdown + topic input + clear, или DM
+  pill-list); preview через toolbar-toggle вместо tabs; formatting
+  toolbar с 15+ icon-кнопками (Bold/Italic/Strikethrough/Link/Lists/
+  Quote/Spoiler/Code-block/Math/Poll/Todo/Help) + horizontal scroll с
+  mask-fade; markdownInsert helpers (16 unit-тестов); SendMenu
+  split-button (Send + chevron c 4 schedule-пресетами); DraftsCount
+  inline-counter; LimitIndicator (warning/danger threshold); 19 новых
+  SVG иконок. Контекстный placeholder textarea
+  («Написать в # общее > приветствие»). **Live-протык на стенде ✅**
+  (channel popover, send menu, drafts autosave, светлая+тёмная).
+- **Sidebars instant-load** (commit `873f553964`): был баг — после
+  Cmd+Shift+R sidebars показывали skeletons 5-10 сек (пока realtime
+  register не приедет). Архитектурный фикс: добавили `persist` на
+  `usersStore` / `streamsStore` / `realmStore` (localStorage cache);
+  sidebars показывают skeleton **только когда realtime loading И store
+  пустой**. Замер: 1 сек до полностью загруженных sidebars, 0
+  скелетонов. Stale-window только до следующего register snapshot.
+- **1108 unit-тестов**. Все гейты зелёные.
+- Предыдущее (Фаза 5): админка 5.2/5.3/5.4 фиче-комплит + live-протык
+  ✅; 5 коммитов закрыли admin entry → 18 apiClient методов →
+  пользователи/каналы/invites/организация; нашли и пофиксили 2 бага
+  архитектурно (`ce1841b01e`).
 
 ---
 
@@ -48,12 +49,18 @@
 - **Репозиторий:** `/Users/alexander/projects/flexar-zulip`, ветка
   `flexar-web` (от `origin/main`, запушена).
 - **Каталог проекта:** `flexar-web/`. Менеджер пакетов — **npm**.
-- **Фаза:** Фазы 0, 1, 2, 3, 4 — фиче-комплит. Фаза 5 — **5.1, 5.2, 5.3,
-  5.4, 5.5 сделаны (фиче-комплит)**. Следующая — Фаза 6 (полировка) или
-  гейты Фаз 1-5 (Playwright e2e). Live-протык всех Фаза 5 фич — ⏳
-  ждёт владельца на стенде (см. «Следующее действие»).
+- **Фаза:** Фазы 0, 1, 2, 3, 4 — фиче-комплит. Фаза 5 — **5.1, 5.2,
+  5.3, 5.4, 5.5 сделаны и оттыканы на стенде ✅**. Compose-box
+  передизайнен (commit `42970d5e05`) + sidebars instant-load после
+  hard reload (commit `873f553964`). Следующая фаза — **Фаза 6
+  (полировка)**: 6.9 deploy + 6.4 адаптив + 6.5 тёмная-паритет + 6.1
+  клавиатура / либо Playwright гейты Фаз 1-4 (см. «Следующее
+  действие»).
 
 ### Коммиты на ветке (свежие сверху)
+- `873f553964` persist users/streams/realm — sidebars instant-load после hard reload (fix Cmd+Shift+R skeleton-period)
+- `42970d5e05` compose — полный редизайн (inline recipient, formatting toolbar, split send menu; 19 иконок; 16 markdownInsert тестов)
+- `2c71ae3068` HANDOFF + PRD — Фаза 5 закрыта (live-протык ✅)
 - `ce1841b01e` 5.2-fix — default_streams живут в register snapshot (был 405 на GET); icon onError → silent span-фолбэк (был ложный danger Banner)
 - `a50847221e` HANDOFF + PRD — Фаза 5 фиче-комплит, мастер-чеклист обновлён
 - `b791359aac` 5.4 invites + 5.2 organization settings (8 + 20 unit-тестов; +28)
@@ -191,42 +198,79 @@
 
 ## Следующее действие
 
-**Live-протык всей админки на стенде (5.2/5.3/5.4) + Navbar dropdown.**
-Залогиниться `a.fedotov@friflex.com` → проверить:
+**Фаза 5 закрыта. Фазы 0-5 фиче-комплит + протыканы.** На очереди —
+Фаза 6 (полировка) и/или Playwright e2e гейты Фаз 1-4.
 
-1. **Navbar dropdown** (5.x shared infra): кликнуть на email-кнопку в
-   правом верхнем углу — должен открыться DropdownMenu с пунктами
-   Настройки / Администрирование (admin-only) / Выйти. Иконки user +
-   chevron-down + settings + shield + log-out. Свет/тёмная тема.
-2. **`/admin/users`** (5.4): три таба (Активные / Деактивированные /
-   Боты). Search + role-filter. Per-row Edit (modal с full_name +
-   role) / Deactivate (confirm + optional comment) / Reactivate.
-   Self-actions скрыты. Realtime `realm_user` event обновляет роль/
-   статус в списке без рефреша.
-3. **`/admin/invites`** (5.4): пустой список или существующие invites.
-   Send Invite (Textarea + role + expiry + ChannelPicker), Create
-   Reusable Link (returns URL с copy button), Revoke (confirm,
-   optimistic removal), Resend (per-email only).
-4. **`/admin/organization`** (5.2): 4 секции (Профиль / Сообщения /
-   Доступ / Каналы по умолчанию). Toggle autosave → realtime `realm`
-   event → store updated. Text inputs explicit save (Save button
-   появляется при dirty). Add/Remove default stream через modal.
-5. **`/channels`** (5.3 расширение): новая кнопка «Создать канал» →
-   CreateChannelModal. Name каждого канала — Link на `/channels/:id`.
-6. **`/channels/:id`** (5.3): rename → updateChannel. Admin toggles
-   privacy/history. Add subscriber через typeahead. Archive в danger
-   zone (admin only).
+### Что осталось открытого по PRD §10
 
-Все мутации должны попадать на стенд (DevTools Network: 200 от
-`/api/v1/realm`, `/streams/:id`, `/users/:id`, `/invites`, и т.д.).
-Realtime events (`realm`, `default_streams`, `realm_user`, `stream`,
-`subscription`) должны отражаться в UI без refresh.
+#### Фаза 6 — Сквозное и полировка (вся открыта)
+- **6.1 Клавиатурная навигация** — горячие клавиши (j/k/c/r/Ctrl+K
+  и т.п.). У Zulip это ключевая фича; у нас почти ничего нет.
+- **6.2 Доступность (ARIA, фокус)** — формальный аудит aria-labels,
+  focus-rings, screen-reader-проверка.
+- **6.3 i18n-модуль (ru/en)** — extraction строк в ICU/intl модуль с
+  языковым переключателем. Сейчас все строки inline RU без модуля.
+- **6.4 Адаптив (брейкпоинты)** — десктоп/планшет/телефон. Сейчас
+  sidebars при ≤768px просто `display:none` — это не адаптив.
+- **6.5 Тёмная тема — паритет** — формальный аудит, могут быть
+  pockets с цветовыми багами.
+- **6.6 Производительность** — code-splitting (build предупреждает
+  про 550kb бандл), мемоизация, бюджет.
+- **6.7 Состояния loading/empty/error везде** — аудит каждой фичи.
+- **6.8 Офлайн/реконнект** — поведение UI при разрыве сети + queue
+  expiry.
+- **6.9 Деплой на стенд** — прод-билд, хостинг (отдельный или рядом
+  с Zulip). Без него app живёт только локально на :5173.
 
-Найдены баги — фиксить **архитектурно, без костылей** (см. memory
-`live-protyk-mandatory.md`). После каждой пачки фиксов — перепротык.
+#### Гейты Фаз 1-4 (Playwright e2e)
+Все 4 фазы фиче-комплит + live-протыканы, но e2e-наборов нет:
+- Гейт Фазы 1: «логин → narrow → лента видна»
+- Гейт Фазы 2: «отправить сообщение, увидеть в ленте»
+- Гейт Фазы 3: реакции/действия/поиск/уведомления
+- Гейт Фазы 4: загрузки/lightbox/typing/scheduled/widgets
 
-После полного протыка обновить чек-лист в PRD §10 (Фаза 5) на ✅П
-для каждого пункта и закрыть HANDOFF с финальным сводом.
+`e2e/smoke.spec.ts` устарел (ждёт «scaffold OK» на `/`, а теперь
+там redirect на /login).
+
+#### Финальная приёмка
+- README + список «реализовано vs отложено»
+- Полный сквозной протык
+- Деплой работает
+
+### Известные мелкие follow-up'ы (флагнуты в коде, не блокеры)
+
+- Compose: maximize/expand/collapse + drag-resize (заглушка); video/
+  voice call (нет API); GIF (нет API); saved snippets (нет API);
+  global-time picker (нужен widget); quote-and-reply (отдельная
+  фича); closed-compose state с 3 кнопками (full reorg);
+  scroll-to-bottom button; custom datetime-picker в send-menu
+  (только 4 пресета сейчас).
+- Admin: icon/logo upload (нет API метода `uploadRealmIcon`);
+  group-permissions конструктор с `direct_members + direct_subgroups`
+  (упрощено до role dropdowns); bot creation (read-only сейчас);
+  crossrealm-bots типа Welcome Bot не показываются в Боты-табе (не
+  в `realm_users`); sub-навигация между `/admin/*` роутами (только
+  URL bar / navbar dropdown).
+- Misc: KaTeX шрифты не подключены (математика рендерится без
+  точных глифов); click-to-narrow по @меншенам не подключён;
+  pinned-sticky recipient-бары при скролле; `:test_tube:` в
+  описании канала рендерится литералом (channel descriptions не
+  идут через emoji-decorator); todo-виджеты (отдельный
+  widget-protocol); видео-инлайн в lightbox (server `<video>` без
+  controls); `act()` warning в `MessageFeed` тестах;
+  `package-lock.json` в `.gitignore` (спорное решение со скаффолда);
+  `realm`-events приходят только для ключей в `REALM_KEYS` (новые
+  поля silently дропаются — extend если понадобится).
+
+### Рекомендуемый приоритет следующего шага
+
+1. **6.9 Деплой на стенд** — без него Hub живёт только в dev. Это
+   превращает прототип в реальный workspace.
+2. **6.4 Адаптив + 6.5 Тёмная тема паритет** — UX-полировка ровная.
+3. **6.1 Клавиатурная навигация** — у Zulip ключевая фича.
+4. **Playwright гейты Фаз 1-4** — защита от регрессий.
+5. **6.6 Производительность** — code-splitting (admin-страницы → lazy).
+6. **6.3 i18n-модуль** — нужно если en-локаль; inline RU работает.
 
 ---
 
