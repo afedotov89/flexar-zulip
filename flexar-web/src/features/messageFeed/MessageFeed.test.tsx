@@ -286,15 +286,29 @@ describe("MessageFeed — structure", () => {
       subscriptions: {},
     });
     getMessagesMock.mockResolvedValue(
-      fetchResult([channelMessage({ id: 1, subject: "deploys" })]),
+      fetchResult([
+        // Two different topics in the same channel so the feed
+        // shows more than one conversation; bars render between
+        // them. With a single-conversation feed buildFeedRows
+        // suppresses bars (NarrowHeader is the only caption needed),
+        // so this assertion intentionally exercises the
+        // multi-topic-in-one-channel case.
+        channelMessage({ id: 1, subject: "deploys" }),
+        channelMessage({
+          id: 2,
+          subject: "releases",
+          timestamp: 1_700_000_060,
+          sender_id: 2,
+        }),
+      ]),
     );
     renderFeed();
 
-    // Wait for the message to render, then verify the recipient bar
-    // shows channel + topic. "engineering" appears in multiple places
-    // now (compose channel pill, recipient bar) — `findAllByText`
-    // covers both.
+    // Wait for the first message to render, then verify the
+    // recipient bar shows channel + topic. "engineering" appears in
+    // multiple places (compose channel pill, recipient bars).
     await screen.findByText("deploys");
+    expect(screen.getByText("releases")).toBeInTheDocument();
     const engineeringHits = screen.getAllByText("engineering");
     expect(engineeringHits.length).toBeGreaterThan(0);
   });

@@ -143,22 +143,26 @@ export function startOfLocalDay(timestamp: UnixTimestamp): UnixTimestamp {
  * Messages whose id could not be resolved to a body should be filtered
  * out by the caller before calling this.
  *
- * `options.includeRecipientBars` (default `true`) controls whether
- * recipient-bar rows are emitted between conversation blocks. Callers
- * narrowing to a single conversation (channel+topic, dm) pass `false`
- * because the persistent NarrowHeader already names that conversation
- * — leaving the bars in would render the same caption twice for every
- * topic the user opens.
+ * Recipient bars are emitted only when there is more than one
+ * distinct (channel, topic) / DM in the feed — bars exist to
+ * separate distinct conversations, so a feed that already pins on
+ * exactly one needs no separator (the persistent NarrowHeader
+ * already names it). This covers channel+topic narrows and DMs by
+ * construction; it also covers a channel-only narrow when the
+ * channel currently has just one active topic (where a single bar
+ * would duplicate NarrowHeader's `# channel` with `# channel >
+ * topic` — same info, twice).
  */
-export interface BuildFeedRowsOptions {
-  includeRecipientBars?: boolean;
-}
+export function buildFeedRows(messages: readonly Message[]): FeedRow[] {
+  // One pre-pass to decide whether bars carry any signal. Cheap —
+  // we iterate once more below anyway, and Set lookups dominate the
+  // string concat in `recipientKey`.
+  const distinctRecipients = new Set<string>();
+  for (const message of messages) {
+    distinctRecipients.add(recipientKey(recipientOf(message)));
+  }
+  const includeRecipientBars = distinctRecipients.size > 1;
 
-export function buildFeedRows(
-  messages: readonly Message[],
-  options: BuildFeedRowsOptions = {},
-): FeedRow[] {
-  const includeRecipientBars = options.includeRecipientBars ?? true;
   const rows: FeedRow[] = [];
 
   let prevMessage: Message | undefined;

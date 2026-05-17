@@ -69,10 +69,14 @@ describe("buildFeedRows — trivial windows", () => {
     expect(buildFeedRows([])).toEqual([]);
   });
 
-  it("emits a recipient bar then the message for a single message", () => {
+  it("emits just the message (no recipient bar) when there is only one conversation", () => {
+    // With a single distinct recipient in the feed, bars carry no
+    // separation signal — the wrapping NarrowHeader already names
+    // the conversation. Building only the message row keeps the
+    // chrome out of the way.
     const rows = buildFeedRows([channelMessage({ id: 1 })]);
-    expect(rows.map((r) => r.kind)).toEqual(["recipient-bar", "message"]);
-    const messageRow = rows[1];
+    expect(rows.map((r) => r.kind)).toEqual(["message"]);
+    const messageRow = rows[0];
     expect(messageRow.kind === "message" && messageRow.isGroupStart).toBe(true);
     // No date separator before the very first row.
     expect(rows.some((r) => r.kind === "date-separator")).toBe(false);
@@ -81,17 +85,13 @@ describe("buildFeedRows — trivial windows", () => {
 
 describe("buildFeedRows — sender grouping", () => {
   it("groups consecutive messages from the same sender in the window", () => {
+    // Single conversation → no recipient bar emitted.
     const rows = buildFeedRows([
       channelMessage({ id: 1, sender_id: 1, timestamp: NOON }),
       channelMessage({ id: 2, sender_id: 1, timestamp: NOON + 30 }),
       channelMessage({ id: 3, sender_id: 1, timestamp: NOON + 60 }),
     ]);
-    expect(rows.map((r) => r.kind)).toEqual([
-      "recipient-bar",
-      "message",
-      "message",
-      "message",
-    ]);
+    expect(rows.map((r) => r.kind)).toEqual(["message", "message", "message"]);
     const groupStarts = rows
       .filter((r) => r.kind === "message")
       .map((r) => (r.kind === "message" ? r.isGroupStart : null));
@@ -125,6 +125,8 @@ describe("buildFeedRows — sender grouping", () => {
   });
 
   it("keeps the group exactly at the window boundary", () => {
+    // Single conversation → no recipient bar; rows[0] is the first
+    // message, rows[1] is the second.
     const rows = buildFeedRows([
       channelMessage({ id: 1, sender_id: 1, timestamp: NOON }),
       channelMessage({
@@ -133,7 +135,7 @@ describe("buildFeedRows — sender grouping", () => {
         timestamp: NOON + GROUP_WINDOW_SECONDS,
       }),
     ]);
-    const second = rows[2];
+    const second = rows[1];
     expect(second.kind === "message" && second.isGroupStart).toBe(false);
   });
 });
@@ -165,7 +167,10 @@ describe("buildFeedRows — recipient bars", () => {
     ]);
   });
 
-  it("does not emit a new bar for the same channel + topic", () => {
+  it("emits no recipient bar at all when every message shares one channel + topic", () => {
+    // Both rule and visual contract: with a single conversation in
+    // the feed, the wrapping NarrowHeader is the only caption — the
+    // bars would only duplicate it.
     const rows = buildFeedRows([
       channelMessage({ id: 1, subject: "alpha", sender_id: 1 }),
       channelMessage({
@@ -175,7 +180,7 @@ describe("buildFeedRows — recipient bars", () => {
         timestamp: NOON + 10,
       }),
     ]);
-    expect(rows.filter((r) => r.kind === "recipient-bar")).toHaveLength(1);
+    expect(rows.filter((r) => r.kind === "recipient-bar")).toHaveLength(0);
   });
 
   it("a recipient change forces a new sender-group even for the same sender", () => {
@@ -203,13 +208,14 @@ describe("buildFeedRows — date separators", () => {
       channelMessage({ id: 1, timestamp: dayOne }),
       channelMessage({ id: 2, timestamp: dayTwo, sender_id: 1 }),
     ]);
+    // Single conversation across two days → no recipient bars,
+    // date-separator still emitted between the days.
     expect(rows.map((r) => r.kind)).toEqual([
-      "recipient-bar",
       "message",
       "date-separator",
       "message",
     ]);
-    const separator = rows[2];
+    const separator = rows[1];
     expect(separator.kind === "date-separator" && separator.dayStart).toBe(
       startOfLocalDay(dayTwo),
     );

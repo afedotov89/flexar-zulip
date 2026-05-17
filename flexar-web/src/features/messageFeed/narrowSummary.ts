@@ -91,29 +91,3 @@ export function summarizeNarrow(
 
   return { icon: "inbox", primary: "Лента" };
 }
-
-/**
- * `true` when the narrow addresses exactly one conversation —
- * a single channel+topic combo, or a single DM thread. Used by
- * the feed renderer to suppress in-flow recipient bars: with a
- * persistent NarrowHeader naming the conversation, repeating the
- * same caption between every message group is pure duplication.
- *
- * Multi-recipient narrows (combined feed, mentions, starred,
- * channel-only with multiple topics inside) keep their bars — they
- * actually separate distinct conversations the user is reading
- * back-to-back.
- */
-export function narrowAddressesSingleConversation(narrow: Narrow): boolean {
-  const hasChannel = narrow.some(
-    (term) => term.operator === "channel" || term.operator === "stream",
-  );
-  const hasTopic = narrow.some((term) => term.operator === "topic");
-  if (hasChannel && hasTopic) {
-    return true;
-  }
-  const hasDm = narrow.some(
-    (term) => term.operator === "dm" || term.operator === "pm-with",
-  );
-  return hasDm;
-}

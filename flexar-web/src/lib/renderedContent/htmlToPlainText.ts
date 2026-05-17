@@ -18,7 +18,16 @@
 
 import { unicodeFromEmojiClasses } from "./emojiCodepoint";
 
-const PARSER = new DOMParser();
+// `DOMParser` is provided by every browser environment we target,
+// but some Node test runners load the module before jsdom installs
+// it on the global. Instantiating at module-load throws in that
+// window; the lazy-init keeps it a one-shot allocation in browsers
+// while postponing the lookup until the first call.
+let parser: DOMParser | null = null;
+function getParser(): DOMParser {
+  parser ??= new DOMParser();
+  return parser;
+}
 
 export interface HtmlToPlainTextOptions {
   /**
@@ -36,7 +45,10 @@ export function htmlToPlainText(
   if (html === "") {
     return "";
   }
-  const doc = PARSER.parseFromString(`<body>${html}</body>`, "text/html");
+  const doc = getParser().parseFromString(
+    `<body>${html}</body>`,
+    "text/html",
+  );
 
   // Unicode emoji spans: replace inner text with the actual glyph.
   // The shortcode (`:point_right:`) is the inner text Zulip emits as a
