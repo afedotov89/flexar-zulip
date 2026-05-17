@@ -38,6 +38,7 @@ import { MarkAsReadButton } from "./MarkAsReadButton";
 import { MessageList } from "./MessageList";
 import { NarrowHeader } from "./NarrowHeader";
 import { buildFeedRows } from "./feedItems";
+import { narrowAddressesSingleConversation } from "./narrowSummary";
 import { useFeedWindow } from "./useFeedWindow";
 import styles from "./MessageFeed.module.css";
 
@@ -76,6 +77,14 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   // An id whose body is not yet cached is skipped — a transient state
   // the next store update resolves. Recomputed only when the id list
   // or the cache changes.
+  //
+  // In single-conversation narrows (channel+topic, dm) the persistent
+  // NarrowHeader already names the conversation, so emitting the
+  // in-flow recipient bar that would duplicate that caption is
+  // redundant. Multi-recipient narrows (combined feed, mentions,
+  // channel-only) keep their bars — those actually separate distinct
+  // conversations being read back-to-back.
+  const includeRecipientBars = !narrowAddressesSingleConversation(narrow);
   const rows = useMemo(() => {
     const resolved: Message[] = [];
     for (const id of window.orderedIds) {
@@ -84,8 +93,8 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
         resolved.push(message);
       }
     }
-    return buildFeedRows(resolved);
-  }, [window.orderedIds, messages]);
+    return buildFeedRows(resolved, { includeRecipientBars });
+  }, [window.orderedIds, messages, includeRecipientBars]);
 
   const getMessage = (messageId: number): Message | undefined =>
     messages[messageId];

@@ -142,8 +142,23 @@ export function startOfLocalDay(timestamp: UnixTimestamp): UnixTimestamp {
  * list resolved to bodies) — the order the feed renders top to bottom.
  * Messages whose id could not be resolved to a body should be filtered
  * out by the caller before calling this.
+ *
+ * `options.includeRecipientBars` (default `true`) controls whether
+ * recipient-bar rows are emitted between conversation blocks. Callers
+ * narrowing to a single conversation (channel+topic, dm) pass `false`
+ * because the persistent NarrowHeader already names that conversation
+ * — leaving the bars in would render the same caption twice for every
+ * topic the user opens.
  */
-export function buildFeedRows(messages: readonly Message[]): FeedRow[] {
+export interface BuildFeedRowsOptions {
+  includeRecipientBars?: boolean;
+}
+
+export function buildFeedRows(
+  messages: readonly Message[],
+  options: BuildFeedRowsOptions = {},
+): FeedRow[] {
+  const includeRecipientBars = options.includeRecipientBars ?? true;
   const rows: FeedRow[] = [];
 
   let prevMessage: Message | undefined;
@@ -168,8 +183,10 @@ export function buildFeedRows(messages: readonly Message[]): FeedRow[] {
       });
     }
 
-    // A recipient bar starts every conversation block.
-    if (recipientChanged) {
+    // A recipient bar starts every conversation block — unless the
+    // caller has opted out because a wrapping header already says
+    // the same thing.
+    if (recipientChanged && includeRecipientBars) {
       rows.push({
         kind: "recipient-bar",
         key: `bar:${recipientKey(recipient)}:${message.id}`,
