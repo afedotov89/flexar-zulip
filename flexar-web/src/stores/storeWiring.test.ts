@@ -314,14 +314,22 @@ describe("server-state stores — wiring", () => {
     ).toEqual(["fresh", "old"]);
   });
 
-  it("clears the topics store on re-register", () => {
-    useTopicsStore.setState({
+  it("preserves the topics store on re-register", () => {
+    // hydrate intentionally no-ops to avoid wiping in-flight loads
+    // that ChannelRow's mount-time useEffect started before the
+    // register snapshot landed (see topicsStore.ts for the why).
+    // Same-realm re-registers leave the cache valid; message events
+    // keep `max_id` current.
+    const initial = {
       topicsByChannel: { 10: [{ name: "t", max_id: 1 }] },
-      loadStatus: { 10: "loaded" },
-    });
+      loadStatus: { 10: "loaded" as const },
+    };
+    useTopicsStore.setState(initial);
     emitInitialState();
-    expect(useTopicsStore.getState().topicsByChannel).toEqual({});
-    expect(useTopicsStore.getState().loadStatus).toEqual({});
+    expect(useTopicsStore.getState().topicsByChannel).toEqual(
+      initial.topicsByChannel,
+    );
+    expect(useTopicsStore.getState().loadStatus).toEqual(initial.loadStatus);
   });
 
   it("folds scheduled-messages add/update/remove events into the store", () => {

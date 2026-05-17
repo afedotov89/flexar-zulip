@@ -101,10 +101,23 @@ export const useTopicsStore = create<TopicsState>()((set, get) => ({
 // Wire to the realtime layer at module load — before `start()` runs.
 wireStore({
   hydrate: () => {
-    // Topics are not in the register snapshot; a re-register makes the
-    // caches stale (see the file header), so reset to empty. Expanded
-    // channels in the sidebar re-run `loadTopics`.
-    useTopicsStore.setState({ topicsByChannel: {}, loadStatus: {} });
+    // Intentionally a no-op. The sidebar's ChannelRow useEffects fire
+    // `loadTopics` on mount, often BEFORE the register snapshot lands;
+    // the previous behaviour here wiped `topicsByChannel` and
+    // `loadStatus` on every hydrate, including the initial one — so
+    // the in-flight load wrote topics to the store, then hydrate ran
+    // and erased them. ChannelRow's useEffect deps don't change on
+    // hydrate, so nothing re-triggered the load: the user saw an
+    // expanded channel with no topics rendered, indefinitely.
+    //
+    // For same-realm re-registers (the common case) the cached
+    // topic list is valid — new-message events keep `max_id`
+    // current via `applyMessageEventToTopics` below. Topic creates
+    // and deletes between disconnect and reconnect are a known
+    // staleness gap; user re-expanding the channel currently won't
+    // refetch because loadStatus is still "loaded". Fix that
+    // separately by binding the loadStatus invalidation to a real
+    // realm-change signal rather than every hydrate.
   },
   applyEvent: (event) => {
     if (!isMessageEvent(event)) {
