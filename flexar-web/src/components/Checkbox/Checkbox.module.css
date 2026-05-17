@@ -49,6 +49,21 @@
   transition:
     background-color var(--duration-fast),
     border-color var(--duration-fast);
+
+  /*
+   * The styled box (and its checkmark SVG) sits stacked over the
+   * visually-hidden real <input> inside `.control`. Without this,
+   * the SVG inside `.box` is the topmost element at the click point
+   * and swallows mouse events, so the underlying input never sees a
+   * change — visually the checkbox looks unclickable (keyboard /
+   * AT / programmatic .click() all still work because they target
+   * the input directly, which is exactly what hid the bug from
+   * unit tests).
+   *
+   * Letting pointer events fall through restores the obvious user
+   * model: clicking the styled box clicks the input behind it.
+   */
+  pointer-events: none;
 }
 
 .mark,
