@@ -55,7 +55,7 @@ import {
   useReactionToggle,
 } from "../reactions";
 import { MessageContent } from "./MessageContent";
-import { detectPoll, PollWidget } from "../widgets";
+import { detectPoll, detectTodo, PollWidget, TodoWidget } from "../widgets";
 import { formatMessageTime } from "./formatting";
 import { narrowForMessage } from "./narrowForMessage";
 import styles from "./MessageRow.module.css";
@@ -261,6 +261,13 @@ export function MessageRow({
           <>
             {detectPoll(message.submessages) !== null && viewerId !== undefined ? (
               <PollWidget
+                messageId={message.id}
+                submessages={message.submessages}
+                viewerUserId={viewerId}
+              />
+            ) : detectTodo(message.submessages) !== null &&
+              viewerId !== undefined ? (
+              <TodoWidget
                 messageId={message.id}
                 submessages={message.submessages}
                 viewerUserId={viewerId}
