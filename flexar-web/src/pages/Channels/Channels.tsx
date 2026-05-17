@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
+import { RenderedDescription } from "../../components/RenderedDescription";
 import { apiClient } from "../../api";
 import type { Stream, StreamId } from "../../domain";
 import { describeApiError } from "../../lib/errors";
@@ -131,10 +132,11 @@ export function Channels(): React.JSX.Element {
                   >
                     #{stream.name}
                   </Link>
-                  {stream.description !== undefined && stream.description !== "" && (
-                    <span className={styles.description}>
-                      {stream.description}
-                    </span>
+                  {stream.rendered_description !== "" && (
+                    <RenderedDescription
+                      html={stream.rendered_description}
+                      className={styles.description}
+                    />
                   )}
                 </div>
                 <Button

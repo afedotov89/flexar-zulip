@@ -29,6 +29,7 @@ import { Banner } from "../../../components/Banner";
 import { Button } from "../../../components/Button";
 import { Icon } from "../../../components/Icon";
 import { Input } from "../../../components/Input";
+import { RenderedDescription } from "../../../components/RenderedDescription";
 import { Select } from "../../../components/Select";
 import { Spinner } from "../../../components/Spinner";
 import { Textarea } from "../../../components/Textarea";
@@ -193,8 +194,12 @@ function ChannelDetailLoaded({
         {stream.is_archived && <Badge variant="danger">Архивирован</Badge>}
       </header>
 
-      {stream.description !== "" && (
-        <p className={styles.description}>{stream.description}</p>
+      {stream.rendered_description !== "" && (
+        <RenderedDescription
+          html={stream.rendered_description}
+          as="div"
+          className={styles.description}
+        />
       )}
 
       {error !== null && (

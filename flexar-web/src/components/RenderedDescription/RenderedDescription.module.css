@@ -1,0 +1,25 @@
+/*
+ * Inline rendered description styles. Inherits font metrics from the
+ * surrounding text — descriptions sit in sidebars and one-line rows,
+ * so type scale must match the host context.
+ *
+ * Token-only values; emoji-image dimensions come from the same
+ * 1.2em / 1.2em the message body uses.
+ */
+
+.description :global(.emoji) {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  margin: 0 0.05em;
+  vertical-align: text-bottom;
+}
+
+.description a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.description a:hover {
+  text-decoration: underline;
+}
