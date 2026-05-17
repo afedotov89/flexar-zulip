@@ -167,7 +167,7 @@ export function TokenShowcase() {
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.headerText}>
-            <h1 className={styles.title}>Flexar Hub — Design Tokens</h1>
+            <h1 className={styles.title}>Flexar Messenger — Design Tokens</h1>
             <p className={styles.subtitle}>
               Phase 0.2 token pipeline. Active theme: {theme}.
             </p>
@@ -244,7 +244,7 @@ export function TokenShowcase() {
             {weightItems.map(({ key, weightClass, value }) => (
               <div key={key} className={styles.weightItem}>
                 <span className={`${styles.weightSample} ${weightClass}`}>
-                  Flexar Hub
+                  Flexar Messenger
                 </span>
                 <span className={styles.weightLabel}>
                   --font-weight-{key} · {value}

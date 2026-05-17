@@ -76,7 +76,7 @@ export interface Messages {
 export const messages: Record<Locale, Messages> = {
   ru: {
     navbar: {
-      brand: "Flexar Hub",
+      brand: "Flexar Messenger",
       themeToggleToDark: "Тёмная тема",
       themeToggleToLight: "Светлая тема",
       statusButton: "Установить статус",
@@ -131,7 +131,7 @@ export const messages: Record<Locale, Messages> = {
   },
   en: {
     navbar: {
-      brand: "Flexar Hub",
+      brand: "Flexar Messenger",
       themeToggleToDark: "Dark theme",
       themeToggleToLight: "Light theme",
       statusButton: "Set status",

@@ -128,7 +128,7 @@ export function PrimitivesShowcase(): React.JSX.Element {
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.headerText}>
-            <h1 className={styles.title}>Flexar Hub — UI Primitives</h1>
+            <h1 className={styles.title}>Flexar Messenger — UI Primitives</h1>
             <p className={styles.subtitle}>
               Phase 0.6 primitive library. Active theme: {theme}.
             </p>
