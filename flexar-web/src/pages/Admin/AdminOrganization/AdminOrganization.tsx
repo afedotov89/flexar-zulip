@@ -139,16 +139,6 @@ function ProfileSection({
   const [description, setDescription] = useState(realm.realm_description ?? "");
   const [savingName, setSavingName] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
-  // Local fallback flag — if the icon URL fails to load (broken link,
-  // self-signed cert on the stand, …) we just show the "icon not set"
-  // text. Surfacing it as a page-wide danger Banner would be louder
-  // than the issue warrants.
-  const [iconBroken, setIconBroken] = useState(false);
-  // Re-arm the broken flag when the URL itself changes (e.g. after an
-  // icon upload eventually lands).
-  useEffect(() => {
-    setIconBroken(false);
-  }, [realm.realm_icon_url]);
 
   // Sync inputs when the store updates from outside (realtime echo,
   // re-register, or another admin's edit).
@@ -181,8 +171,6 @@ function ProfileSection({
     await onSubmit({ description });
     setSavingDescription(false);
   };
-
-  const iconUrl = realm.realm_icon_url;
 
   return (
     <section className={styles.section}>
@@ -240,19 +228,76 @@ function ProfileSection({
 
       <div className={styles.row}>
         <span className={styles.label}>Иконка</span>
-        {iconUrl !== undefined && iconUrl !== "" && !iconBroken ? (
-          <img
-            src={iconUrl}
-            alt="Иконка организации"
-            className={styles.iconPreview}
-            onError={() => setIconBroken(true)}
-          />
-        ) : (
-          <span className={styles.muted}>Иконка не задана.</span>
-        )}
+        <RealmAssetPreview
+          url={realm.realm_icon_url}
+          alt="Иконка организации"
+          previewClassName={styles.iconPreview}
+          emptyLabel="Иконка не задана."
+        />
         <RealmIconUploader />
       </div>
+
+      <div className={styles.row}>
+        <span className={styles.label}>Логотип (светлая тема)</span>
+        <RealmAssetPreview
+          url={realm.realm_logo_url}
+          alt="Логотип организации, светлая тема"
+          previewClassName={styles.logoPreview}
+          emptyLabel="Логотип не задан."
+        />
+        <RealmLogoUploader night={false} />
+      </div>
+
+      <div className={styles.row}>
+        <span className={styles.label}>Логотип (тёмная тема)</span>
+        <RealmAssetPreview
+          url={realm.realm_night_logo_url}
+          alt="Логотип организации, тёмная тема"
+          previewClassName={`${styles.logoPreview} ${styles.logoPreviewDark}`}
+          emptyLabel="Логотип не задан."
+        />
+        <RealmLogoUploader night={true} />
+      </div>
     </section>
+  );
+}
+
+/**
+ * Preview tile for a realm asset (icon / light logo / night logo).
+ * Shows the image when the URL is set and loads OK, otherwise a
+ * muted "not set" label. The broken-image fallback is local state
+ * — re-armed whenever the URL changes (a successful upload bumps the
+ * server-side version query and re-attempts the load).
+ *
+ * Used by three slots so the broken-on-error logic isn't pasted
+ * three times. The icon and the two logos differ only in URL,
+ * alt-text, and preview chrome.
+ */
+function RealmAssetPreview({
+  url,
+  alt,
+  previewClassName,
+  emptyLabel,
+}: {
+  url: string | undefined;
+  alt: string;
+  previewClassName: string;
+  emptyLabel: string;
+}): React.JSX.Element {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [url]);
+  if (url === undefined || url === "" || broken) {
+    return <span className={styles.muted}>{emptyLabel}</span>;
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      className={previewClassName}
+      onError={() => setBroken(true)}
+    />
   );
 }
 
@@ -310,6 +355,66 @@ function RealmIconUploader(): React.JSX.Element {
         disabled={status.kind === "uploading"}
       >
         Загрузить иконку
+      </Button>
+      {status.kind === "error" && (
+        <span className={styles.errorText} role="alert">
+          {status.message}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Same shape as `RealmIconUploader` but for `realm/logo`. `night`
+ * selects the dark-theme variant — the server stores light and dark
+ * logos separately and emits them on the realm as
+ * `realm_logo_url` / `realm_night_logo_url`. Each variant is its
+ * own slot in `ProfileSection`, so the admin can update one without
+ * touching the other.
+ */
+function RealmLogoUploader({ night }: { night: boolean }): React.JSX.Element {
+  const [status, setStatus] = useState<
+    { kind: "idle" } | { kind: "uploading" } | { kind: "error"; message: string }
+  >({ kind: "idle" });
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onChoose = (): void => inputRef.current?.click();
+  const onFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (file === undefined) {
+      return;
+    }
+    setStatus({ kind: "uploading" });
+    try {
+      await apiClient.uploadRealmLogo({ file, night });
+      setStatus({ kind: "idle" });
+    } catch (cause) {
+      setStatus({ kind: "error", message: describeApiError(cause) });
+    }
+  };
+
+  return (
+    <span className={styles.uploaderSlot}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        hidden
+        onChange={(event) => void onFile(event)}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onChoose}
+        loading={status.kind === "uploading"}
+        disabled={status.kind === "uploading"}
+      >
+        Загрузить логотип
       </Button>
       {status.kind === "error" && (
         <span className={styles.errorText} role="alert">

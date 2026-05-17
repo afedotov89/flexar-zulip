@@ -74,6 +74,30 @@
   object-fit: cover;
 }
 
+/*
+ * Logos are wide horizontal artwork (typically 2:1 to 4:1) rather
+ * than the square icon. `contain` keeps the natural shape — the
+ * preview tile sets the bounding box, not the crop.
+ */
+.logoPreview {
+  width: var(--space-16);
+  height: var(--space-9);
+  padding: var(--space-1);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+/*
+ * Night-logo preview gets a dark tile so artwork designed for a
+ * dark navbar reads correctly regardless of which app theme the
+ * admin is currently in.
+ */
+.logoPreviewDark {
+  background-color: var(--color-overlay-scrim-strong);
+}
+
 /* Uploader cluster: choose-button + transient error text. */
 .uploaderSlot {
   display: inline-flex;

@@ -1197,8 +1197,11 @@ export class ApiClient {
   /**
    * Upload the organization's logo. `POST /api/v1/realm/logo`.
    * Pass `night: true` to upload the dark-theme variant; default is
-   * the light-theme logo. As with the icon, the new URL arrives via
-   * a `realm` event.
+   * the light-theme logo. The `night` field must ALWAYS be sent
+   * (the server rejects the request with `Missing 'night' argument`
+   * otherwise) — encoded as a JSON boolean string per Zulip's REQ
+   * convention. As with the icon, the new URL arrives via a `realm`
+   * event.
    */
   uploadRealmLogo(
     options: Omit<UploadRealmAssetOptions, "credentials" | "path" | "extraFields"> & {
@@ -1215,7 +1218,7 @@ export class ApiClient {
       ...rest,
       path: "logo",
       credentials: this.#credentials,
-      extraFields: night === true ? { night: "true" } : undefined,
+      extraFields: { night: night === true ? "true" : "false" },
     });
   }
 }
