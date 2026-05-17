@@ -76,9 +76,9 @@ describe("NetworkStatusBanner", () => {
     act(() => {
       notify();
     });
-    // Just under the grace window (4s).
+    // Just under the grace window.
     act(() => {
-      vi.advanceTimersByTime(3500);
+      vi.advanceTimersByTime(1500);
     });
     expect(container).toBeEmptyDOMElement();
     // Recovery before the timer fires — no banner ever shows.
@@ -99,7 +99,7 @@ describe("NetworkStatusBanner", () => {
       notify();
     });
     act(() => {
-      vi.advanceTimersByTime(4100);
+      vi.advanceTimersByTime(2100);
     });
     expect(
       screen.getByText(/Восстанавливаем соединение/i),
@@ -114,7 +114,7 @@ describe("NetworkStatusBanner", () => {
       notify();
     });
     act(() => {
-      vi.advanceTimersByTime(4100);
+      vi.advanceTimersByTime(2100);
     });
     expect(
       screen.getByText(/Восстанавливаем соединение/i),

@@ -39,13 +39,9 @@ import { useNetworkOnline } from "../../lib/hooks/useNetworkOnline";
 import styles from "./NetworkStatusBanner.module.css";
 
 // How long the realtime layer must stay in `"reconnecting"` before we
-// surface the banner. The realtime layer itself only flips to
-// `"reconnecting"` after several consecutive failures already (see
-// `RECONNECTING_FAILURE_THRESHOLD` in `realtime/connection.ts`), so
-// this is a second filter on top of that — a brief recovery within
-// this window keeps the UI quiet. 4 seconds is enough to ride out
-// one extra backoff+retry cycle on a flaky WAN.
-const RECONNECTING_GRACE_MS = 4000;
+// surface the banner. Short blips (a single failed long-poll that
+// succeeds on the next try) shouldn't make UI flash.
+const RECONNECTING_GRACE_MS = 2000;
 
 // How long the "just reconnected" success banner stays before
 // auto-dismissing. Long enough to notice, short enough to get out of
