@@ -11,21 +11,35 @@
 //   - directory has settled and the user is not admin → redirect to `/`
 //     with a `replace` so the admin URL doesn't sit in history.
 //
-// "Settled" is judged by `useStoresLoading()` going false: that hook
-// already gates the rest of the app on the realtime layer being
-// "connected" (i.e. register has delivered the directory).
+// "Settled" is judged by the *user directory itself* being non-empty —
+// previously we gated on `useStoresLoading()` (realtime status), but
+// that hook returns true while realtime is `"connecting"` or
+// `"reconnecting"`, which on a flaky WAN can hold the admin page on
+// a spinner indefinitely even though the user directory was hydrated
+// minutes ago from the persisted `usersStore`. The directory itself
+// is the right gate: if we have a session user and the directory has
+// an entry for them, we have everything we need to make the admin-vs-
+// member call.
 
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "../../components/Spinner";
-import { useStoresLoading } from "../../lib/hooks/useRealtimeStatus";
+import { AdminNav } from "../../features/adminNav";
+import { useAuthStore } from "../../stores/authStore";
+import { useUsersStore } from "../../stores/usersStore";
 import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
 import styles from "./RequireAdmin.module.css";
 
 export function RequireAdmin(): React.JSX.Element {
   const isAdmin = useIsAdmin();
-  const storesLoading = useStoresLoading();
+  const sessionUserId = useAuthStore((s) => s.session?.userId);
+  const directoryHasViewer = useUsersStore(
+    (s) => sessionUserId !== undefined && sessionUserId in s.users,
+  );
+  // Show the loading spinner only while the directory genuinely
+  // doesn't know about the viewer yet — once it does, we can verdict.
+  const directoryReady = directoryHasViewer;
 
-  if (storesLoading) {
+  if (!directoryReady) {
     // Directory still hydrating; verdict on admin-ness is premature.
     return (
       <div className={styles.loading}>
@@ -38,5 +52,15 @@ export function RequireAdmin(): React.JSX.Element {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  // Admins see a sub-nav tab strip above every admin page so they can
+  // jump between organization / users / invites without going through
+  // the navbar's account dropdown each time. The strip is rendered
+  // here (above <Outlet />) so it stays on screen across route
+  // transitions within /admin/*.
+  return (
+    <>
+      <AdminNav />
+      <Outlet />
+    </>
+  );
 }
