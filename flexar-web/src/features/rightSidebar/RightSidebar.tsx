@@ -167,7 +167,7 @@ export function RightSidebar(): React.JSX.Element {
               />
             )}
             <UserSection
-              title="Все участники"
+              title="Участники организации"
               entries={directoryEntries}
               getPresence={getPresence}
               emptyLabel={

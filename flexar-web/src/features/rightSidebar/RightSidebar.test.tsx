@@ -59,13 +59,13 @@ describe("RightSidebar — data states", () => {
     connectionStatus = "connecting";
     renderSidebar();
     // No section heading is rendered during loading.
-    expect(screen.queryByText("Все участники")).not.toBeInTheDocument();
+    expect(screen.queryByText("Участники организации")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Фильтр участников")).toBeDisabled();
   });
 
   it("shows an empty state when there are no users", () => {
     renderSidebar();
-    expect(screen.getByText("Все участники")).toBeInTheDocument();
+    expect(screen.getByText("Участники организации")).toBeInTheDocument();
     expect(screen.getByText("Нет участников")).toBeInTheDocument();
   });
 
@@ -176,7 +176,7 @@ describe("RightSidebar — narrow context", () => {
 
   it("shows only the directory for the combined feed (no context)", () => {
     renderSidebar("/");
-    expect(screen.getByText("Все участники")).toBeInTheDocument();
+    expect(screen.getByText("Участники организации")).toBeInTheDocument();
     expect(screen.queryByText("В этом канале")).not.toBeInTheDocument();
     expect(screen.queryByText("В этом разговоре")).not.toBeInTheDocument();
   });
@@ -201,7 +201,7 @@ describe("RightSidebar — narrow context", () => {
     expect(scoped.getByText("Alan Turing")).toBeInTheDocument();
     expect(scoped.queryByText("Grace Hopper")).not.toBeInTheDocument();
     // The full directory still appears below the contextual section.
-    expect(screen.getByText("Все участники")).toBeInTheDocument();
+    expect(screen.getByText("Участники организации")).toBeInTheDocument();
   });
 
   it("falls back to partial_subscribers for a large channel", () => {
