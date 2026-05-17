@@ -107,8 +107,9 @@ export function ChannelRow({
           // VS Code all use the same "parent is selected when a
           // child is current" pattern.
           selected={
-            channelPath === currentPath ||
-            currentPath.startsWith(`${channelPath}/topic/`)
+            currentPath !== undefined &&
+            (channelPath === currentPath ||
+              currentPath.startsWith(`${channelPath}/topic/`))
           }
           unreadCount={channelUnread}
           unreadLabel={
