@@ -4,29 +4,66 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-17 (ночная сессия), **Фаза 6 закрыта целиком (без 6.9 deploy)**:
+**Последнее обновление:** 2026-05-17 (audit follow-up sweep), **feature-gaps зарыты**.
 
-- **8 коммитов** легли в одну ночь:
-  - `c66cc6090b` 6.1 клавиатурная навигация (KEYMAP/registry/help overlay/feed j/k/c/r/i/m/s/d)
-  - `350c163c20` 6.8 status banner (offline / reconnecting / reconnected)
-  - `e9f94d3307` 6.4 адаптив + drawer-сайдбары на mobile/tablet
-  - `f62cebfb7b` 6.6 code-split routes + vendor chunks (главный bundle 604→223kb)
-  - `662f9f9a07` 6.2 skip-link для клавиатуры/screen-reader
-  - `0775f6c00d` 6.7 EmptyState примитив + унификация feed states
-  - `3d073d4f4e` 6.3 i18n модуль (ru/en) + language switcher
-  - 6.5 формальный визуальный аудит dark theme — паритет полный, кода
-    менять не пришлось (всё уже через токены)
-- **1158 unit-тестов** (+10 за Фазу 6). Все гейты зелёные, build чистый
-  (без size warning).
-- Live-протык на стенде: ✅ keyboard (?, Cmd+K, c, j/k/Home/End, r,
-  i/m/s/d), ✅ offline banner, ✅ mobile drawer (380×780 hamburger
-  открывает левый, members иконка — правый, route change закрывает),
-  ✅ skip-link фокусится при первом Tab, ✅ EmptyState на search-no-results,
-  ✅ dark theme на всех страницах (feed/sidebars/help/settings/admin/channels),
-  ✅ language toggle ru↔en моментально перерисовывает navbar+shell.
+После Фазы 6 владелец потребовал production-ready бар: разобрать
+оставшиеся «TODO/потом» и закрыть всё, что мешает воспринимать UI как
+полноценный мессенджер. Сессия выдала 6 коммитов по feature-gaps
+поверх ранее принятых архитектурных фиксов (realtime / mark-unread /
+HMR / admin gate / cross-realm bots / реплай-кнопка):
 
-**Что осталось из плана 6:** только **6.9 деплой на стенд** (по
-указанию владельца — в самом конце).
+- `8e178df6ab` MessageList — scroll-to-bottom + pinned recipient bar
+  (плавающая кнопка появляется при scrollTop > 400px от низа; sticky
+  recipient bar выводится из ближайшего предыдущего ряда через
+  virtualizer.range.startIndex).
+- `48ed5c7077` inline media — click-to-narrow @-mentions + video
+  lightbox (mention → DM-narrow к user_id; wildcard `*` пропускаем;
+  `<video>` открывается в лайтбоксе с controls/autoPlay; sanitizer
+  пропустил video/source + controls/preload/poster/playsinline).
+- `80dbb32001` compose — quote-and-reply + maximize toggle (новый
+  пункт «Ответить с цитатой» строит Zulip-канонический `@_**Name|id**
+  [said](near-url): \`\`\`quote …\`\`\`` и preffill'ит compose через
+  signal.prefillText; кнопка maximize в toolbar разворачивает редактор
+  в ~60vh, mount-local state by design).
+- `a0842bce31` todo widget — viewer + add-task + complete toggle
+  (зеркало pollState/PollWidget: detectTodo + deriveTodoState фолдят
+  initial tasks/new_task/strike/new_task_list_title; TodoWidget с
+  checkbox-списком и NewTaskInput; MessageRow триггерит widget при
+  detectTodo !== null).
+- `b587be0bd9` admin — realm icon upload (PRD §13.2): убран плейсхолдер
+  «появится в следующей итерации», добавлен RealmIconUploader
+  (multipart на /realm/icon, FormData field 'file'). uploadRealmLogo
+  тоже в client'е готов; UI logo — следующей итерацией (нужен
+  day/night toggle).
+- `7d11a5f1f5` channels — рендер `rendered_description` через новый
+  RenderedDescription примитив (DOMPurify + decorateEmojis). Был
+  literal Markdown в Channels list и ChannelDetail header — теперь
+  bold/links/:emoji: рендерятся как у настоящих сообщений.
+
+Перед feature-gaps в той же сессии закрылись корневые баги (см.
+коммиты `526681a8ee` / `3ae2d82f11` / `35f4212988` / `326da81fda` /
+`0c634cc761` / `34d5d621e0`).
+
+- **1185 unit-тестов** (+27 за сессию: todoState 8, quote 4, прочие
+  fixture/Router-wrap'ы). Все гейты зелёные (lint clean, typecheck
+  clean, 1185/1185 pass).
+- Live-протык на стенде: ✅ scroll-to-bottom появляется/исчезает по
+  порогу; ✅ click по @mention уводит в DM; ✅ video lightbox с
+  controls; ✅ quote-and-reply подставляет блок цитаты в compose;
+  ✅ maximize раскрывает редактор до ~60vh; ✅ todo widget рендерит
+  список, чекбоксы toggle'ятся; ✅ realm icon upload меняет иконку;
+  ✅ channel descriptions с emoji.
+
+**Что осталось из плана:** 6.9 деплой на стенд (по указанию владельца
+— в самом конце) + Playwright e2e (отдельная следующая фаза по
+решению владельца).
+
+**Сознательно отложено:**
+- Logo-uploader UI (нужен day/night toggle + preview — следующей
+  итерацией; client.uploadRealmLogo уже готов).
+- Group-permissions конструктор (enterprise scope, не блокер UX).
+- KaTeX single-`$` (серверная сторона — Zulip-сервер требует двойной
+  `$$`; клиент рендерит то, что отдаёт сервер).
 
 ---
 
