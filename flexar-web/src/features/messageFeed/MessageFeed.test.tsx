@@ -15,7 +15,13 @@
 // behaviour, never pixel geometry (per the project's Puppeteer/jsdom
 // guidance).
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import type { Message } from "../../domain";
@@ -331,13 +337,17 @@ describe("MessageFeed — live-event reconciliation", () => {
 
     // A live `message` event reaches `messagesStore`; the feed's
     // subscription reconciles it into the window because it matches the
-    // channel-7 narrow and the window reaches the newest end.
-    useMessagesStore.setState((state) => ({
-      messages: {
-        ...state.messages,
-        2: channelMessage({ id: 2, content: "<p>brand new</p>" }),
-      },
-    }));
+    // channel-7 narrow and the window reaches the newest end. Wrapped
+    // in `act` because the store update synchronously schedules a
+    // React re-render of MessageFeed.
+    act(() => {
+      useMessagesStore.setState((state) => ({
+        messages: {
+          ...state.messages,
+          2: channelMessage({ id: 2, content: "<p>brand new</p>" }),
+        },
+      }));
+    });
 
     expect(await screen.findByText("brand new")).toBeInTheDocument();
   });
@@ -351,16 +361,18 @@ describe("MessageFeed — live-event reconciliation", () => {
 
     // A message in a *different* channel folded into the store must not
     // appear in the channel-7 feed.
-    useMessagesStore.setState((state) => ({
-      messages: {
-        ...state.messages,
-        2: channelMessage({
-          id: 2,
-          stream_id: 99,
-          content: "<p>other channel</p>",
-        }),
-      },
-    }));
+    act(() => {
+      useMessagesStore.setState((state) => ({
+        messages: {
+          ...state.messages,
+          2: channelMessage({
+            id: 2,
+            stream_id: 99,
+            content: "<p>other channel</p>",
+          }),
+        },
+      }));
+    });
 
     // Give the subscription a chance to (not) act.
     await waitFor(() => {
@@ -380,10 +392,12 @@ describe("MessageFeed — live-event reconciliation", () => {
 
     // A `delete_message` event drops the id from `messagesStore`; the
     // feed reconciles the removal out of its window.
-    useMessagesStore.setState((state) => {
-      const messages = { ...state.messages };
-      delete messages[2];
-      return { messages };
+    act(() => {
+      useMessagesStore.setState((state) => {
+        const messages = { ...state.messages };
+        delete messages[2];
+        return { messages };
+      });
     });
 
     await waitFor(() => {
