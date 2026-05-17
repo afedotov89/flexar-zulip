@@ -185,21 +185,27 @@ describe("ComposeBox — pre-fill from narrow", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the 'choose a conversation' placeholder when the narrow has no recipient", () => {
+  it("shows a hint instead of the compose form when the narrow has no recipient", () => {
     render(<MemoryRouter><ComposeBox narrow={[]} /></MemoryRouter>);
-    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
-    expect(textarea.placeholder).toBe("Выберите канал или беседу…");
-    // Send is disabled with no destination.
+    // No disabled textarea / send button — just the hint explaining
+    // how to start writing. Half the bottom of the screen used to be
+    // dead chrome with a draft restored from the last channel
+    // narrow; the hint occupies one row instead.
+    expect(screen.queryByLabelText("Сообщение")).toBeNull();
     expect(
-      (screen.getByRole("button", { name: /Отправить/ }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
+      screen.queryByRole("button", { name: /Отправить/ }),
+    ).toBeNull();
+    expect(
+      screen.getByText(/Чтобы написать, откройте канал/),
+    ).toBeInTheDocument();
   });
 
-  it("shows the placeholder when the route has no narrow", () => {
+  it("shows the hint when the route has no narrow", () => {
     render(<MemoryRouter><ComposeBox narrow={undefined} /></MemoryRouter>);
-    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
-    expect(textarea.placeholder).toBe("Выберите канал или беседу…");
+    expect(screen.queryByLabelText("Сообщение")).toBeNull();
+    expect(
+      screen.getByText(/Чтобы написать, откройте канал/),
+    ).toBeInTheDocument();
   });
 });
 

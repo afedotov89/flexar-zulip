@@ -661,6 +661,21 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     getUser,
   ]);
 
+  // Narrows that don't address a specific recipient (search,
+  // is:starred / is:mentioned / is:resolved, etc.) can't accept a
+  // new message, so the full compose surface — recipient row,
+  // toolbar, send button — is just dead chrome occupying half the
+  // bottom of the screen, often still showing a draft restored from
+  // the user's last channel narrow. Replace it with a single-line
+  // hint that explains how to start writing instead.
+  if (formMode === "none") {
+    return (
+      <div className={styles.composeUnavailable} role="status">
+        Чтобы написать, откройте канал, тему или личную беседу.
+      </div>
+    );
+  }
+
   return (
     <form
       className={`${styles.compose}${isMaximized ? ` ${styles.maximized}` : ""}`}
@@ -677,9 +692,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         </div>
       )}
 
-      {formMode !== "none" && (
-        <RecipientRow
-          {...(formMode === "channel"
+      <RecipientRow
+        {...(formMode === "channel"
             ? {
                 mode: "channel" as const,
                 streamId: channelStreamId,
@@ -700,8 +714,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
                   setForm((current) => ({ ...current, recipientIds: next })),
                 disabled: sending,
               })}
-        />
-      )}
+      />
 
       {showRestoredHint && (
         <p className={styles.restoredHint} aria-live="polite">
@@ -745,7 +758,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
               onBlur={textareaTypeahead.close}
               onPaste={onTextareaPaste}
               placeholder={placeholder}
-              disabled={sending || formMode === "none"}
+              disabled={sending}
               aria-label="Сообщение"
               aria-autocomplete="list"
               aria-controls={

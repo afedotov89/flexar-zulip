@@ -264,19 +264,15 @@ describe("ComposeBox — drafts autosave", () => {
   it("does not autosave when the narrow has no destination", () => {
     vi.useFakeTimers();
     try {
-      // Search-only narrow → mode === "none". The redesigned compose
-      // still renders the textarea (with a placeholder asking the
-      // user to pick a destination), but typing into it does NOT
-      // hit the draft store: the autosave effect early-returns when
-      // there is no destination key.
+      // Search-only narrow → mode === "none". The compose surface
+      // collapses to a single-row hint (no textarea, no toolbar, no
+      // send button) so the user can't type into it at all — which
+      // is exactly the autosave-can't-touch-the-store guarantee
+      // this test exists to encode. We assert both the surface
+      // shape and the empty store.
       const searchNarrow: Narrow = [{ operator: "search", operand: "x" }];
       render(<MemoryRouter><ComposeBox narrow={searchNarrow} /></MemoryRouter>);
-      const textarea = screen.getByLabelText(
-        "Сообщение",
-      ) as HTMLTextAreaElement;
-      // Textarea is disabled in "none" mode, so we drive the value
-      // imperatively to bypass the disabled guard.
-      fireEvent.change(textarea, { target: { value: "stray text" } });
+      expect(screen.queryByLabelText("Сообщение")).toBeNull();
       act(() => {
         vi.advanceTimersByTime(1000);
       });
