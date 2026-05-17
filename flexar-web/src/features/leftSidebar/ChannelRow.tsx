@@ -98,7 +98,18 @@ export function ChannelRow({
         <NavRow
           to={channelPath}
           label={name}
-          selected={channelPath === currentPath}
+          // The channel row is "selected" not only when the URL is
+          // exactly the channel narrow, but also when it is any
+          // topic inside the channel. Without this, navigating to
+          // `/narrow/channel/3/topic/X` left the channel row in the
+          // sidebar visually identical to every other channel — the
+          // tree gave no hint where the user was. Slack / Discord /
+          // VS Code all use the same "parent is selected when a
+          // child is current" pattern.
+          selected={
+            channelPath === currentPath ||
+            currentPath.startsWith(`${channelPath}/topic/`)
+          }
           unreadCount={channelUnread}
           unreadLabel={
             channelUnread > 0 ? `${channelUnread} непрочитанных` : undefined

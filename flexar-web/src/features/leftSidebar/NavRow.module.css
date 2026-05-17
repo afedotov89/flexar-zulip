@@ -32,11 +32,34 @@
   outline-offset: -2px;
 }
 
-/* Selected (current view/narrow): accent-tinted, accent text. */
+/*
+ * Selected (current view/narrow). The earlier styling used
+ * `--color-hover` for the background, which is exactly the hover
+ * tint — there was no daylight between "I'm hovering this row" and
+ * "this row IS the current narrow". The user couldn't tell where
+ * they were in the tree.
+ *
+ * Strengthen: use `--color-active` (the darker press tint) and add a
+ * left-edge accent stripe (3px). Stripe + tint is the standard
+ * "you-are-here" treatment in Slack / Discord / VS Code sidebars and
+ * reads unambiguously even at a glance.
+ */
 .selected {
+  position: relative;
   color: var(--color-accent);
-  background-color: var(--color-hover);
-  font-weight: var(--font-weight-medium);
+  background-color: var(--color-active);
+  font-weight: var(--font-weight-semibold);
+}
+
+.selected::before {
+  position: absolute;
+  top: var(--space-1);
+  bottom: var(--space-1);
+  left: 0;
+  width: 3px;
+  content: "";
+  background-color: var(--color-accent);
+  border-radius: var(--radius-sm);
 }
 
 .selected:hover {
