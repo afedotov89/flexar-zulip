@@ -15,7 +15,7 @@
 // tail. `ServerEvent` therefore stays a closed union for `switch`
 // exhaustiveness while still accepting any event the server sends.
 
-import type { ReactionType } from "./emoji";
+import type { ReactionType, RealmEmoji } from "./emoji";
 import type {
   Message,
   MessageFlag,
@@ -448,6 +448,19 @@ export interface DefaultStreamsEvent extends EventBase {
 }
 
 /**
+ * `realm_emoji` event with `op: "update"` — the realm's custom emoji
+ * set changed (admin added / removed / deactivated an emoji). Zulip's
+ * convention here is to send the *full* new map, not a delta — so
+ * consumers replace `realmEmojiStore.emojiById` wholesale and any
+ * downstream pickers / typeahead refresh.
+ */
+export interface RealmEmojiUpdateEvent extends EventBase {
+  type: "realm_emoji";
+  op: "update";
+  realm_emoji: Record<string, RealmEmoji>;
+}
+
+/**
  * Fallback for any event type this layer does not model precisely.
  * Keeps `ServerEvent` open to the full set of server events while
  * preserving discriminated-union narrowing for the modelled ones.
@@ -476,6 +489,7 @@ export type ServerEvent =
   | RealmUserEvent
   | RealmEvent
   | DefaultStreamsEvent
+  | RealmEmojiUpdateEvent
   | PresenceEvent
   | TypingEvent
   | UserStatusEvent

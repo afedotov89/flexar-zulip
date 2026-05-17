@@ -7,11 +7,11 @@
 // `rendered_content`.
 //
 // Lifecycle (see `wireStore`): hydrates from the register snapshot's
-// `realm_emoji` map at connect time and re-hydrates on every
-// re-register. Server-side mutations of the realm emoji set arrive as
-// `realm_emoji` `update` events in the long tail of `ServerEvent` not
-// yet typed through the orchestrator (`UnknownEvent`); a re-register
-// catches those changes in the meantime.
+// `realm_emoji` map at connect time, re-hydrates on every re-register,
+// and folds `realm_emoji op=update` realtime events on top — these
+// arrive when an admin adds, removes, or deactivates a custom emoji,
+// and Zulip ships the full new map (not a delta) so the reducer just
+// replaces `emojiById` wholesale.
 //
 // No `persist`: server state is re-fetched on every connect and must
 // not survive a reload as stale data.
@@ -19,6 +19,7 @@
 import { create } from "zustand";
 import type { RealmEmoji } from "../domain";
 import type { InitialState } from "../realtime";
+import { isRealmEmojiUpdateEvent } from "./eventGuards";
 import { wireStore } from "./wireStore";
 
 /**
@@ -87,15 +88,22 @@ function realmEmojiFromInitialState(
 }
 
 // Wire to the realtime layer at module load — before `start()` runs.
-// No event reducer: realm-emoji-update events are in the long tail not
-// yet typed; re-register hydration bounds staleness in the meantime.
 wireStore({
   hydrate: (state) => {
     useRealmEmojiStore.setState({
       emojiById: realmEmojiFromInitialState(state),
     });
   },
-  applyEvent: () => {
-    // Realm-emoji events not yet modelled; see the file header.
+  applyEvent: (event) => {
+    if (!isRealmEmojiUpdateEvent(event)) {
+      return;
+    }
+    // Server sends the full new map (Zulip convention for this
+    // event), so consumers replace state wholesale rather than
+    // merging. Defensive `??` guards against a malformed payload —
+    // unlikely from the real server but cheap insurance.
+    useRealmEmojiStore.setState({
+      emojiById: event.realm_emoji ?? {},
+    });
   },
 });

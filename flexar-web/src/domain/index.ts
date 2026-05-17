@@ -71,6 +71,7 @@ export type {
   MessageEvent,
   PresenceEvent,
   ReactionEvent,
+  RealmEmojiUpdateEvent,
   RealmEvent,
   RealmUpdateDictEvent,
   RealmUpdateEvent,

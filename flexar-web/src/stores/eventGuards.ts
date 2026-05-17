@@ -16,6 +16,7 @@ import type {
   MessageEvent,
   PresenceEvent,
   ReactionEvent,
+  RealmEmojiUpdateEvent,
   RealmEvent,
   RealmUserEvent,
   ScheduledMessagesEvent,
@@ -115,4 +116,10 @@ export function isDefaultStreamsEvent(
   event: ServerEvent,
 ): event is DefaultStreamsEvent {
   return event.type === "default_streams";
+}
+
+export function isRealmEmojiUpdateEvent(
+  event: ServerEvent,
+): event is RealmEmojiUpdateEvent {
+  return event.type === "realm_emoji" && event.op === "update";
 }
