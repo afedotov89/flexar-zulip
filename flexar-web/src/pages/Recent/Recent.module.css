@@ -1,0 +1,133 @@
+/*
+ * Последние (Recent) page styles. Same rhythm as Inbox / Drafts so
+ * the family of special views reads consistently when the user
+ * pivots between them.
+ */
+
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.row {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.rowButton {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--color-text);
+  text-align: start;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.rowButton:hover {
+  background-color: var(--color-hover);
+}
+
+.rowButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.leadingIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  gap: var(--space-1);
+  align-items: baseline;
+  overflow: hidden;
+  font-weight: var(--font-weight-semibold);
+}
+
+.primary {
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.secondary {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippetLine {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.snippet {
+  color: var(--color-text-muted);
+}
+
+.time {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

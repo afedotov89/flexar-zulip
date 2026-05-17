@@ -16,13 +16,13 @@
 //
 // The narrow feed itself is the `messageFeed` feature.
 
-import { EmptyState } from "../../components/EmptyState";
 import type { Narrow } from "../../domain";
 import { useCurrentNarrow, useCurrentView } from "../../lib/narrow";
 import { MessageFeed } from "../../features/messageFeed";
 import { Drafts } from "../Drafts";
+import { Inbox } from "../Inbox";
+import { Recent } from "../Recent";
 import { Scheduled } from "../Scheduled";
-import styles from "./Feed.module.css";
 
 // The Combined-feed narrow, as a module constant so the index route
 // passes a stable reference (a fresh `[]` each render would re-trigger
@@ -44,26 +44,16 @@ export function Feed() {
     if (view.id === "scheduled") {
       return <Scheduled />;
     }
-    // Inbox / Recent are hidden from the sidebar (ViewsSection
-    // filters them out), but the routes still exist — a stale link
-    // or a bookmark can land here. Show a real EmptyState instead
-    // of the bare "Раздел скоро появится" label so the page looks
-    // like the rest of the app rather than a debug stub.
-    const upcomingTitle =
-      view.id === "inbox" ? "Раздел «Входящие»" : "Раздел «Последние»";
-    const upcomingDescription =
-      view.id === "inbox"
-        ? "Сгруппированные непрочитанные сообщения по каналам и темам. Сейчас в разработке."
-        : "Список недавно активных бесед. Сейчас в разработке.";
-    return (
-      <div className={styles.feed}>
-        <EmptyState
-          icon={view.icon}
-          title={upcomingTitle}
-          description={upcomingDescription}
-        />
-      </div>
-    );
+    if (view.id === "inbox") {
+      return <Inbox />;
+    }
+    // The TS narrowing leaves only `recent` in scope here — every
+    // other SpecialView id has its own branch above. Fall through
+    // to the Recent page rather than asserting against the union;
+    // if a new SpecialView is ever added without its own branch,
+    // the type-checker will catch it as `view.id === "recent"`
+    // becoming impossible.
+    return <Recent />;
   }
 
   // Narrow routes carry their narrow in the URL; the index route `/`
