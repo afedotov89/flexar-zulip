@@ -64,11 +64,14 @@ describe("AppShell", () => {
   it("renders the routed Outlet content in the center column", async () => {
     render(<App />);
 
-    // The index route renders the message feed into the center column;
-    // with an empty history window it settles on its empty state.
+    // The index route redirects to /inbox ("Новые") — the new
+    // default home view. With no unread messages the Inbox screen
+    // settles on its empty state.
     const main = screen.getByRole("main");
-    expect(await screen.findByText("Здесь пока нет сообщений")).toBeInTheDocument();
-    expect(main).toContainElement(screen.getByText("Здесь пока нет сообщений"));
+    expect(
+      await screen.findByText("Всё прочитано"),
+    ).toBeInTheDocument();
+    expect(main).toContainElement(screen.getByText("Всё прочитано"));
   });
 
   it("toggles the theme via the navbar toggle button", () => {

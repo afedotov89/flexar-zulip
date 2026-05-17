@@ -47,7 +47,7 @@
 // single `<RouteFallback />` while their JS loads.
 
 import { lazy, Suspense } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { RequireAuth } from "./RequireAuth";
 import { RequireAdmin } from "./RequireAdmin";
@@ -121,7 +121,13 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <Feed /> },
+          // Default home view is Inbox ("Новые") — the daily-driver
+          // navigation entry in modern Zulip, and what users expect to
+          // see first when they open the app. The previous default was
+          // the Combined feed, which becomes useless noise in active
+          // orgs with many channels (Slack's "all unreads" lesson).
+          // `replace` so the empty / doesn't pile up in history.
+          { index: true, element: <Navigate to="/inbox" replace /> },
           // The whole narrow path lives under NARROW_ROOT as a splat;
           // the Feed reads and parses it via `useCurrentNarrow`.
           { path: `${NARROW_ROOT.slice(1)}/*`, element: <Feed /> },
