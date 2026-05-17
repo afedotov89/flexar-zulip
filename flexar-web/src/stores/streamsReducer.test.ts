@@ -263,4 +263,93 @@ describe("applySubscriptionEvent — peer_add / peer_remove", () => {
     });
     expect(stream.subscriber_count).toBe(10);
   });
+
+  it("peer_add files new user ids into subscribers[] of the subscription", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 7: makeStream({ stream_id: 7, subscriber_count: 2 }) },
+      subscriptions: {
+        7: makeSubscription({
+          stream_id: 7,
+          subscriber_count: 2,
+          subscribers: [101, 102],
+        }),
+      },
+    };
+    const next = applySubscriptionEvent(snapshot, {
+      id: 1,
+      type: "subscription",
+      op: "peer_add",
+      stream_ids: [7],
+      user_ids: [201, 202],
+    });
+    expect(next.subscriptions[7].subscribers).toEqual([101, 102, 201, 202]);
+  });
+
+  it("peer_remove drops user ids from subscribers[] of the subscription", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 7: makeStream({ stream_id: 7, subscriber_count: 4 }) },
+      subscriptions: {
+        7: makeSubscription({
+          stream_id: 7,
+          subscriber_count: 4,
+          subscribers: [101, 102, 201, 202],
+        }),
+      },
+    };
+    const next = applySubscriptionEvent(snapshot, {
+      id: 1,
+      type: "subscription",
+      op: "peer_remove",
+      stream_ids: [7],
+      user_ids: [102, 202],
+    });
+    expect(next.subscriptions[7].subscribers).toEqual([101, 201]);
+  });
+
+  it("peer_add is idempotent — already-listed users are not duplicated", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 7: makeStream({ stream_id: 7, subscriber_count: 2 }) },
+      subscriptions: {
+        7: makeSubscription({
+          stream_id: 7,
+          subscriber_count: 2,
+          subscribers: [101, 102],
+        }),
+      },
+    };
+    const next = applySubscriptionEvent(snapshot, {
+      id: 1,
+      type: "subscription",
+      op: "peer_add",
+      stream_ids: [7],
+      user_ids: [101, 201],
+    });
+    expect(next.subscriptions[7].subscribers).toEqual([101, 102, 201]);
+  });
+
+  it("peer_add also updates partial_subscribers[] (large-channel case)", () => {
+    // Large channels return a `partial_subscribers` sample instead of
+    // the full `subscribers` list. The right sidebar falls back to it
+    // when `subscribers` is absent, so it must stay in sync too.
+    const snapshot: StreamsSnapshot = {
+      streams: { 7: makeStream({ stream_id: 7, subscriber_count: 999 }) },
+      subscriptions: {
+        7: makeSubscription({
+          stream_id: 7,
+          subscriber_count: 999,
+          subscribers: undefined,
+          partial_subscribers: [101, 102],
+        }),
+      },
+    };
+    const next = applySubscriptionEvent(snapshot, {
+      id: 1,
+      type: "subscription",
+      op: "peer_add",
+      stream_ids: [7],
+      user_ids: [201],
+    });
+    expect(next.subscriptions[7].subscribers).toBeUndefined();
+    expect(next.subscriptions[7].partial_subscribers).toEqual([101, 102, 201]);
+  });
 });

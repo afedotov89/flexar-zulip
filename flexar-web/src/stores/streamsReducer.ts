@@ -238,10 +238,14 @@ export function applySubscriptionEvent(
 }
 
 /**
- * Add or remove `userIds` from the `subscribers` array of every
- * affected subscription. Channels the viewer is not subscribed to
- * have no subscribers list to maintain — they're skipped. Returns
- * the original snapshot when nothing changed.
+ * Add or remove `userIds` from the subscriber arrays of every
+ * affected subscription. Both `subscribers` (full list, returned on
+ * normal-sized channels) and `partial_subscribers` (sampled list,
+ * returned on very large channels) are kept in sync — the right
+ * sidebar reads `subscribers ?? partial_subscribers`, so missing
+ * an update on the one that the snapshot happens to use would
+ * leave the members pane drifting. Channels the viewer is not
+ * subscribed to have no lists to maintain at all and are skipped.
  *
  * Idempotent on both ends: an already-listed user is not duplicated
  * on `peer_add`; a missing user is not flagged on `peer_remove`.
@@ -262,25 +266,47 @@ function adjustSubscriberList(
     if (sub === undefined) {
       continue;
     }
-    const existing = sub.subscribers ?? [];
-    let next: UserId[];
-    if (op === "peer_add") {
-      const additions = userIds.filter((id) => !existing.includes(id));
-      if (additions.length === 0) {
-        continue;
-      }
-      next = [...existing, ...additions];
-    } else {
-      const dropping = new Set<UserId>(userIds);
-      next = existing.filter((id) => !dropping.has(id));
-      if (next.length === existing.length) {
-        continue;
-      }
+    const nextSubscribers = updateIdList(sub.subscribers, userIds, op);
+    const nextPartial = updateIdList(sub.partial_subscribers, userIds, op);
+    if (
+      nextSubscribers === sub.subscribers &&
+      nextPartial === sub.partial_subscribers
+    ) {
+      continue;
     }
-    subscriptions[streamId] = { ...sub, subscribers: next };
+    subscriptions[streamId] = {
+      ...sub,
+      subscribers: nextSubscribers,
+      partial_subscribers: nextPartial,
+    };
     changed = true;
   }
   return changed ? { ...snapshot, subscriptions } : snapshot;
+}
+
+/**
+ * Apply a peer add/remove to one of the subscriber arrays. Returns
+ * the original reference unchanged when the list is undefined or the
+ * change is a no-op (so the caller can compare by identity).
+ */
+function updateIdList(
+  list: UserId[] | undefined,
+  userIds: readonly UserId[],
+  op: "peer_add" | "peer_remove",
+): UserId[] | undefined {
+  if (list === undefined) {
+    return undefined;
+  }
+  if (op === "peer_add") {
+    const additions = userIds.filter((id) => !list.includes(id));
+    if (additions.length === 0) {
+      return list;
+    }
+    return [...list, ...additions];
+  }
+  const dropping = new Set<UserId>(userIds);
+  const next = list.filter((id) => !dropping.has(id));
+  return next.length === list.length ? list : next;
 }
 
 /**
