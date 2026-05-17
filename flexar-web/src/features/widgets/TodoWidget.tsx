@@ -101,28 +101,39 @@ export function TodoWidget({
         <p className={styles.empty}>В списке пока нет задач.</p>
       ) : (
         <ul className={styles.list}>
-          {state.tasks.map((task) => (
-            <li key={task.key} className={styles.taskRow}>
-              <Checkbox
-                checked={task.completed}
-                disabled={busyKey === task.key}
-                onChange={() => void handleStrike(task.key)}
-                aria-label={task.text}
-              />
-              <div className={styles.taskBody}>
-                <span
-                  className={`${styles.taskText}${
-                    task.completed ? ` ${styles.taskStruck}` : ""
-                  }`}
-                >
-                  {task.text}
-                </span>
-                {task.description !== "" && (
-                  <span className={styles.taskDesc}>{task.description}</span>
-                )}
-              </div>
-            </li>
-          ))}
+          {state.tasks.map((task) => {
+            // Stable per-task input id so the wrapping <label> binds
+            // to the checkbox via htmlFor — that's what Zulip web's
+            // todo widget does (web/templates/widgets/todo_widget_tasks.hbs),
+            // and it's what makes clicking anywhere on the row toggle
+            // the task. Without the wrap, only the small box itself
+            // is clickable.
+            const inputId = `todo-${messageId}-${task.key}`;
+            return (
+              <li key={task.key} className={styles.taskRow}>
+                <label htmlFor={inputId} className={styles.taskLabel}>
+                  <Checkbox
+                    id={inputId}
+                    checked={task.completed}
+                    disabled={busyKey === task.key}
+                    onChange={() => void handleStrike(task.key)}
+                  />
+                  <div className={styles.taskBody}>
+                    <span
+                      className={`${styles.taskText}${
+                        task.completed ? ` ${styles.taskStruck}` : ""
+                      }`}
+                    >
+                      {task.text}
+                    </span>
+                    {task.description !== "" && (
+                      <span className={styles.taskDesc}>{task.description}</span>
+                    )}
+                  </div>
+                </label>
+              </li>
+            );
+          })}
         </ul>
       )}
 
