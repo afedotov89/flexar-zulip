@@ -105,6 +105,17 @@ export type Unsubscribe = () => void;
  * admin settings) keep the realm-store and default-streams list fresh
  * when an admin edits org settings.
  */
+/**
+ * How many consecutive long-poll failures must accumulate before the
+ * connection's public status flips to `"reconnecting"`. A single
+ * failed poll on a flaky WAN is the *common* case — the next attempt
+ * usually succeeds within a backoff window — so we don't want one
+ * blip to ripple out to UI as a "we're trying to reconnect" warning.
+ * The internal loop keeps retrying from the very first failure either
+ * way; this only gates `setStatus`.
+ */
+const RECONNECTING_FAILURE_THRESHOLD = 3;
+
 export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "message",
   "update_message",
@@ -416,9 +427,16 @@ export class RealtimeConnection {
           continue;
         }
         // Any other failure (NETWORK_ERROR, HTTP_ERROR, 5xx, …) is
-        // transient: back off and retry the same queue.
+        // transient: back off and retry the same queue. A single
+        // failed long-poll is the *common* case on flaky networks —
+        // the next attempt usually succeeds immediately. We only flip
+        // the public status to "reconnecting" after consecutive
+        // failures, so a one-off timeout doesn't surface UI to the
+        // user. The internal loop keeps retrying either way.
         failureCount++;
-        this.#setStatus("reconnecting");
+        if (failureCount >= RECONNECTING_FAILURE_THRESHOLD) {
+          this.#setStatus("reconnecting");
+        }
         await this.#waitBackoff(runId, failureCount);
       }
     }

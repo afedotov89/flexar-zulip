@@ -315,7 +315,12 @@ describe("RealtimeConnection — transport failure backoff", () => {
     poll1.reject(new ApiError("Network request failed", "NETWORK_ERROR", 0));
     await flush();
 
-    expect(conn.getStatus()).toBe("reconnecting");
+    // A *single* failure does not flip the public status — the loop
+    // backs off and retries silently, since one-off long-poll
+    // failures on a flaky WAN are the common case. Status only goes
+    // to "reconnecting" after RECONNECTING_FAILURE_THRESHOLD (3)
+    // consecutive failures; see the dedicated test below.
+    expect(conn.getStatus()).not.toBe("reconnecting");
     // No immediate retry — it is waiting out the backoff.
     expect(client.getEvents).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(1);
@@ -378,6 +383,68 @@ describe("RealtimeConnection — transport failure backoff", () => {
     await vi.advanceTimersByTimeAsync(1_000);
     await flush();
     expect(client.getEvents).toHaveBeenCalledTimes(5);
+
+    conn.stop();
+  });
+
+  it("only flips status to \"reconnecting\" after the failure threshold", async () => {
+    const client = new FakeApiClient();
+    const reg = client.nextRegister();
+    const conn = makeConnection(client);
+    const statusLog: string[] = [];
+    conn.onStatusChange((status) => statusLog.push(status));
+
+    conn.start();
+    reg.resolve(registerResult("q1", 0));
+    await flush();
+
+    // First successful poll lands us at "connected".
+    const poll1 = client.nextGetEvents();
+    poll1.resolve({ events: [] });
+    await flush();
+    expect(conn.getStatus()).toBe("connected");
+
+    // Helper: cause one transport failure and walk the backoff.
+    const failOnce = async (): Promise<void> => {
+      const poll = client.nextGetEvents();
+      poll.reject(new ApiError("net", "NETWORK_ERROR", 0));
+      await flush();
+      // Burn the backoff so the loop is ready for the next failure.
+      await vi.advanceTimersByTimeAsync(10_000);
+      await flush();
+    };
+
+    // Failure #1 and #2 — still "connected" as far as the UI knows.
+    await failOnce();
+    expect(conn.getStatus()).toBe("connected");
+    await failOnce();
+    expect(conn.getStatus()).toBe("connected");
+
+    // Failure #3 trips the threshold and surfaces "reconnecting".
+    await failOnce();
+    expect(conn.getStatus()).toBe("reconnecting");
+
+    // A success resets both the failure count and the status.
+    const pollOk = client.nextGetEvents();
+    pollOk.resolve({ events: [] });
+    await flush();
+    expect(conn.getStatus()).toBe("connected");
+
+    // After the reset, a single new failure must not re-trip the
+    // threshold immediately — count is back to 0.
+    const pollAgain = client.nextGetEvents();
+    pollAgain.reject(new ApiError("net", "NETWORK_ERROR", 0));
+    await flush();
+    expect(conn.getStatus()).toBe("connected");
+
+    // The status listener saw the transition exactly once for the
+    // outage and once back.
+    expect(statusLog).toEqual([
+      "connecting",
+      "connected",
+      "reconnecting",
+      "connected",
+    ]);
 
     conn.stop();
   });
