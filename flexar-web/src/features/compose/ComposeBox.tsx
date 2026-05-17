@@ -130,6 +130,11 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Maximize-mode toggle (audit follow-up). When on, the editor area
+  // grows to give the writer a roomy canvas; off → docked default
+  // height. State is local to the mount — intentionally NOT persisted,
+  // since a user who reloads expects the default docked layout.
+  const [isMaximized, setIsMaximized] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -144,26 +149,48 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     setTextareaNode(node);
   }, []);
 
-  // External focus signal (pending flag) — set by `c` / `r` shortcuts
-  // and the "Reply in topic" hover action. The flag survives a
-  // ComposeBox re-mount (which happens on narrow change), so a reply
-  // that navigates to a different narrow still focuses the freshly
-  // mounted textarea. The effect consumes the flag the moment both
-  // the flag is true and the textarea ref has settled.
+  // External focus signal (pending flag) — set by `c` / `r` shortcuts,
+  // the "Reply in topic" hover action, and "Reply with quote". The
+  // flag survives a ComposeBox re-mount (which happens on narrow
+  // change), so a reply that navigates to a different narrow still
+  // focuses the freshly mounted textarea. When the signal carries
+  // `prefillText` (quote-and-reply), it's appended to whatever the
+  // user already had typed before the caret moves to the end.
   const focusPending = useComposeFocusStore((state) => state.pending);
+  const focusPrefillText = useComposeFocusStore((state) => state.prefillText);
   const consumeFocusRequest = useComposeFocusStore((state) => state.consume);
   useEffect(() => {
     if (!focusPending || textareaNode === null) {
       return;
     }
-    textareaNode.focus();
-    // Place the caret at the end so the user can keep typing without
-    // overwriting existing content. matches what `restore from draft`
-    // and the schedule send-menu return path do.
-    const end = textareaNode.value.length;
-    textareaNode.setSelectionRange(end, end);
+    if (focusPrefillText !== null && focusPrefillText !== "") {
+      // Append to existing content, separated by a blank line if
+      // there is one. Keeps anything the user had typed already, and
+      // hands the caret-placement to the same pendingTextareaCursor
+      // effect the formatting toolbar uses — it lands the caret at
+      // the target offset on the next render after the textarea
+      // value updates.
+      setForm((current) => {
+        const existing = current.content;
+        const sep =
+          existing === ""
+            ? ""
+            : existing.endsWith("\n\n")
+              ? ""
+              : existing.endsWith("\n")
+                ? "\n"
+                : "\n\n";
+        const nextContent = existing + sep + focusPrefillText;
+        pendingTextareaCursor.current = nextContent.length;
+        return { ...current, content: nextContent };
+      });
+    } else {
+      textareaNode.focus();
+      const end = textareaNode.value.length;
+      textareaNode.setSelectionRange(end, end);
+    }
     consumeFocusRequest();
-  }, [focusPending, textareaNode, consumeFocusRequest]);
+  }, [focusPending, focusPrefillText, textareaNode, consumeFocusRequest]);
 
   const prefillKey = useMemo(() => prefillKeyOf(fromNarrow), [fromNarrow]);
   const lastPrefillKeyRef = useRef<string | null>(null);
@@ -636,7 +663,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
 
   return (
     <form
-      className={styles.compose}
+      className={`${styles.compose}${isMaximized ? ` ${styles.maximized}` : ""}`}
       onSubmit={onSubmit}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -759,6 +786,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         previewOpen={previewOpen}
         composeEmpty={form.content.trim() === ""}
         disabled={sending}
+        maximized={isMaximized}
+        onMaximizeToggle={() => setIsMaximized((v) => !v)}
         onCommand={runCommand}
         slots={{
           upload: (

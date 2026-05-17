@@ -1,5 +1,5 @@
 // A pending-flag store used as an imperative focus signal for the
-// compose textarea.
+// compose textarea, with an optional text-prefill payload.
 //
 // Why a flag rather than a bump counter: the focus request can be
 // raised either while the ComposeBox is already mounted (Cmd+`c`
@@ -14,6 +14,11 @@
 // signal is fired exactly once regardless of how many times the
 // consumer re-renders.
 //
+// `prefillText` carries optional content for "reply with quote" —
+// the producer builds the Zulip-flavored quote block, the consumer
+// inserts it at the textarea's caret (or appends to any existing
+// draft) when it focuses.
+//
 // Only one `ComposeBox` is ever mounted at a time, so a single flag
 // is enough; no fan-out / ordering concerns.
 
@@ -22,14 +27,22 @@ import { create } from "zustand";
 export interface ComposeFocusState {
   /** Set by `requestFocus()`, cleared by `consume()`. */
   pending: boolean;
-  /** Raise the focus request — idempotent if one is already pending. */
-  requestFocus: () => void;
+  /** Optional text to insert into the textarea before focusing. */
+  prefillText: string | null;
+  /**
+   * Raise the focus request — idempotent if one is already pending.
+   * Pass `prefillText` to also seed the textarea (e.g. quote-and-
+   * reply); pass nothing for a plain focus.
+   */
+  requestFocus: (prefillText?: string) => void;
   /** Mark the pending request as handled. */
   consume: () => void;
 }
 
 export const useComposeFocusStore = create<ComposeFocusState>()((set) => ({
   pending: false,
-  requestFocus: () => set({ pending: true }),
-  consume: () => set({ pending: false }),
+  prefillText: null,
+  requestFocus: (prefillText) =>
+    set({ pending: true, prefillText: prefillText ?? null }),
+  consume: () => set({ pending: false, prefillText: null }),
 }));

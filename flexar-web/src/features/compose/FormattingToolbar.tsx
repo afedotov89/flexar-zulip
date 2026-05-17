@@ -45,6 +45,10 @@ export interface FormattingToolbarProps {
   composeEmpty: boolean;
   /** Whether sending is in flight (disables everything). */
   disabled?: boolean;
+  /** Whether the compose pane is in the maximized writing mode. */
+  maximized: boolean;
+  /** Toggle the maximized writing mode. */
+  onMaximizeToggle: () => void;
   /** Invoked with the chosen command. */
   onCommand: (command: FormattingCommand) => void;
   /** Slot for the emoji / upload popover triggers — they own their
@@ -122,6 +126,8 @@ export function FormattingToolbar({
   previewOpen,
   composeEmpty,
   disabled = false,
+  maximized,
+  onMaximizeToggle,
   onCommand,
   slots,
 }: FormattingToolbarProps): React.JSX.Element {
@@ -195,6 +201,20 @@ export function FormattingToolbar({
       ))}
 
       <div className={styles.spacer} aria-hidden="true" />
+
+      <Tooltip
+        content={maximized ? "Свернуть compose" : "Развернуть compose"}
+      >
+        <IconButton
+          icon="maximize"
+          size="sm"
+          variant="ghost"
+          aria-label={maximized ? "Свернуть compose" : "Развернуть compose"}
+          aria-pressed={maximized}
+          disabled={disabled}
+          onClick={onMaximizeToggle}
+        />
+      </Tooltip>
 
       <Tooltip content="Подсказка по форматированию">
         <IconButton

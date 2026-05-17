@@ -30,13 +30,17 @@ import { DropdownMenu } from "../../components/DropdownMenu";
 import { IconButton } from "../../components/IconButton";
 import type { Message, UserId } from "../../domain";
 import { describeApiError } from "../../lib/errors";
+import { useNarrowNavigation } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useRealmStore } from "../../stores/realmStore";
+import { useComposeFocusStore } from "../compose";
+import { narrowForMessage } from "../messageFeed/narrowForMessage";
 import type {
   DropdownMenuEntry,
   DropdownMenuItem,
 } from "../../components/DropdownMenu";
 import { buildMessageLink } from "./messageLink";
+import { buildQuoteBlock } from "./quote";
 
 export interface MessageActionsMenuProps {
   /** The message the menu acts on. */
@@ -125,6 +129,28 @@ export function MessageActionsMenu({
       .catch((cause: unknown) => onActionError(describeApiError(cause)));
   }, [message, onActionError, onActionNotice, realmUrl, viewerId]);
 
+  // Quote-and-reply: fetch the Markdown source of the message, build
+  // the Zulip-flavored quote block, navigate to the message's narrow,
+  // and seed the compose textarea via `composeFocusSignal`.
+  const { goToNarrow } = useNarrowNavigation();
+  const requestComposeFocus = useComposeFocusStore((s) => s.requestFocus);
+  const handleQuoteReply = useCallback(async (): Promise<void> => {
+    try {
+      const rawContent = await apiClient.getRawContent(message.id);
+      const block = buildQuoteBlock({
+        message,
+        rawContent,
+        realmUrl,
+      });
+      goToNarrow(narrowForMessage(message));
+      // Microtask defer so the new ComposeBox mount sees the focus
+      // signal — same pattern as the hover-toolbar reply.
+      queueMicrotask(() => requestComposeFocus(block));
+    } catch (cause) {
+      onActionError(describeApiError(cause));
+    }
+  }, [message, realmUrl, goToNarrow, requestComposeFocus, onActionError]);
+
   const items: DropdownMenuEntry[] = [];
   // Star/Unstar — single toggle item; label and icon flip on state.
   items.push({
@@ -137,6 +163,12 @@ export function MessageActionsMenu({
     id: "copy-link",
     label: "Копировать ссылку",
     onSelect: handleCopyLink,
+  });
+  items.push({
+    id: "quote-reply",
+    label: "Ответить с цитатой",
+    icon: "quote",
+    onSelect: () => void handleQuoteReply(),
   });
   items.push({
     id: "mark-unread",

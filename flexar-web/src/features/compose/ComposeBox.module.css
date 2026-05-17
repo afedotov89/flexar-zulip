@@ -81,3 +81,16 @@
 .spacer {
   flex: 1;
 }
+
+/*
+ * Maximize mode: the writer wants a roomy canvas (long-form message,
+ * paste of formatted text, multi-paragraph thinking). Push the
+ * editor wrap up to a comfortable 60vh minimum and let the textarea
+ * grow inside it; the feed area above naturally shrinks because the
+ * compose grew within the flex column. The toggle is in the
+ * formatting toolbar's right-aligned cluster.
+ */
+.compose.maximized .editorWrap {
+  min-height: 60vh;
+}
+

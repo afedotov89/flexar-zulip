@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../realtime", () => ({
   realtimeConnection: {
@@ -20,8 +21,9 @@ vi.mock("../../realtime", () => ({
   },
 }));
 
-const { updateMessageFlagsMock } = vi.hoisted(() => ({
+const { updateMessageFlagsMock, getRawContentMock } = vi.hoisted(() => ({
   updateMessageFlagsMock: vi.fn(),
+  getRawContentMock: vi.fn(),
 }));
 vi.mock("../../api", async () => {
   const actual =
@@ -30,6 +32,7 @@ vi.mock("../../api", async () => {
     ...actual,
     apiClient: {
       updateMessageFlags: updateMessageFlagsMock,
+      getRawContent: getRawContentMock,
     },
   };
 });
@@ -43,6 +46,12 @@ import { MessageActionsMenu } from "./MessageActionsMenu";
 
 const VIEWER_ID = 7;
 const REALM_URL = "https://chat.example.com";
+
+// Helper: the menu now uses `useNarrowNavigation` (for quote-and-
+// reply), which requires a Router context.
+function renderMenu(ui: React.ReactElement): ReturnType<typeof render> {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
@@ -94,7 +103,7 @@ describe("MessageActionsMenu — ownership gating", () => {
   it("shows Edit + Delete on the viewer's own message", () => {
     const message = makeMessage();
     seed(message);
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -117,7 +126,7 @@ describe("MessageActionsMenu — ownership gating", () => {
   it("hides Edit + Delete on someone else's message", () => {
     const message = makeMessage({ sender_id: 999 });
     seed(message);
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -150,7 +159,7 @@ describe("MessageActionsMenu — ownership gating", () => {
   it("flips the Star label to Unstar when the message is already starred", () => {
     const message = makeMessage();
     seed(message, ["starred"]);
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -173,7 +182,7 @@ describe("MessageActionsMenu — star toggle", () => {
     const message = makeMessage();
     seed(message);
     updateMessageFlagsMock.mockResolvedValueOnce({ messages: [message.id] });
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -204,7 +213,7 @@ describe("MessageActionsMenu — star toggle", () => {
     seed(message);
     updateMessageFlagsMock.mockRejectedValueOnce(new Error("nope"));
     const onActionError = vi.fn();
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -230,7 +239,7 @@ describe("MessageActionsMenu — star toggle", () => {
     const message = makeMessage();
     seed(message, ["starred"]);
     updateMessageFlagsMock.mockResolvedValueOnce({ messages: [message.id] });
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -262,7 +271,7 @@ describe("MessageActionsMenu — mark unread", () => {
     const message = makeMessage();
     seed(message, ["read"]);
     updateMessageFlagsMock.mockResolvedValueOnce({ messages: [message.id] });
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -301,7 +310,7 @@ describe("MessageActionsMenu — copy link", () => {
       value: { writeText },
     });
     const onActionNotice = vi.fn();
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -335,7 +344,7 @@ describe("MessageActionsMenu — copy link", () => {
       value: undefined,
     });
     const onActionError = vi.fn();
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -361,7 +370,7 @@ describe("MessageActionsMenu — edit / delete intents", () => {
     const message = makeMessage();
     seed(message);
     const onEditRequested = vi.fn();
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
@@ -381,7 +390,7 @@ describe("MessageActionsMenu — edit / delete intents", () => {
     const message = makeMessage();
     seed(message);
     const onDeleteRequested = vi.fn();
-    render(
+    renderMenu(
       <MessageActionsMenu
         message={message}
         viewerId={VIEWER_ID}
