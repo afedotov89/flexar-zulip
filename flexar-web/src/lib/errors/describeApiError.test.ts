@@ -42,4 +42,43 @@ describe("describeApiError", () => {
   it("returns a non-empty Error.message when the cause is a plain Error", () => {
     expect(describeApiError(new Error("boom"))).toBe("boom");
   });
+
+  describe("transport-level codes (no server body)", () => {
+    it("translates NETWORK_ERROR — never leaks raw browser text like 'Failed to fetch'", () => {
+      // sendRequest wraps fetch's TypeError as
+      // `ApiError("Failed to fetch", "NETWORK_ERROR", 0)` with NO body.
+      const err = new ApiError("Failed to fetch", "NETWORK_ERROR", 0);
+      const text = describeApiError(err);
+      expect(text).not.toContain("Failed to fetch");
+      expect(text).toMatch(/Не удалось связаться с сервером/);
+    });
+
+    it("translates TIMEOUT", () => {
+      const err = new ApiError(
+        "Request to /messages/flags timed out after 30000ms.",
+        "TIMEOUT",
+        0,
+      );
+      expect(describeApiError(err)).toMatch(/Сервер не ответил вовремя/);
+    });
+
+    it("translates ABORTED", () => {
+      const err = new ApiError("Request was aborted.", "ABORTED", 0);
+      expect(describeApiError(err)).toMatch(/Запрос был отменён/);
+    });
+
+    it("translates MISSING_CREDENTIALS", () => {
+      const err = new ApiError(
+        "Cannot make an authenticated request without credentials.",
+        "MISSING_CREDENTIALS",
+        0,
+      );
+      expect(describeApiError(err)).toMatch(/Сессия истекла/);
+    });
+
+    it("falls back for an unknown transport code", () => {
+      const err = new ApiError("???", "UNKNOWN_CODE", 0);
+      expect(describeApiError(err)).toBe("Не удалось выполнить действие.");
+    });
+  });
 });
