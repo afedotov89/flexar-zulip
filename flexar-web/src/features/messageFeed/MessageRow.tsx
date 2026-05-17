@@ -113,7 +113,7 @@ function HoverActions({
     <div className={styles.actions}>
       <ReactionPickerButton variant="toolbar" onPick={onPickReaction} />
       <IconButton
-        icon="paperclip"
+        icon="reply"
         size="sm"
         variant="ghost"
         aria-label="Ответить в теме"

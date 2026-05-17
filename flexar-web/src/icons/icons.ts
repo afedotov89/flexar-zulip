@@ -27,6 +27,11 @@ export const icons = {
     '<circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" />',
   paperclip:
     '<path d="M20 11.5 12 19.5a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L13 17a2 2 0 0 1-3-3l7-7" />',
+  // Hooked left-up arrow — the standard "reply" affordance (matches
+  // Lucide / Heroicons `reply`). Distinct from `paperclip`, which we
+  // were misusing for the message-row reply button.
+  reply:
+    '<polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" />',
   smile:
     '<circle cx="12" cy="12" r="9" /><line x1="9" y1="10" x2="9" y2="10" /><line x1="15" y1="10" x2="15" y2="10" /><path d="M8 14.5a5 5 0 0 0 8 0" />',
   info:
