@@ -65,6 +65,7 @@ export function MessageContent({
   const realmUrl = useRealmStore((state) => state.realm?.realm_url);
   const { goToNarrow } = useNarrowNavigation();
   const openLightbox = useLightboxStore((s) => s.openImage);
+  const openVideoLightbox = useLightboxStore((s) => s.openVideo);
 
   // Sanitise once per content string. This is the XSS boundary: the
   // result, and only the result, is injected into the DOM below.
@@ -115,6 +116,39 @@ export function MessageContent({
         return;
       }
 
+      // Video preview click — open the lightbox with playable
+      // controls. Zulip's `rendered_content` for a video upload looks
+      // like `<a class="message_inline_image"><video src="…"
+      // preload="metadata"/></a>` — clicking the link would normally
+      // navigate; intercept here just like for images.
+      if (target instanceof HTMLVideoElement) {
+        event.preventDefault();
+        openVideoLightbox(target.src, target.getAttribute("title") ?? "");
+        return;
+      }
+
+      // Click on a personal mention — `<span class="user-mention"
+      // data-user-id="123">@Name</span>`. Narrow to a DM with that
+      // user; this is the simplest useful "open the conversation"
+      // affordance the legacy Zulip web client also offers when no
+      // user-card popover is wired (we don't yet have that primitive).
+      // Wildcard mentions (`@all`, `@everyone`, `@stream`) have
+      // `data-user-id="*"` and have no addressable target — skip
+      // them. Done BEFORE the anchor check so a future server that
+      // wraps mentions in `<a>` still routes here, not through the
+      // narrow-link parser.
+      const mention = target.closest(".user-mention");
+      if (mention instanceof HTMLElement) {
+        const userIdAttr = mention.getAttribute("data-user-id");
+        const userId =
+          userIdAttr === null || userIdAttr === "*" ? NaN : Number(userIdAttr);
+        if (Number.isFinite(userId) && userId > 0) {
+          event.preventDefault();
+          goToNarrow([{ operator: "dm", operand: [userId] }]);
+          return;
+        }
+      }
+
       // Links inside a spoiler header must behave as links, not toggle
       // the spoiler — so check for an enclosing anchor first.
       const anchor = target.closest("a");
@@ -135,7 +169,7 @@ export function MessageContent({
         toggleSpoiler(spoilerHeader);
       }
     },
-    [goToNarrow, realmUrl, openLightbox],
+    [goToNarrow, realmUrl, openLightbox, openVideoLightbox],
   );
 
   // Keyboard activation of spoilers: Enter / Space on a focused spoiler

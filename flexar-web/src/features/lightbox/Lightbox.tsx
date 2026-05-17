@@ -25,6 +25,7 @@ export function Lightbox(): React.JSX.Element | null {
   const open = useLightboxStore((s) => s.open);
   const src = useLightboxStore((s) => s.src);
   const alt = useLightboxStore((s) => s.alt);
+  const kind = useLightboxStore((s) => s.kind);
   const close = useLightboxStore((s) => s.close);
 
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -83,11 +84,30 @@ export function Lightbox(): React.JSX.Element | null {
           icon="close"
           size="md"
           variant="ghost"
-          aria-label="Закрыть просмотр изображения"
+          aria-label={
+            kind === "video"
+              ? "Закрыть просмотр видео"
+              : "Закрыть просмотр изображения"
+          }
           className={styles.closeButton}
           onClick={close}
         />
-        <img className={styles.image} src={src} alt={alt} />
+        {kind === "video" ? (
+          // Native controls — full controls bar (play/pause, mute,
+          // fullscreen, timeline) without us re-building it. `playsInline`
+          // keeps mobile Safari from auto-fullscreening into its own
+          // chrome (we already provide a lightbox).
+          <video
+            className={styles.video}
+            src={src}
+            controls
+            autoPlay
+            playsInline
+            aria-label={alt === "" ? "Видео" : alt}
+          />
+        ) : (
+          <img className={styles.image} src={src} alt={alt} />
+        )}
       </div>
     </Portal>
   );

@@ -84,6 +84,14 @@ const ALLOWED_TAGS: readonly string[] = [
   // Links and images (emoji images, inline image previews).
   "a",
   "img",
+  // Video previews — Zulip's `rendered_content` for a video upload
+  // ships a `<video>` element inside a `.message_inline_video`
+  // wrapper; the lightbox click handler intercepts a click to open
+  // it in the full-screen player. The element is preserved here so
+  // the inline preview renders at all; if absent, the message body
+  // would silently drop the video.
+  "video",
+  "source",
   // KaTeX MathML subtree. KaTeX emits a full MathML tree alongside its
   // styled-HTML span tree; keeping it preserves copy-paste and AT
   // access to the math. These are namespaced elements DOMPurify knows.
@@ -136,6 +144,17 @@ const ALLOWED_ATTR: readonly string[] = [
   "alt",
   "width",
   "height",
+  // Video previews — `preload` is informational, `controls` is
+  // ignored by our click delegation (we open the lightbox) but
+  // useful as a fallback if JS is disabled, `poster` is the inline
+  // preview frame.
+  "preload",
+  "controls",
+  "poster",
+  "type",
+  "muted",
+  "loop",
+  "playsinline",
   // Accessibility attributes Zulip's renderer sets (emoji `role="img"`
   // + `aria-label`, spoiler `aria-hidden`, etc.).
   "role",

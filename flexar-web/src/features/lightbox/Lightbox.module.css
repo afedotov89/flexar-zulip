@@ -14,13 +14,21 @@
   background-color: var(--color-overlay-scrim-strong);
 }
 
-.image {
+.image,
+.video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   background-color: var(--color-surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
+}
+
+/* Video gets the strong scrim background so letterboxing matches
+   the surrounding overlay rather than the surface chip used for
+   images. */
+.video {
+  background-color: var(--color-overlay-scrim-strong);
 }
 
 /*
