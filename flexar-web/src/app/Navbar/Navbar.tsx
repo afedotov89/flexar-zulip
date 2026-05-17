@@ -159,14 +159,22 @@ export function Navbar(): React.JSX.Element {
             onClick={toggleRight}
           />
         </span>
-        <button
-          type="button"
-          className={styles.themeToggle}
-          onClick={toggleTheme}
+        {/*
+          Theme toggle: icon-only (sun for "switch to light" while in
+          dark mode, moon for "switch to dark" while in light mode).
+          The previous text button used most of its width on the verb
+          and read as oddly heavyweight in a row of icon controls.
+          aria-label carries the verbose label for screen readers; a
+          tooltip on hover surfaces it visually.
+        */}
+        <IconButton
+          icon={theme === "light" ? "moon" : "sun"}
+          variant="ghost"
+          size="md"
           aria-label={nextThemeLabel}
-        >
-          {nextThemeLabel}
-        </button>
+          title={nextThemeLabel}
+          onClick={toggleTheme}
+        />
         {session != null && (
           <div className={styles.account}>
             <StatusButton />

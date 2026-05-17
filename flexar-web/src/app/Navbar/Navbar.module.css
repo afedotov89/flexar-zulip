@@ -4,13 +4,24 @@
  * (flex, 100%, auto, 0, 1) are literal, per ENGINEERING_GUIDE §2/§4.
  */
 
+/*
+ * Three slots match the three layout columns below: brand sits over
+ * the left sidebar, search over the center column, actions over the
+ * right sidebar. Grid widths echo `.leftSidebar` (240px) and
+ * `.rightSidebar` (280px) in AppShell.module.css so the boundaries
+ * line up vertically when both rows are visible. The center cell
+ * fills the rest.
+ *
+ * `align-items: stretch` (CSS Grid default) keeps each slot the full
+ * navbar height so the bottom border meets the column borders below
+ * without a gap.
+ */
 .navbar {
-  display: flex;
+  display: grid;
   flex-shrink: 0;
+  grid-template-columns: 240px 1fr 280px;
   align-items: center;
-  gap: var(--space-4);
   height: var(--control-height-lg);
-  padding: 0 var(--space-4);
   color: var(--color-text);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -20,10 +31,14 @@
 }
 
 .brand {
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--space-4);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wide);
+  border-right: 1px solid var(--color-border);
 }
 
 .search {
@@ -32,6 +47,7 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
+  padding: 0 var(--space-4);
 }
 
 .searchPlaceholder {
@@ -50,35 +66,12 @@
 
 .actions {
   display: flex;
-  flex-shrink: 0;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
-}
-
-.themeToggle {
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-  cursor: pointer;
-  background-color: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: background-color var(--duration-fast);
-}
-
-.themeToggle:hover {
-  background-color: var(--color-hover);
-}
-
-.themeToggle:active {
-  background-color: var(--color-active);
-}
-
-.themeToggle:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--color-border);
 }
 
 .account {
@@ -143,30 +136,39 @@
 }
 
 @media (width <= 1023px) {
+  /* Right sidebar collapses to a drawer at tablet width — the
+     navbar grid loses its third column and the actions cluster
+     auto-sizes to its content. */
+  .navbar {
+    grid-template-columns: 240px 1fr auto;
+  }
+
+  .actions {
+    border-left: 0;
+  }
+
   .drawerToggleRight {
     display: inline-flex;
   }
 
-  /* At tablet width, free up navbar space by hiding the verbose
-   * theme-toggle label and the account-email span. The buttons are
-   * still reachable; their icons stay. */
-  .themeToggle {
-    display: none;
-  }
-
+  /* Save room: hide the account-email tag — the avatar icon is
+     enough to identify the trigger. */
   .accountEmail {
     display: none;
   }
 }
 
 @media (width <= 767px) {
+  /* Phone width: left sidebar also a drawer; brand collapses to
+     a hamburger so the navbar's grid sheds its first column. */
+  .navbar {
+    grid-template-columns: auto 1fr auto;
+  }
+
   .drawerToggleLeft {
     display: inline-flex;
   }
 
-  /* On phones, drop the brand text — the hamburger and Flexar Hub
-   * logo together would crowd the navbar; the brand sits in the
-   * window title and on the login page. */
   .brand {
     display: none;
   }
