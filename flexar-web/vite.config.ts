@@ -20,6 +20,29 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        // Realm + user avatars, realm icon and logos. Backend's
+        // `serve_local_avatar_unauthed` handler is intentionally
+        // PUBLIC (no auth) — security comes from the AVATAR_SALT
+        // hash baked into the URL, so a leaked path can't be
+        // brute-forced. Without this proxy, every avatar / icon /
+        // logo <img> in dev hits the SPA catch-all and gets
+        // `index.html` (text/html), then fires onError and shows
+        // "preview unavailable" — misleading the developer into
+        // thinking the upload didn't take.
+        //
+        // Production runs same-origin behind nginx so this concern
+        // only exists in dev.
+        //
+        // NOT proxied here: `/user_uploads/*`. That endpoint requires
+        // auth (cookie OR Bearer); browser <img> can't send the
+        // Bearer header we use, so a naive proxy just redirects to
+        // /accounts/login. Inline message attachments stay broken
+        // in dev until we wire a token-in-URL or blob-URL approach.
+        "/user_avatars": {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     build: {
