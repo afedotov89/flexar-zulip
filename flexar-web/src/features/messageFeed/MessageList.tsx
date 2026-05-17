@@ -244,8 +244,29 @@ export function MessageList({
   // positioned sizer, not a child — the scroll container is its
   // sticky context.
   const virtualRows = virtualizer.getVirtualItems();
-  const topVisibleIndex =
-    virtualRows.length > 0 ? virtualRows[0].index : null;
+  // The virtualizer keeps an overscan buffer of rows above the
+  // viewport in the DOM, so `virtualRows[0]` is the topmost RENDERED
+  // row, not the topmost VISIBLE one. We need "visible top": the
+  // first row whose top is at or below the current scroll offset,
+  // OR whose bottom has scrolled below the viewport top (i.e. the
+  // row straddles the viewport top). The two-clause test is cheap
+  // and also handles jsdom's zero-height layout (every row reports
+  // size=0 in tests, where the bottom-check alone never matches).
+  const scrollOffset = virtualizer.scrollOffset;
+  const topVisibleIndex = useMemo(() => {
+    if (virtualRows.length === 0) {
+      return null;
+    }
+    if (scrollOffset === null) {
+      return virtualRows[0].index;
+    }
+    for (const vr of virtualRows) {
+      if (vr.start >= scrollOffset || vr.start + vr.size > scrollOffset) {
+        return vr.index;
+      }
+    }
+    return virtualRows[virtualRows.length - 1].index;
+  }, [virtualRows, scrollOffset]);
   const pinnedRecipient: FeedRecipient | null = useMemo(() => {
     if (topVisibleIndex === null) {
       return null;
