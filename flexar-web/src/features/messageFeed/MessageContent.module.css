@@ -381,6 +381,51 @@
   }
 
   /*
+   * Inline video previews. The server emits the same .message_inline_image
+   * wrapper plus an extra .message_inline_video class for videos. Without
+   * a visible affordance, the rendered first frame is indistinguishable
+   * from a static image — exactly the gap Zulip web's own
+   * `rendered_markdown.css` solves with a play-button overlay
+   * (see web/styles/rendered_markdown.css `.message_inline_video::after`).
+   *
+   * Mirror that here: relative positioning on the anchor so the ::after
+   * pseudo-element can sit centred over the <video>; the overlay's SVG
+   * is inlined as a data URI to avoid an extra HTTP request for what's
+   * effectively static chrome. Scale 0.8 → 1.0 on hover matches the
+   * Zulip transition.
+   */
+  & :global(.message_inline_video) > :global(a) {
+    position: relative;
+    display: inline-block;
+    cursor: zoom-in;
+  }
+
+  & :global(.message_inline_video) :global(video) {
+    max-height: 18rem;
+    display: block;
+  }
+
+  & :global(.message_inline_video) > :global(a)::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.29em;
+    height: 2.29em;
+    content: "";
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='black' fill-opacity='0.3'/><path d='M13.9334 20.9332L20.6667 16.6332C20.9112 16.4776 21.0334 16.2665 21.0334 15.9998C21.0334 15.7332 20.9112 15.5221 20.6667 15.3665L13.9334 11.0665C13.689 10.8887 13.4334 10.8721 13.1667 11.0165C12.9001 11.1609 12.7667 11.3887 12.7667 11.6998V20.2998C12.7667 20.6109 12.9001 20.8387 13.1667 20.9832C13.4334 21.1276 13.689 21.1109 13.9334 20.9332ZM16 29.3332C14.1779 29.3332 12.4556 28.9832 10.8334 28.2832C9.21119 27.5832 7.79453 26.6276 6.58341 25.4165C5.3723 24.2054 4.41675 22.7887 3.71675 21.1665C3.01675 19.5443 2.66675 17.8221 2.66675 15.9998C2.66675 14.1554 3.01675 12.4221 3.71675 10.7998C4.41675 9.17762 5.3723 7.7665 6.58341 6.5665C7.79453 5.3665 9.21119 4.4165 10.8334 3.7165C12.4556 3.0165 14.1779 2.6665 16 2.6665C17.8445 2.6665 19.5779 3.0165 21.2001 3.7165C22.8223 4.4165 24.2334 5.3665 25.4334 6.5665C26.6334 7.7665 27.5834 9.17762 28.2834 10.7998C28.9834 12.4221 29.3334 14.1554 29.3334 15.9998C29.3334 17.8221 28.9834 19.5443 28.2834 21.1665C27.5834 22.7887 26.6334 24.2054 25.4334 25.4165C24.2334 26.6276 22.8223 27.5832 21.2001 28.2832C19.5779 28.9832 17.8445 29.3332 16 29.3332ZM16 27.3332C19.1556 27.3332 21.8334 26.2276 24.0334 24.0165C26.2334 21.8054 27.3334 19.1332 27.3334 15.9998C27.3334 12.8443 26.2334 10.1665 24.0334 7.9665C21.8334 5.7665 19.1556 4.6665 16 4.6665C12.8667 4.6665 10.1945 5.7665 7.98341 7.9665C5.7723 10.1665 4.66675 12.8443 4.66675 15.9998C4.66675 19.1332 5.7723 21.8054 7.98341 24.0165C10.1945 26.2276 12.8667 27.3332 16 27.3332Z' fill='white'/></svg>");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.8);
+    transition: transform var(--duration-fast);
+  }
+
+  & :global(.message_inline_video) > :global(a):hover::after {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /*
    * Open Graph link-preview cards (Zulip's `<div class="message_embed">`
    * with a thumbnail anchor + title + description). Lays out as
    * thumbnail-left / text-right; the thumbnail's `background-image`
