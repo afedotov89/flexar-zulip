@@ -144,17 +144,16 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     setTextareaNode(node);
   }, []);
 
-  // External focus signal — bumped by `c` / `r` shortcuts (see
-  // `composeFocusSignal`). We subscribe to the bump counter and focus
-  // the textarea whenever it ticks while the textarea is mounted.
-  const composeFocusTick = useComposeFocusStore((state) => state.tick);
-  const lastComposeFocusTickRef = useRef(composeFocusTick);
+  // External focus signal (pending flag) — set by `c` / `r` shortcuts
+  // and the "Reply in topic" hover action. The flag survives a
+  // ComposeBox re-mount (which happens on narrow change), so a reply
+  // that navigates to a different narrow still focuses the freshly
+  // mounted textarea. The effect consumes the flag the moment both
+  // the flag is true and the textarea ref has settled.
+  const focusPending = useComposeFocusStore((state) => state.pending);
+  const consumeFocusRequest = useComposeFocusStore((state) => state.consume);
   useEffect(() => {
-    if (lastComposeFocusTickRef.current === composeFocusTick) {
-      return;
-    }
-    lastComposeFocusTickRef.current = composeFocusTick;
-    if (textareaNode === null) {
+    if (!focusPending || textareaNode === null) {
       return;
     }
     textareaNode.focus();
@@ -163,7 +162,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     // and the schedule send-menu return path do.
     const end = textareaNode.value.length;
     textareaNode.setSelectionRange(end, end);
-  }, [composeFocusTick, textareaNode]);
+    consumeFocusRequest();
+  }, [focusPending, textareaNode, consumeFocusRequest]);
 
   const prefillKey = useMemo(() => prefillKeyOf(fromNarrow), [fromNarrow]);
   const lastPrefillKeyRef = useRef<string | null>(null);

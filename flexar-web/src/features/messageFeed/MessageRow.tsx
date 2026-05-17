@@ -39,8 +39,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Avatar } from "../../components/Avatar";
 import { IconButton } from "../../components/IconButton";
-import type { EmojiIdentity, Message } from "../../domain";
+import type { EmojiIdentity, Message, Narrow } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
+import { useNarrowNavigation } from "../../lib/narrow";
+import { useComposeFocusStore } from "../compose";
 import {
   DeleteConfirmModal,
   EditHistoryModal,
@@ -55,6 +57,7 @@ import {
 import { MessageContent } from "./MessageContent";
 import { detectPoll, PollWidget } from "../widgets";
 import { formatMessageTime } from "./formatting";
+import { narrowForMessage } from "./narrowForMessage";
 import styles from "./MessageRow.module.css";
 
 export interface MessageRowProps {
@@ -86,20 +89,26 @@ interface HoverActionsProps {
   onActionNotice: (message: string) => void;
 }
 
-// The hover toolbar. The reply control remains a Phase 2 placeholder
-// (no-op handler); the "Add reaction" control is wired in Phase 3.2,
-// the actions dropdown ("More actions") in Phase 3.3. Controls are
-// real, labelled, and keyboard-reachable.
+interface HoverActionsExtraProps {
+  /** Navigate to this message's conversation and focus the compose box. */
+  onReply: () => void;
+}
+
+// The hover toolbar. "Reply" navigates to the message's narrow and
+// focuses the compose textarea; "Add reaction" wires the reaction
+// picker (Phase 3.2); "More actions" opens the actions dropdown
+// (Phase 3.3). Controls are real, labelled, and keyboard-reachable.
 function HoverActions({
   message,
   viewerId,
   onPickReaction,
+  onReply,
   onEditRequested,
   onDeleteRequested,
   onViewHistoryRequested,
   onActionError,
   onActionNotice,
-}: HoverActionsProps): React.JSX.Element {
+}: HoverActionsProps & HoverActionsExtraProps): React.JSX.Element {
   return (
     <div className={styles.actions}>
       <ReactionPickerButton variant="toolbar" onPick={onPickReaction} />
@@ -108,9 +117,7 @@ function HoverActions({
         size="sm"
         variant="ghost"
         aria-label="Ответить в теме"
-        onClick={() => {
-          // Phase 2: start a reply.
-        }}
+        onClick={onReply}
       />
       <MessageActionsMenu
         message={message}
@@ -136,6 +143,21 @@ export function MessageRow({
 
   const viewerId = useAuthStore((state) => state.session?.userId);
   const { toggle, errorMessage } = useReactionToggle(message.id);
+  const { goToNarrow } = useNarrowNavigation();
+  const requestComposeFocus = useComposeFocusStore((s) => s.requestFocus);
+
+  const handleReply = useCallback((): void => {
+    const narrow: Narrow = narrowForMessage(message);
+    goToNarrow(narrow);
+    // Bump the compose-focus signal AFTER the navigation has been
+    // committed. If we bumped synchronously, the new ComposeBox would
+    // mount with the already-incremented tick captured in its
+    // `lastComposeFocusTickRef` — the bump-detection effect would
+    // then see no transition and skip the focus call. A
+    // microtask-deferred bump lands after React's commit cycle, so
+    // the freshly-mounted ComposeBox sees a real tick transition.
+    queueMicrotask(() => requestComposeFocus());
+  }, [message, goToNarrow, requestComposeFocus]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -271,6 +293,7 @@ export function MessageRow({
           message={message}
           viewerId={viewerId}
           onPickReaction={handleToolbarPick}
+          onReply={handleReply}
           onEditRequested={handleEditRequested}
           onDeleteRequested={handleDeleteRequested}
           onViewHistoryRequested={handleViewHistoryRequested}
