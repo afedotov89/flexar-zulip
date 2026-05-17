@@ -90,7 +90,7 @@ export const messages: Record<Locale, Messages> = {
       drawerCloseRight: "Закрыть участников",
     },
     search: {
-      placeholder: "Поиск (например from:, channel:, topic:, is:starred, …)",
+      placeholder: "Поиск сообщений",
       ariaLabel: "Поиск сообщений",
     },
     shell: {
@@ -145,7 +145,7 @@ export const messages: Record<Locale, Messages> = {
       drawerCloseRight: "Hide members",
     },
     search: {
-      placeholder: "Search (e.g. from:, channel:, topic:, is:starred, …)",
+      placeholder: "Search messages",
       ariaLabel: "Search messages",
     },
     shell: {
