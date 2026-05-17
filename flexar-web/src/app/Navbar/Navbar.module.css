@@ -81,13 +81,17 @@
   align-items: center;
 }
 
+/*
+ * Email is hidden from the navbar (it lives in the trigger's title
+ * tooltip and inside the dropdown menu's header). At
+ * `--container-width-xs` (240px) it ate most of the actions cell,
+ * pushing statusButton ~90px into the search cell territory — the
+ * visible "overlap" the user flagged. The compact icon+chevron
+ * trigger fits cleanly within the 280px actions column matching the
+ * right sidebar below.
+ */
 .accountEmail {
-  max-width: var(--container-width-xs);
-  overflow: hidden;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 /*
@@ -159,12 +163,6 @@
 
   .drawerToggleRight {
     display: inline-flex;
-  }
-
-  /* Save room: hide the account-email tag — the avatar icon is
-     enough to identify the trigger. */
-  .accountEmail {
-    display: none;
   }
 }
 
