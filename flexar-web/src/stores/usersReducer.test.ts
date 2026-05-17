@@ -37,6 +37,42 @@ describe("directoryFromInitialState", () => {
     );
     expect(directory[7].is_active).toBe(true);
   });
+
+  it("merges cross_realm_bots into the directory (Welcome Bot et al.)", () => {
+    const directory = directoryFromInitialState(
+      makeInitialState({
+        realm_users: [makeUser({ user_id: 1 })],
+        cross_realm_bots: [
+          makeUser({
+            user_id: 100,
+            full_name: "Welcome Bot",
+            email: "welcome-bot@zulip.com",
+            is_bot: true,
+          }),
+        ],
+      }),
+    );
+    expect(directory[100]?.full_name).toBe("Welcome Bot");
+    expect(directory[100]?.is_bot).toBe(true);
+    expect(directory[100]?.is_active).toBe(true);
+    // The realm user is still there.
+    expect(directory[1]?.user_id).toBe(1);
+  });
+
+  it("does not let a cross_realm_bots entry overwrite a realm_users entry", () => {
+    // Defensive — shouldn't happen in practice, but a collision must
+    // not drop the realm-user's role/mention metadata.
+    const directory = directoryFromInitialState(
+      makeInitialState({
+        realm_users: [makeUser({ user_id: 5, full_name: "Real User" })],
+        cross_realm_bots: [
+          makeUser({ user_id: 5, full_name: "Bot Imposter", is_bot: true }),
+        ],
+      }),
+    );
+    expect(directory[5]?.full_name).toBe("Real User");
+    expect(directory[5]?.is_bot).toBe(false);
+  });
 });
 
 describe("applyRealmUserEvent — add", () => {

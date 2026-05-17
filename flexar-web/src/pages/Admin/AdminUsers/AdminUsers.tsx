@@ -17,6 +17,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
+import { Banner } from "../../../components/Banner";
 import { Button } from "../../../components/Button";
 import { Input } from "../../../components/Input";
 import { Select } from "../../../components/Select";
@@ -26,7 +27,6 @@ import { Tabs } from "../../../components/Tabs";
 import type { TabItem } from "../../../components/Tabs";
 import type { Role, User } from "../../../domain";
 import { RoleValues } from "../../../domain";
-import { useStoresLoading } from "../../../lib/hooks/useRealtimeStatus";
 import { useAuthStore } from "../../../stores/authStore";
 import { useUsersStore } from "../../../stores/usersStore";
 import { DeactivateUserModal } from "./DeactivateUserModal";
@@ -85,7 +85,13 @@ function matchesSearch(user: User, query: string): boolean {
 export function AdminUsers(): React.JSX.Element {
   const usersMap = useUsersStore((s) => s.users);
   const sessionUserId = useAuthStore((s) => s.session?.userId);
-  const storesLoading = useStoresLoading();
+  // Gate the list spinner on the directory itself, not on realtime
+  // status — directory hydrates from `persist` cache instantly on
+  // every reload, while realtime can take seconds to reach
+  // "connected" on a flaky WAN. Showing a spinner while we already
+  // have the data to render is a misleading lie. See the same
+  // rationale in `RequireAdmin`.
+  const directoryLoading = Object.keys(usersMap).length === 0;
 
   const [activeTab, setActiveTab] = useState<StatusTab>("active");
   const [search, setSearch] = useState("");
@@ -153,7 +159,26 @@ export function AdminUsers(): React.JSX.Element {
               )}
             </div>
 
-            {storesLoading ? (
+            {activeTab === "bots" && (
+              // Honest affordance: bot creation isn't built into this
+              // admin UI yet, but admins still need to create bots —
+              // direct them to the upstream Zulip web client's panel
+              // instead of pretending the feature is "coming soon".
+              <Banner tone="info">
+                Создание и настройку ботов пока выполняйте через
+                стандартный интерфейс Zulip:{" "}
+                <a
+                  href="/#organization/bot-list-admin"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  Управление ботами
+                </a>
+                . Здесь они отображаются для обзора.
+              </Banner>
+            )}
+
+            {directoryLoading ? (
               <div className={styles.loading}>
                 <Spinner aria-label="Загрузка пользователей" />
               </div>

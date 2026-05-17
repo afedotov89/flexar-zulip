@@ -33,22 +33,47 @@ import type { InitialState } from "../realtime";
 export type UserDirectory = Record<UserId, User>;
 
 /**
- * Build the directory from a register snapshot's `realm_users` array.
- * Returns an empty directory when the snapshot has no `realm_users`
- * key (its `fetch_event_types` did not request `realm_user`).
+ * Build the directory from a register snapshot's `realm_users` plus
+ * `cross_realm_bots` arrays. Returns an empty directory when neither
+ * key is present (the `fetch_event_types` did not request
+ * `realm_user`).
  *
  * `realm_users` entries omit `is_active` — the API guarantees they are
  * all active accounts — so it is filled in as `true` to satisfy the
  * `User` shape.
+ *
+ * `cross_realm_bots` are system bots Zulip ships with (Welcome Bot,
+ * Notification Bot, …). They are *not* in `realm_users` — that's the
+ * audit's "they're invisible in the admin Bots tab" — but they post
+ * messages and reply to direct messages, so the user directory and
+ * the admin pages should know about them. Each is also marked
+ * `is_active: true` and `is_bot: true`.
  */
 export function directoryFromInitialState(state: InitialState): UserDirectory {
-  const rawUsers = state.realm_users;
-  if (!Array.isArray(rawUsers)) {
-    return {};
-  }
   const directory: UserDirectory = {};
-  for (const raw of rawUsers as Array<Partial<User> & { user_id: UserId }>) {
-    directory[raw.user_id] = { is_active: true, ...raw } as User;
+  const rawUsers = state.realm_users;
+  if (Array.isArray(rawUsers)) {
+    for (const raw of rawUsers as Array<Partial<User> & { user_id: UserId }>) {
+      directory[raw.user_id] = { is_active: true, ...raw } as User;
+    }
+  }
+  const rawCrossRealmBots = state.cross_realm_bots;
+  if (Array.isArray(rawCrossRealmBots)) {
+    for (const raw of rawCrossRealmBots as Array<
+      Partial<User> & { user_id: UserId }
+    >) {
+      // Don't overwrite a `realm_users` entry that already mentions
+      // the bot (defensive — shouldn't happen in practice, but a
+      // user-id collision would otherwise drop role info).
+      if (raw.user_id in directory) {
+        continue;
+      }
+      directory[raw.user_id] = {
+        is_active: true,
+        is_bot: true,
+        ...raw,
+      } as User;
+    }
   }
   return directory;
 }
