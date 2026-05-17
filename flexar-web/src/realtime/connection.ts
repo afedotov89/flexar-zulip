@@ -392,6 +392,16 @@ export class RealtimeConnection {
           // successful register, including `BAD_EVENT_QUEUE_ID`
           // recovery.
           this.#broadcastInitialState(result);
+          // We have a live queue and snapshot — the connection is
+          // *functionally* connected, even though the first long-poll
+          // below may not return for a minute (Zulip's heartbeat
+          // interval). Marking "connected" only after the first
+          // getEvents return left UI in "connecting" for that full
+          // interval, which the NetworkStatusBanner could then mis-
+          // interpret as a real outage. The next iteration polls and
+          // promotes status idempotently on success / demotes to
+          // "reconnecting" on failure (see the catch below).
+          this.#setStatus("connected");
         } catch {
           // `registerQueue` failed (transport error, or no queue id).
           // There is no queue to keep, so every failure here is
