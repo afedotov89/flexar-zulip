@@ -92,9 +92,13 @@ export function deriveTodoState(
     return null;
   }
 
+  // Local task keys follow Zulip's `${idx},${sender_id}` convention so
+  // strike events from other clients land on the right task. Initial
+  // (extra_data) tasks use the synthetic `sender_id="canned"` per the
+  // legacy reducer.
   const tasksMap = new Map<string, TodoTask>();
   meta.initial.forEach((entry, idx) => {
-    const key = `canned,${idx}`;
+    const key = `${idx},canned`;
     tasksMap.set(key, {
       key,
       text: entry.task,
@@ -119,22 +123,16 @@ export function deriveTodoState(
       const keyRaw = (event as { key?: unknown }).key;
       const taskRaw = (event as { task?: unknown }).task;
       const descRaw = (event as { desc?: unknown }).desc;
-      // Zulip's web client encodes the new-task `key` as
-      // `"<sender_id>,<server-assigned-idx>"` already in the
-      // submessage — accept it verbatim, fall back to building one
-      // from `idx` for parity with the poll path.
-      let key: string | null = null;
-      if (typeof keyRaw === "string") {
-        key = keyRaw;
-      } else {
-        const idx = (event as { idx?: unknown }).idx;
-        if (typeof idx === "number") {
-          key = `${sub.sender_id},${idx}`;
-        }
-      }
-      if (key === null || typeof taskRaw !== "string") {
+      // The wire `key` is an INTEGER idx (per-sender). The local map
+      // key is `${idx},${sender_id}` so a `strike` from any client
+      // routes to the right task. Reject malformed payloads silently.
+      if (typeof keyRaw !== "number" || !Number.isInteger(keyRaw)) {
         continue;
       }
+      if (typeof taskRaw !== "string") {
+        continue;
+      }
+      const key = `${keyRaw},${sub.sender_id}`;
       if (tasksMap.has(key)) {
         continue;
       }
@@ -181,21 +179,28 @@ export function buildStrikeContent(key: string): string {
 }
 
 /**
- * Submessage body for adding a new task. `idx` should be monotonically
- * increasing per-sender so client-side optimism doesn't collide with
- * a fast-arriving server event for the same `idx`.
+ * Submessage body for adding a new task. `idx` is a per-sender,
+ * monotonically increasing integer (1..1000) — the server validates
+ * `z.int().check(nonneg, lte(1000))`. `completed: false` is sent
+ * verbatim per Zulip's legacy wire format (the receiver re-derives it
+ * but the field must be present and well-typed).
+ *
+ * `senderId` is accepted for symmetry with `buildStrikeContent` and
+ * future use but isn't part of the outbound payload — the server fills
+ * `sender_id` in from the auth context.
  */
 export function buildNewTaskContent(
-  senderId: number,
+  _senderId: number,
   idx: number,
   task: string,
   desc: string,
 ): string {
   return JSON.stringify({
     type: "new_task",
-    key: `${senderId},${idx}`,
+    key: idx,
     task,
     desc,
+    completed: false,
   });
 }
 

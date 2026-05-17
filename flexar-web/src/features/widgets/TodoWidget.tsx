@@ -45,17 +45,30 @@ export function TodoWidget({
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   // Viewer's local "next idx" counter for added tasks. Persists in a
-  // ref so navigating away and back doesn't collide; seeded from
-  // existing-tasks count so a re-mount continues monotonically.
+  // ref so navigating away and back doesn't collide; seeded from the
+  // highest existing idx-by-viewer + 1 so a re-mount continues
+  // monotonically. Local keys are `${idx},${sender_id}` (Zulip
+  // convention), so the viewer's tasks end with `,${viewerUserId}`.
+  // Server validates `idx` as integer in [0, 1000].
   const myIdxRef = useRef<number | null>(null);
-  const myAddedCount = useMemo(
-    () =>
-      state?.tasks.filter((t) => t.key.startsWith(`${viewerUserId},`)).length ??
-      0,
-    [state?.tasks, viewerUserId],
-  );
-  if (myIdxRef.current === null || myIdxRef.current < myAddedCount) {
-    myIdxRef.current = myAddedCount;
+  const myMaxIdx = useMemo(() => {
+    if (state === null) {
+      return 0;
+    }
+    let max = 0;
+    for (const t of state.tasks) {
+      if (t.key.endsWith(`,${viewerUserId}`)) {
+        const idxStr = t.key.slice(0, -`,${viewerUserId}`.length);
+        const idx = Number(idxStr);
+        if (Number.isInteger(idx) && idx > max) {
+          max = idx;
+        }
+      }
+    }
+    return max;
+  }, [state, viewerUserId]);
+  if (myIdxRef.current === null || myIdxRef.current <= myMaxIdx) {
+    myIdxRef.current = myMaxIdx + 1;
   }
 
   if (state === null) {

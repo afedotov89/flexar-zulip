@@ -89,7 +89,7 @@ describe("deriveTodoState", () => {
     expect(state!.title).toBe("Today");
     expect(state!.tasks).toHaveLength(1);
     expect(state!.tasks[0]).toMatchObject({
-      key: "canned,0",
+      key: "0,canned",
       text: "write docs",
       completed: false,
     });
@@ -105,10 +105,11 @@ describe("deriveTodoState", () => {
         1,
         7,
       ),
-      widget(JSON.parse(buildNewTaskContent(8, 0, "deploy", "")), 2, 8),
+      widget(JSON.parse(buildNewTaskContent(8, 2, "deploy", "")), 2, 8),
     ]);
     expect(state!.tasks).toHaveLength(1);
-    expect(state!.tasks[0].key).toBe("8,0");
+    // Local key is `${idx},${sender_id}` per Zulip's reducer.
+    expect(state!.tasks[0].key).toBe("2,8");
     expect(state!.tasks[0].text).toBe("deploy");
   });
 
@@ -125,7 +126,7 @@ describe("deriveTodoState", () => {
         1,
         7,
       ),
-      widget(JSON.parse(buildStrikeContent("canned,0")), 2, 7),
+      widget(JSON.parse(buildStrikeContent("0,canned")), 2, 7),
     ]);
     expect(state!.tasks[0].completed).toBe(true);
 
@@ -141,8 +142,8 @@ describe("deriveTodoState", () => {
         1,
         7,
       ),
-      widget(JSON.parse(buildStrikeContent("canned,0")), 2, 7),
-      widget(JSON.parse(buildStrikeContent("canned,0")), 3, 7),
+      widget(JSON.parse(buildStrikeContent("0,canned")), 2, 7),
+      widget(JSON.parse(buildStrikeContent("0,canned")), 3, 7),
     ]);
     expect(reToggled!.tasks[0].completed).toBe(false);
   });
