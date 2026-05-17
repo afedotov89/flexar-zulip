@@ -99,7 +99,13 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
   {
     id: "inbox",
     kind: "special",
-    label: "Входящие",
+    // "Новые" rather than the Zulip-canonical "Входящие" / "Inbox"
+    // — the latter reads to Russian users as a mailbox/email
+    // pattern, while "Новые" matches the convention common in
+    // Russian-language workplace messengers (Pachca et al.) and
+    // describes the screen content (unread → "новые") more
+    // directly.
+    label: "Новые",
     icon: "inbox",
     path: "/inbox",
   },
