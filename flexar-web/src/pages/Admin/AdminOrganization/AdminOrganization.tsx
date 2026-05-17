@@ -233,6 +233,7 @@ function ProfileSection({
           alt="Иконка организации"
           previewClassName={styles.iconPreview}
           emptyLabel="Иконка не задана."
+          brokenLabel="Иконка загружена, превью недоступно."
         />
         <RealmIconUploader />
       </div>
@@ -244,6 +245,7 @@ function ProfileSection({
           alt="Логотип организации, светлая тема"
           previewClassName={styles.logoPreview}
           emptyLabel="Логотип не задан."
+          brokenLabel="Логотип загружен, превью недоступно."
         />
         <RealmLogoUploader night={false} />
       </div>
@@ -255,6 +257,7 @@ function ProfileSection({
           alt="Логотип организации, тёмная тема"
           previewClassName={`${styles.logoPreview} ${styles.logoPreviewDark}`}
           emptyLabel="Логотип не задан."
+          brokenLabel="Логотип загружен, превью недоступно."
         />
         <RealmLogoUploader night={true} />
       </div>
@@ -264,32 +267,46 @@ function ProfileSection({
 
 /**
  * Preview tile for a realm asset (icon / light logo / night logo).
- * Shows the image when the URL is set and loads OK, otherwise a
- * muted "not set" label. The broken-image fallback is local state
- * — re-armed whenever the URL changes (a successful upload bumps the
- * server-side version query and re-attempts the load).
+ * Three distinct states, surfaced honestly so the admin knows what
+ * actually happened:
+ *
+ *   1. No URL on the realm → `emptyLabel` ("…не задан"). The asset
+ *      really hasn't been uploaded.
+ *   2. URL present, image loads → render the `<img>`.
+ *   3. URL present, image fails to load → `brokenLabel` ("Превью
+ *      недоступно"). The asset IS set server-side; only the preview
+ *      can't reach the media URL (e.g. dev-env auth, expired cert).
+ *      Saying "не задан" here would be a lie that misleads the
+ *      admin into re-uploading something already in place.
  *
  * Used by three slots so the broken-on-error logic isn't pasted
  * three times. The icon and the two logos differ only in URL,
- * alt-text, and preview chrome.
+ * alt-text, and preview chrome. The broken flag is local state —
+ * re-armed whenever the URL changes (a successful upload bumps the
+ * version query and re-attempts the load).
  */
 function RealmAssetPreview({
   url,
   alt,
   previewClassName,
   emptyLabel,
+  brokenLabel,
 }: {
   url: string | undefined;
   alt: string;
   previewClassName: string;
   emptyLabel: string;
+  brokenLabel: string;
 }): React.JSX.Element {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     setBroken(false);
   }, [url]);
-  if (url === undefined || url === "" || broken) {
+  if (url === undefined || url === "") {
     return <span className={styles.muted}>{emptyLabel}</span>;
+  }
+  if (broken) {
+    return <span className={styles.muted}>{brokenLabel}</span>;
   }
   return (
     <img
