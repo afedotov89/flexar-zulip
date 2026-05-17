@@ -27,8 +27,10 @@ import { narrowToWire } from "./narrow";
 import { sendRequest, type Params } from "./request";
 import {
   uploadFile,
+  uploadRealmAsset,
   type UploadFileOptions,
   type UploadFileResult,
+  type UploadRealmAssetOptions,
 } from "./upload";
 import type {
   ApiKeyResult,
@@ -1168,6 +1170,53 @@ export class ApiClient {
       );
     }
     return uploadFile({ ...options, credentials: this.#credentials });
+  }
+
+  /**
+   * Upload the organization's icon. `POST /api/v1/realm/icon`.
+   * Admin-only on the server side; the client doesn't gate (the
+   * AdminOrganization page only renders the affordance for admins).
+   * The new icon URL arrives via a subsequent `realm` event —
+   * callers don't need to handle the response.
+   */
+  uploadRealmIcon(
+    options: Omit<UploadRealmAssetOptions, "credentials" | "path">,
+  ): Promise<void> {
+    if (this.#credentials === undefined) {
+      return Promise.reject(
+        new Error("Cannot upload realm icon without credentials."),
+      );
+    }
+    return uploadRealmAsset({
+      ...options,
+      path: "icon",
+      credentials: this.#credentials,
+    });
+  }
+
+  /**
+   * Upload the organization's logo. `POST /api/v1/realm/logo`.
+   * Pass `night: true` to upload the dark-theme variant; default is
+   * the light-theme logo. As with the icon, the new URL arrives via
+   * a `realm` event.
+   */
+  uploadRealmLogo(
+    options: Omit<UploadRealmAssetOptions, "credentials" | "path" | "extraFields"> & {
+      night?: boolean;
+    },
+  ): Promise<void> {
+    if (this.#credentials === undefined) {
+      return Promise.reject(
+        new Error("Cannot upload realm logo without credentials."),
+      );
+    }
+    const { night, ...rest } = options;
+    return uploadRealmAsset({
+      ...rest,
+      path: "logo",
+      credentials: this.#credentials,
+      extraFields: night === true ? { night: "true" } : undefined,
+    });
   }
 }
 

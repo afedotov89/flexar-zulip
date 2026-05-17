@@ -19,7 +19,7 @@
 // settings surface are deliberately out of scope this iteration; the
 // underlying API methods for those have not landed yet.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Banner } from "../../../components/Banner";
 import { Button } from "../../../components/Button";
 import { Input } from "../../../components/Input";
@@ -250,11 +250,73 @@ function ProfileSection({
         ) : (
           <span className={styles.muted}>Иконка не задана.</span>
         )}
-        <span className={styles.muted}>
-          Загрузка иконки появится в следующей итерации.
-        </span>
+        <RealmIconUploader />
       </div>
     </section>
+  );
+}
+
+/**
+ * Tiny file-picker + status panel for `realm/icon` uploads. Lives
+ * inside `ProfileSection` because the icon row is the natural place
+ * for it; isolated as its own component so the upload state machine
+ * (idle / uploading / error) doesn't leak into the section's props.
+ *
+ * On success, no local state-write is needed — the server emits a
+ * `realm` event with the new `realm_icon_url`; `realmReducer` folds
+ * it; the image above re-renders against the new URL.
+ */
+function RealmIconUploader(): React.JSX.Element {
+  const [status, setStatus] = useState<
+    { kind: "idle" } | { kind: "uploading" } | { kind: "error"; message: string }
+  >({ kind: "idle" });
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onChoose = (): void => inputRef.current?.click();
+  const onFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (file === undefined) {
+      return;
+    }
+    setStatus({ kind: "uploading" });
+    try {
+      await apiClient.uploadRealmIcon({ file });
+      setStatus({ kind: "idle" });
+    } catch (cause) {
+      setStatus({ kind: "error", message: describeApiError(cause) });
+    }
+  };
+
+  return (
+    <span className={styles.uploaderSlot}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        // Visually-hidden file input — the button is the affordance.
+        // Same pattern as the compose upload paperclip.
+        hidden
+        onChange={(event) => void onFile(event)}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onChoose}
+        loading={status.kind === "uploading"}
+        disabled={status.kind === "uploading"}
+      >
+        Загрузить иконку
+      </Button>
+      {status.kind === "error" && (
+        <span className={styles.errorText} role="alert">
+          {status.message}
+        </span>
+      )}
+    </span>
   );
 }
 

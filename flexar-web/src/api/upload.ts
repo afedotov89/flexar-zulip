@@ -127,6 +127,99 @@ export function uploadFile(options: UploadFileOptions): Promise<UploadFileResult
 }
 
 /**
+ * Per-call options for `uploadRealmAsset`. Same transport as
+ * `uploadFile`, but the endpoint, response shape, and form-field name
+ * differ — realm icon / logo uploads don't return a stored-file URL
+ * (the client re-reads the new value off a subsequent `realm` event
+ * or register), and the field name is `file`, not `filename`.
+ */
+export interface UploadRealmAssetOptions {
+  /** Sub-path under `/realm/` (`icon`, `logo`). */
+  path: "icon" | "logo";
+  /** The image file to upload. */
+  file: File;
+  credentials: UploadCredentials;
+  /** Optional extra form fields (e.g. `night: "true"` for dark-mode logo). */
+  extraFields?: Record<string, string>;
+  /** Called with `0..1` as bytes are uploaded. */
+  onProgress?: (fraction: number) => void;
+  /** Optional abort signal — when fired, the upload is cancelled. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Upload the organization's icon or logo. Resolves on success;
+ * rejects with `ApiError` on transport failure, server error, or
+ * abort. The server replies with `{result: "success"}` and no body
+ * payload — the new asset URL arrives via a subsequent `realm`
+ * event (realm-store fold).
+ */
+export function uploadRealmAsset(
+  options: UploadRealmAssetOptions,
+): Promise<void> {
+  const { path, file, credentials, extraFields, onProgress, signal } = options;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/realm/${path}`, true);
+    xhr.setRequestHeader("Authorization", basicAuthHeader(credentials));
+    xhr.responseType = "text";
+
+    if (signal !== undefined) {
+      if (signal.aborted) {
+        reject(abortError());
+        return;
+      }
+      signal.addEventListener("abort", () => xhr.abort(), { once: true });
+    }
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress !== undefined) {
+        onProgress(event.loaded / event.total);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      const body = parseJson(xhr.responseText);
+      if (xhr.status < 200 || xhr.status >= 300 || isErrorBody(body)) {
+        if (isErrorBody(body)) {
+          const code = typeof body.code === "string" ? body.code : "BAD_REQUEST";
+          reject(new ApiError(body.msg, code, xhr.status, body));
+        } else {
+          reject(
+            new ApiError(
+              `Upload failed with HTTP ${xhr.status}.`,
+              "HTTP_ERROR",
+              xhr.status,
+            ),
+          );
+        }
+        return;
+      }
+      resolve();
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new ApiError("Network request failed.", "NETWORK_ERROR", 0));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(abortError());
+    });
+
+    const form = new FormData();
+    // Zulip's docs name the field `file` for the realm-asset endpoints
+    // (distinct from `/user_uploads` which uses `filename`).
+    form.append("file", file, file.name);
+    if (extraFields !== undefined) {
+      for (const [key, value] of Object.entries(extraFields)) {
+        form.append(key, value);
+      }
+    }
+    xhr.send(form);
+  });
+}
+
+/**
  * Sanitise a filename for safe insertion into a Markdown link. The
  * server's docs explicitly call out that `[` and `]` in the link text
  * break Markdown rendering — replace them with their visually similar
