@@ -36,9 +36,19 @@ export function ViewsSection({
   const totalUnread = useUnreadStore((s) => s.getUnreadCount());
   const mentionsCount = useUnreadStore((s) => s.getMentionsCount());
 
+  // Inbox and Recent are still placeholder pages (Feed.tsx falls
+  // through to the "В разработке" empty state for them). Showing
+  // them in the sidebar as polished navigation rows is an
+  // affordance-lie: the user clicks expecting a working screen and
+  // lands on a stub. Hide until the screens are real — the routes
+  // themselves stay defined so future restoration is one line here.
+  const visibleViews = BUILTIN_VIEWS.filter(
+    (view) => view.id !== "inbox" && view.id !== "recent",
+  );
+
   return (
     <SidebarSection title="Виды" expanded={expanded} onToggle={onToggle}>
-      {BUILTIN_VIEWS.map((view) => {
+      {visibleViews.map((view) => {
         // The Combined feed shows the grand-total unread badge and
         // Mentions shows its own bucket count. Other views have no
         // unread concept and render badge-less.

@@ -16,6 +16,7 @@
 //
 // The narrow feed itself is the `messageFeed` feature.
 
+import { EmptyState } from "../../components/EmptyState";
 import type { Narrow } from "../../domain";
 import { useCurrentNarrow, useCurrentView } from "../../lib/narrow";
 import { MessageFeed } from "../../features/messageFeed";
@@ -43,9 +44,24 @@ export function Feed() {
     if (view.id === "scheduled") {
       return <Scheduled />;
     }
+    // Inbox / Recent are hidden from the sidebar (ViewsSection
+    // filters them out), but the routes still exist — a stale link
+    // or a bookmark can land here. Show a real EmptyState instead
+    // of the bare "Раздел скоро появится" label so the page looks
+    // like the rest of the app rather than a debug stub.
+    const upcomingTitle =
+      view.id === "inbox" ? "Раздел «Входящие»" : "Раздел «Последние»";
+    const upcomingDescription =
+      view.id === "inbox"
+        ? "Сгруппированные непрочитанные сообщения по каналам и темам. Сейчас в разработке."
+        : "Список недавно активных бесед. Сейчас в разработке.";
     return (
       <div className={styles.feed}>
-        <span className={styles.placeholderLabel}>Раздел скоро появится</span>
+        <EmptyState
+          icon={view.icon}
+          title={upcomingTitle}
+          description={upcomingDescription}
+        />
       </div>
     );
   }
