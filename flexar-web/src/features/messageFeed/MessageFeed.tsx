@@ -36,6 +36,7 @@ import { ComposeBox } from "../compose";
 import { TypingIndicator } from "../typing";
 import { MarkAsReadButton } from "./MarkAsReadButton";
 import { MessageList } from "./MessageList";
+import { NarrowHeader } from "./NarrowHeader";
 import { buildFeedRows } from "./feedItems";
 import { useFeedWindow } from "./useFeedWindow";
 import styles from "./MessageFeed.module.css";
@@ -95,6 +96,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   if (window.status === "loading" || window.status === "idle") {
     return (
       <div className={styles.feed}>
+        <NarrowHeader narrow={narrow} />
         <LoadingState />
         <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
@@ -105,6 +107,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   if (window.status === "error") {
     return (
       <div className={styles.feed}>
+        <NarrowHeader narrow={narrow} />
         <EmptyState
           tone="error"
           icon="error"
@@ -125,6 +128,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
   if (rows.length === 0) {
     return (
       <div className={styles.feed}>
+        <NarrowHeader narrow={narrow} />
         <EmptyState
           icon="inbox"
           title="Здесь пока нет сообщений"
@@ -138,6 +142,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
 
   return (
     <div className={styles.feed}>
+      <NarrowHeader narrow={narrow} />
       <MarkAsReadButton narrow={narrow} />
       {window.historyLimited && (
         <div className={styles.notice}>

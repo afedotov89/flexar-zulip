@@ -1,0 +1,55 @@
+/*
+ * Persistent narrow header. Sticky inside the feed column so the
+ * "you are here" indicator never scrolls away with the message list,
+ * matching Slack / Zulip web / Discord chrome conventions.
+ *
+ * Sits above MessageList in the feed flex column and gets `z-index:
+ * var(--z-sticky)` so it overlays the in-flow recipient bars when
+ * they slide under it.
+ */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--space-8);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+
+  /* Truncate very long channel / topic names rather than wrap the
+     header to two rows. */
+  overflow: hidden;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.primary {
+  flex-shrink: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.secondary {
+  min-width: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
