@@ -47,17 +47,24 @@
 // to estimated sizes) and the tests assert on content and behaviour,
 // not pixel geometry — see `MessageFeed.test.tsx`.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { IconButton } from "../../components/IconButton";
 import { Spinner } from "../../components/Spinner";
 import type { Message } from "../../domain";
 import { DateSeparator } from "./DateSeparator";
 import { MessageRow } from "./MessageRow";
 import { RecipientBar } from "./RecipientBar";
-import type { FeedRow } from "./feedItems";
+import type { FeedRecipient, FeedRow } from "./feedItems";
 import { useFeedKeyboard } from "./useFeedKeyboard";
 import { useMarkVisibleAsRead } from "./useMarkVisibleAsRead";
 import styles from "./MessageList.module.css";
+
+// How far from the bottom (px) the viewport must move *up* before we
+// show the "scroll to bottom" affordance. Same threshold as the
+// upward infinite-scroll trigger — keeps "I lost track of the bottom"
+// vs "I'm following live" decisions on the same scale.
+const SCROLL_TO_BOTTOM_THRESHOLD = 400;
 
 export interface MessageListProps {
   /** The flat row list to render, top to bottom. */
@@ -171,6 +178,12 @@ export function MessageList({
     virtualizer.scrollToIndex(rows.length - 1, { align: "end" });
   }, [scrollAnchorKey, rows.length, virtualizer]);
 
+  // Whether the viewport is far enough from the bottom to surface the
+  // "scroll to last message" affordance. Refreshed on every scroll
+  // event (the virtualizer's `scrollOffset` is the most reactive
+  // signal we already have).
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
   // Edge detection for infinite scroll. Runs on every virtualizer
   // change (which includes scroll); compares the scroll offset against
   // the thresholds and asks the feed window for the next page. The feed
@@ -192,6 +205,12 @@ export function MessageList({
     ) {
       onLoadNewer();
     }
+    // "Scroll to bottom" gate: visible only when the user is genuinely
+    // away from the live end AND there's content to land on.
+    const distanceFromBottom = totalSize - (scrollTop + clientHeight);
+    setShowScrollToBottom(
+      rows.length > 0 && distanceFromBottom > SCROLL_TO_BOTTOM_THRESHOLD,
+    );
   }, [
     virtualizer.scrollOffset,
     totalSize,
@@ -201,7 +220,49 @@ export function MessageList({
     loadingNewer,
     onLoadOlder,
     onLoadNewer,
+    rows.length,
   ]);
+
+  const scrollToBottom = useCallback(() => {
+    if (rows.length === 0) {
+      return;
+    }
+    virtualizer.scrollToIndex(rows.length - 1, { align: "end" });
+  }, [rows.length, virtualizer]);
+
+  // Pinned recipient bar: the most-recent `recipient-bar` row at or
+  // above the topmost visible row. As the user scrolls deep into a
+  // long conversation block, the original in-flow bar leaves the
+  // viewport — without this, you'd lose the "where am I?" anchor
+  // until the next block starts. Real-pinned behaviour (Slack /
+  // Telegram convention).
+  //
+  // Implementation: read the virtualizer's visible-range start, walk
+  // back through `rows` for the nearest recipient bar, render it at
+  // the top of the scroll container with `position: sticky`. Sticky
+  // works here because the pinned bar is a sibling of the absolute-
+  // positioned sizer, not a child — the scroll container is its
+  // sticky context.
+  const virtualRows = virtualizer.getVirtualItems();
+  const topVisibleIndex =
+    virtualRows.length > 0 ? virtualRows[0].index : null;
+  const pinnedRecipient: FeedRecipient | null = useMemo(() => {
+    if (topVisibleIndex === null) {
+      return null;
+    }
+    // If the topmost visible row IS a recipient bar, no pin needed —
+    // the in-flow bar is already on screen.
+    if (rows[topVisibleIndex]?.kind === "recipient-bar") {
+      return null;
+    }
+    for (let i = topVisibleIndex - 1; i >= 0; i--) {
+      const row = rows[i];
+      if (row?.kind === "recipient-bar") {
+        return row.recipient;
+      }
+    }
+    return null;
+  }, [rows, topVisibleIndex]);
 
   // Mark unread messages that have actually entered the viewport as read.
   // The hook owns its own debouncing, batching, and visibility gating —
@@ -218,42 +279,62 @@ export function MessageList({
   // (Inbox, Drafts) don't get j/k.
   useFeedKeyboard({ rows, virtualizer, scrollRef });
 
-  const virtualRows = virtualizer.getVirtualItems();
-
   return (
-    <div ref={scrollRef} className={styles.scroll} role="log" tabIndex={0}>
-      {loadingOlder && (
-        <div className={styles.edgeSpinner}>
-          <Spinner size="sm" aria-label="Загрузка более ранних сообщений" />
-        </div>
-      )}
+    <div className={styles.container}>
+      <div ref={scrollRef} className={styles.scroll} role="log" tabIndex={0}>
+        {pinnedRecipient !== null && (
+          <div className={styles.pinnedBar} aria-hidden="true">
+            <RecipientBar recipient={pinnedRecipient} />
+          </div>
+        )}
+        {loadingOlder && (
+          <div className={styles.edgeSpinner}>
+            <Spinner size="sm" aria-label="Загрузка более ранних сообщений" />
+          </div>
+        )}
 
-      <div ref={sizerRef} className={styles.sizer}>
-        {virtualRows.map((virtualRow) => {
-          const row = rows[virtualRow.index];
-          return (
-            <div
-              key={virtualRow.key}
-              ref={makeRowRef(virtualRow.start)}
-              data-index={virtualRow.index}
-              className={styles.rowWrapper}
-            >
-              {row.kind === "recipient-bar" && (
-                <RecipientBar recipient={row.recipient} />
-              )}
-              {row.kind === "date-separator" && (
-                <DateSeparator dayStart={row.dayStart} />
-              )}
-              {row.kind === "message" &&
-                renderMessageRow(row.messageId, row.isGroupStart, getMessage)}
-            </div>
-          );
-        })}
+        <div ref={sizerRef} className={styles.sizer}>
+          {virtualRows.map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                ref={makeRowRef(virtualRow.start)}
+                data-index={virtualRow.index}
+                className={styles.rowWrapper}
+              >
+                {row.kind === "recipient-bar" && (
+                  <RecipientBar recipient={row.recipient} />
+                )}
+                {row.kind === "date-separator" && (
+                  <DateSeparator dayStart={row.dayStart} />
+                )}
+                {row.kind === "message" &&
+                  renderMessageRow(
+                    row.messageId,
+                    row.isGroupStart,
+                    getMessage,
+                  )}
+              </div>
+            );
+          })}
+        </div>
+
+        {loadingNewer && (
+          <div className={styles.edgeSpinner}>
+            <Spinner size="sm" aria-label="Загрузка более поздних сообщений" />
+          </div>
+        )}
       </div>
 
-      {loadingNewer && (
-        <div className={styles.edgeSpinner}>
-          <Spinner size="sm" aria-label="Загрузка более поздних сообщений" />
+      {showScrollToBottom && (
+        <div className={styles.scrollToBottom}>
+          <IconButton
+            icon="chevron-down"
+            variant="primary"
+            aria-label="К последнему сообщению"
+            onClick={scrollToBottom}
+          />
         </div>
       )}
     </div>

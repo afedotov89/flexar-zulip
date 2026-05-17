@@ -49,3 +49,50 @@
   justify-content: center;
   padding: var(--space-3);
 }
+
+/*
+ * Positioning shell for the floating "scroll to bottom" affordance.
+ * `position: relative` so the absolutely-positioned button anchors to
+ * the list area, not to the page.
+ */
+.container {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/*
+ * Floating circular button that returns the viewport to the last
+ * message. Sits above the compose box and below the scroll's right
+ * edge; raised stack so it doesn't get clipped under message hover
+ * toolbars.
+ */
+.scrollToBottom {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: var(--z-sticky);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+ * Pinned-sticky recipient bar (audit follow-up). Sticks to the top of
+ * the scroll container while the user is deep inside a long
+ * conversation block; hidden once the block's own in-flow bar comes
+ * into view (rendered conditionally by MessageList).
+ *
+ * `position: sticky` works here because the bar is a sibling of the
+ * absolute-positioned virtualizer sizer — the scroll container is
+ * its sticky context. Raised stacking so it sits above virtualised
+ * rows; soft shadow so it visually separates from content beneath.
+ */
+.pinnedBar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
