@@ -60,6 +60,7 @@
 
 import type {
   DeleteMessageEvent,
+  Message,
   MessageEvent,
   MessageId,
   StreamId,
@@ -379,13 +380,16 @@ export function unreadFromInitialState(
   return buckets;
 }
 
-// Derive the bucket a `message` event's message belongs in. Channel
+// Derive the unread bucket a message body belongs in. Channel
 // messages go to their stream + topic (`subject`); direct messages go
-// to the DM conversation built from the participant ids.
-function locationForMessage(
-  event: MessageEvent,
+// to the DM conversation built from the participant ids. Used by both
+// the `message` event path (where the body comes off the event) and
+// the `update_message_flags` op=remove path (where the body comes off
+// the messages-store via the optional lookup — see
+// `applyUpdateMessageFlagsEventToUnread`).
+function locationForMessageBody(
+  message: Pick<Message, "type" | "stream_id" | "subject" | "display_recipient">,
 ): UnreadLocation | undefined {
-  const { message } = event;
   if (message.type === "stream") {
     if (message.stream_id === undefined) {
       return undefined;
@@ -404,6 +408,12 @@ function locationForMessage(
     (recipient) => recipient.id,
   );
   return { kind: "dm", conversationKey: dmConversationKey(participantIds) };
+}
+
+function locationForMessage(
+  event: MessageEvent,
+): UnreadLocation | undefined {
+  return locationForMessageBody(event.message);
 }
 
 /**
@@ -492,21 +502,45 @@ export function applyUpdateMessageEventToUnread(
 }
 
 /**
+ * Look up a message by id — used by
+ * `applyUpdateMessageFlagsEventToUnread` to recover the bucket for a
+ * "mark unread again" event when our reverse-index has already
+ * forgotten this id (it was previously marked read, so its `location`
+ * entry was dropped). Implemented at the store-wiring layer over
+ * `messagesStore`.
+ */
+export type UnreadMessageLookup = (
+  id: MessageId,
+) => Pick<Message, "type" | "stream_id" | "subject" | "display_recipient"> | undefined;
+
+/**
  * Fold an `update_message_flags` event into the buckets. Only the
  * `read` flag is relevant: marking messages read removes them from
- * their buckets, un-marking restores ids whose bucket is still known.
- * `op: "add"` with `all: true` clears everything. Returns new buckets;
- * the input is never mutated.
+ * their buckets, un-marking restores them. `op: "add"` with
+ * `all: true` clears everything. Returns new buckets; the input is
+ * never mutated.
  *
- * Caveat: `op: "remove"` (mark unread again) can only restore an id
- * whose `location` is still tracked. An id whose bucket was already
- * forgotten cannot be re-filed from the flag event alone — the event
- * carries no channel/topic/recipient. In practice the server resends a
- * fresh snapshot on reconnect, which re-establishes the buckets.
+ * Why the optional `lookup`: `op: "remove"` (mark unread again) needs
+ * a bucket to file the id into, but the event itself carries no
+ * channel/topic/recipient — only ids. The reverse index `location`
+ * holds the bucket as long as the id is *currently* unread, but once
+ * a message is marked read its `location` entry is dropped (so the
+ * index stays bounded). Re-mark-unread on a previously-read message
+ * therefore has no bucket to restore from the event alone — without
+ * the lookup, the sidebar counter would only re-appear after the
+ * next `register` reconnect re-hydrates the snapshot.
+ *
+ * Passing `lookup` (typically `(id) => messagesStore.messages[id]`)
+ * fills the gap: we read the message body from the cache, derive its
+ * channel-topic / DM bucket, and file it. If the message body itself
+ * is also no longer in the cache, we fall back to the previous
+ * behaviour (no-op for that id — the next register snapshot will
+ * sort it out).
  */
 export function applyUpdateMessageFlagsEventToUnread(
   buckets: UnreadBuckets,
   event: UpdateMessageFlagsEvent,
+  lookup?: UnreadMessageLookup,
 ): UnreadBuckets {
   if (event.flag !== "read") {
     return buckets;
@@ -521,11 +555,19 @@ export function applyUpdateMessageFlagsEventToUnread(
     }
     return next;
   }
-  // `op: "remove"` — messages were marked unread again. Only ids whose
-  // bucket is still known can be restored.
+  // `op: "remove"` — messages were marked unread again. Use the
+  // reverse index first; for ids whose bucket the reducer has
+  // forgotten, fall back to deriving the bucket from the cached
+  // message body (see the function comment for why).
   let next = buckets;
   for (const id of event.messages) {
-    const location = next.location[id];
+    let location: UnreadLocation | undefined = next.location[id];
+    if (location === undefined && lookup !== undefined) {
+      const message = lookup(id);
+      if (message !== undefined) {
+        location = locationForMessageBody(message);
+      }
+    }
     if (location !== undefined) {
       next = fileId(next, id, location);
     }

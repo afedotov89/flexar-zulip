@@ -34,6 +34,7 @@ import {
   isUpdateMessageEvent,
   isUpdateMessageFlagsEvent,
 } from "./eventGuards";
+import { useMessagesStore } from "./messagesStore";
 import {
   applyDeleteMessageEventToUnread,
   applyMessageEventToUnread,
@@ -147,7 +148,17 @@ wireStore({
     }
     if (isUpdateMessageFlagsEvent(event)) {
       useUnreadStore.setState((state) => ({
-        unread: applyUpdateMessageFlagsEventToUnread(state.unread, event),
+        // `lookup` lets the reducer recover the bucket for a
+        // mark-unread of a message whose `location` was already
+        // forgotten (it was previously marked read). Without this,
+        // the sidebar counter wouldn't reappear until the next
+        // register snapshot — i.e. only after a page reload — see
+        // the reducer's comment for the full rationale.
+        unread: applyUpdateMessageFlagsEventToUnread(
+          state.unread,
+          event,
+          (id) => useMessagesStore.getState().messages[id],
+        ),
       }));
       return;
     }

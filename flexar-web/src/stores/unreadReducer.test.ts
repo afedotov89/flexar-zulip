@@ -374,10 +374,11 @@ describe("applyUpdateMessageFlagsEventToUnread", () => {
     expect(topicUnreadCount(next, 9, "t")).toBe(2);
   });
 
-  it("remove of the read flag cannot restore an id with no known bucket", () => {
-    // Once `add` read forgets an id's bucket, a later `remove` for it
-    // has nothing to re-file — the event carries no channel/topic. The
-    // server's reconnect snapshot is what re-establishes such buckets.
+  it("remove without a lookup is still a no-op for a forgotten id", () => {
+    // Backward-compatible fallback: callers that don't pass `lookup`
+    // see the original behaviour — a re-mark-unread of an id whose
+    // bucket was already forgotten cannot be restored, and the
+    // sidebar counter would only re-appear at the next snapshot.
     const buckets = seeded();
     const forgotten = applyUpdateMessageFlagsEventToUnread(buckets, {
       id: 1,
@@ -397,6 +398,74 @@ describe("applyUpdateMessageFlagsEventToUnread", () => {
     });
     expect(isUnread(next, 1)).toBe(false);
     expect(unreadCount(next)).toBe(2);
+  });
+
+  it("remove with a lookup restores a forgotten id from the cached body", () => {
+    // The realistic mark-unread path: user reads a message (its
+    // `location` is dropped), then later clicks 'mark unread'. The
+    // realtime event carries only the id, so the reducer needs to
+    // derive the channel/topic bucket from the cached message body.
+    // Without the lookup wiring this is the bug that made the
+    // sidebar counter appear only after a page reload.
+    const buckets = seeded();
+    const forgotten = applyUpdateMessageFlagsEventToUnread(buckets, {
+      id: 1,
+      type: "update_message_flags",
+      op: "add",
+      flag: "read",
+      messages: [1],
+      all: false,
+    });
+    expect(isUnread(forgotten, 1)).toBe(false);
+
+    const next = applyUpdateMessageFlagsEventToUnread(
+      forgotten,
+      {
+        id: 2,
+        type: "update_message_flags",
+        op: "remove",
+        flag: "read",
+        messages: [1],
+        all: false,
+      },
+      (id) =>
+        id === 1
+          ? {
+              type: "stream",
+              stream_id: 7,
+              subject: "design",
+              display_recipient: "design",
+            }
+          : undefined,
+    );
+
+    expect(isUnread(next, 1)).toBe(true);
+    expect(unreadCount(next)).toBe(3);
+  });
+
+  it("remove with a lookup that can't find the body still falls back to no-op", () => {
+    const buckets = seeded();
+    const forgotten = applyUpdateMessageFlagsEventToUnread(buckets, {
+      id: 1,
+      type: "update_message_flags",
+      op: "add",
+      flag: "read",
+      messages: [99],
+      all: false,
+    });
+    const next = applyUpdateMessageFlagsEventToUnread(
+      forgotten,
+      {
+        id: 2,
+        type: "update_message_flags",
+        op: "remove",
+        flag: "read",
+        messages: [99],
+        all: false,
+      },
+      () => undefined,
+    );
+    expect(isUnread(next, 99)).toBe(false);
   });
 
   it("ignores flags other than read", () => {
