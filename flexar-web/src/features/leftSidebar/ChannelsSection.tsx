@@ -11,7 +11,7 @@
 // The section header carries the "+" add-channel control which
 // navigates to the browse-channels screen (Phase 5.5).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { StreamId, Subscription } from "../../domain";
 import { narrowToPath, useCurrentNarrow } from "../../lib/narrow";
@@ -65,6 +65,31 @@ export function ChannelsSection({
       return next;
     });
   }
+
+  // Auto-expand the current channel on navigation. If the user is in
+  // a channel (or any of its topics) but has previously collapsed it,
+  // the row would render with no topic siblings visible — they
+  // couldn't see where they are or jump to a neighbouring topic
+  // without first clicking the chevron. Reset the collapsed flag
+  // whenever the current channel changes. The user is still free to
+  // collapse the current channel manually afterward; the auto-expand
+  // only fires on the navigation transition.
+  const currentChannelId: StreamId | undefined = currentNarrow?.find(
+    (term) => term.operator === "channel" || term.operator === "stream",
+  )?.operand as StreamId | undefined;
+  useEffect(() => {
+    if (currentChannelId === undefined) {
+      return;
+    }
+    setCollapsedChannels((prev) => {
+      if (!prev.has(currentChannelId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.delete(currentChannelId);
+      return next;
+    });
+  }, [currentChannelId]);
 
   // The path of the currently-addressed narrow, for active-row
   // highlighting of channel and topic rows.
