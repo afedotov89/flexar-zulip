@@ -23,9 +23,11 @@
 // agree without a flicker.
 
 import { useCallback, useState } from "react";
+import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { apiClient } from "../../api";
 import type { Narrow, StreamId } from "../../domain";
+import { describeApiError } from "../../lib/errors";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useUnreadStore } from "../../stores/unreadStore";
 import {
@@ -165,6 +167,7 @@ export function MarkAsReadButton({
   const markAllRead = useUnreadStore((s) => s.markAllRead);
 
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const scope = readScopeFor(narrow);
   const count = scope === null ? 0 : unreadInScope(buckets, scope);
@@ -174,8 +177,13 @@ export function MarkAsReadButton({
       return;
     }
     setSubmitting(true);
-    // Snapshot the affected ids before the optimistic clear so we can
-    // mark the cache flags in one bulk update.
+    setError(null);
+    // Snapshot the full unread buckets before the optimistic clear so
+    // we can rewind on REST failure — `markRead`/`markAllRead` drop
+    // ids from `location`, so a partial re-add reducer wouldn't
+    // restore the same shape. Full snapshot restore is the only
+    // correct rollback.
+    const bucketsBefore = buckets;
     const affected = idsInScope(buckets, scope);
 
     if (scope.kind === "all") {
@@ -203,10 +211,19 @@ export function MarkAsReadButton({
           await apiClient.markTopicAsRead(scope.streamId, scope.topic);
           break;
       }
-    } catch (error) {
-      // Soft-fail — the next snapshot reconciles. The user is the one
-      // who asked for this; logging is enough.
-      console.warn("mark-as-read: bulk REST call failed", error);
+    } catch (cause) {
+      // The user asked for a bulk state change; if it failed, the
+      // sidebar / button would silently lie ("everything looks read")
+      // and the next snapshot is bounded by reconnect, not seconds.
+      // Roll back the optimistic clear and surface a banner so the
+      // user can retry.
+      useUnreadStore.setState({ unread: bucketsBefore });
+      if (affected.length > 0) {
+        useMessagesStore
+          .getState()
+          .applyOptimisticFlagsBulk(affected, "remove", "read");
+      }
+      setError(describeApiError(cause));
     } finally {
       setSubmitting(false);
     }
@@ -229,6 +246,11 @@ export function MarkAsReadButton({
       >
         {labelFor(scope)}
       </Button>
+      {error !== null && (
+        <Banner tone="danger" onDismiss={() => setError(null)}>
+          {error}
+        </Banner>
+      )}
     </div>
   );
 }

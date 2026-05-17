@@ -42,6 +42,7 @@ import { apiClient } from "../../api";
 import type { Message, MessageId } from "../../domain";
 import { useMessagesStore } from "../../stores/messagesStore";
 import { useUnreadStore } from "../../stores/unreadStore";
+import { applyUpdateMessageFlagsEventToUnread } from "../../stores/unreadReducer";
 import type { FeedRow } from "./feedItems";
 
 /**
@@ -90,10 +91,11 @@ export function useMarkVisibleAsRead({
 
   // Drain the pending set: snapshot the ids, optimistically clear them
   // from the unread buckets and mark them read in the cache, then fire
-  // the REST update. A REST failure leaves the optimistic state in
-  // place; the next `register` snapshot reconciles, and the user's view
-  // is no worse off than if the request had not been made (they did
-  // see the messages).
+  // the REST update. On REST failure, **roll back** the optimistic
+  // clear — re-file the ids from the cached message bodies so the
+  // sidebar counters stop lying. We deliberately do *not* surface a
+  // banner: this path fires on every scroll, and a banner per flush
+  // would be unusable. The console warning is for the developer.
   function flush(): void {
     flushTimerRef.current = null;
     if (pendingRef.current.size === 0) {
@@ -108,10 +110,29 @@ export function useMarkVisibleAsRead({
     void apiClient
       .updateMessageFlags({ op: "add", flag: "read", messages: ids })
       .catch((error: unknown) => {
-        // Soft-fail: the next snapshot reconciles the unread state.
-        // We do not surface this to the user — a transient failure
-        // would otherwise spam banners on every scroll.
-        console.warn("mark-as-read: REST call failed", error);
+        // Roll back: re-file each id into its bucket via the cached
+        // message body, and remove the optimistic `read` cache flag.
+        // We re-use the realtime reducer with a synthesised
+        // "remove read" event — same code path that handles the live
+        // server event, so the result is consistent.
+        useUnreadStore.setState((state) => ({
+          unread: applyUpdateMessageFlagsEventToUnread(
+            state.unread,
+            {
+              id: -1,
+              type: "update_message_flags",
+              op: "remove",
+              flag: "read",
+              messages: ids,
+              all: false,
+            },
+            (id) => useMessagesStore.getState().messages[id],
+          ),
+        }));
+        useMessagesStore
+          .getState()
+          .applyOptimisticFlagsBulk(ids, "remove", "read");
+        console.warn("mark-as-read: REST call failed, rolled back", error);
       });
   }
 
