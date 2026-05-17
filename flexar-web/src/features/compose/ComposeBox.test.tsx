@@ -196,7 +196,7 @@ describe("ComposeBox — pre-fill from narrow", () => {
       screen.queryByRole("button", { name: /Отправить/ }),
     ).toBeNull();
     expect(
-      screen.getByText(/Чтобы написать, откройте канал/),
+      screen.getByText(/В этом виде нельзя начать сообщение/),
     ).toBeInTheDocument();
   });
 
@@ -204,7 +204,7 @@ describe("ComposeBox — pre-fill from narrow", () => {
     render(<MemoryRouter><ComposeBox narrow={undefined} /></MemoryRouter>);
     expect(screen.queryByLabelText("Сообщение")).toBeNull();
     expect(
-      screen.getByText(/Чтобы написать, откройте канал/),
+      screen.getByText(/В этом виде нельзя начать сообщение/),
     ).toBeInTheDocument();
   });
 });

@@ -671,7 +671,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   if (formMode === "none") {
     return (
       <div className={styles.composeUnavailable} role="status">
-        Чтобы написать, откройте канал, тему или личную беседу.
+        В этом виде нельзя начать сообщение — выберите канал, тему или
+        личную беседу в боковой панели.
       </div>
     );
   }
