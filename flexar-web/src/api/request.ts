@@ -69,6 +69,16 @@ export interface RequestSpec {
    * instead of being killed mid-poll.
    */
   timeoutMs?: number;
+  /**
+   * Optional external abort signal. If aborted, the in-flight `fetch`
+   * is cancelled and an `ApiError` with code `ABORTED` is thrown. Used
+   * by the realtime layer's `RealtimeConnection.stop()` to actually
+   * cancel its hanging long-poll, instead of letting the request
+   * dangle on the server until that side's timeout (which leaks
+   * `queue_id` slots and shows up in browser DevTools as orphan
+   * pending `/events`).
+   */
+  signal?: AbortSignal;
 }
 
 /** Credentials used to build the HTTP Basic auth header. */
@@ -170,6 +180,18 @@ export async function sendRequest<T>(
   const params = spec.params ?? {};
   let url = `${API_BASE}${spec.path}`;
   const controller = new AbortController();
+  // If the caller passed an external signal (e.g. the realtime layer's
+  // stop-controller), forward an abort on it to our internal one so
+  // the timeout/external paths share a single abort point.
+  if (spec.signal !== undefined) {
+    if (spec.signal.aborted) {
+      controller.abort();
+    } else {
+      spec.signal.addEventListener("abort", () => controller.abort(), {
+        once: true,
+      });
+    }
+  }
   const init: RequestInit = {
     method: spec.method,
     headers,
@@ -205,6 +227,16 @@ export async function sendRequest<T>(
       throw new ApiError(
         `Request to ${spec.path} timed out after ${timeoutMs}ms.`,
         "TIMEOUT",
+        0,
+      );
+    }
+    // External abort (caller cancelled via `spec.signal`) — distinct
+    // from a network/transport failure so the realtime loop can drop
+    // the result without treating it as a retryable failure.
+    if (spec.signal?.aborted === true) {
+      throw new ApiError(
+        `Request to ${spec.path} was aborted.`,
+        "ABORTED",
         0,
       );
     }

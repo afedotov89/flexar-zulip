@@ -180,7 +180,7 @@ describe("RealtimeConnection — register and poll", () => {
     await flush();
 
     // After register, the loop long-polls with the bootstrap cursor.
-    expect(client.getEvents).toHaveBeenCalledWith("q1", 5);
+    expect(client.getEvents).toHaveBeenCalledWith("q1", 5, expect.anything());
 
     poll1.resolve({ events: [someEvent(6), someEvent(7)] });
     const poll2 = client.nextGetEvents();
@@ -189,7 +189,7 @@ describe("RealtimeConnection — register and poll", () => {
     expect(received).toEqual([6, 7]);
     expect(conn.getStatus()).toBe("connected");
     // The cursor advanced to the highest id seen.
-    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 7);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 7, expect.anything());
 
     poll2.resolve({ events: [] });
     await flush();
@@ -216,7 +216,7 @@ describe("RealtimeConnection — register and poll", () => {
     // Only the non-heartbeat reached the subscriber...
     expect(received).toEqual([2]);
     // ...but the cursor advanced past the trailing heartbeat (id 3).
-    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 3);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 3, expect.anything());
 
     conn.stop();
   });
@@ -266,7 +266,7 @@ describe("RealtimeConnection — BAD_EVENT_QUEUE_ID recovery", () => {
     await flush();
 
     // Polls the *new* queue with its fresh cursor.
-    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0, expect.anything());
 
     poll2.resolve({ events: [someEvent(1)] });
     client.nextGetEvents();
@@ -327,7 +327,7 @@ describe("RealtimeConnection — transport failure backoff", () => {
 
     // Retried the *same* queue with the *same* cursor.
     expect(client.getEvents).toHaveBeenCalledTimes(2);
-    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 3);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q1", 3, expect.anything());
     expect(client.registerQueue).toHaveBeenCalledTimes(1);
 
     poll2.resolve({ events: [] });
@@ -499,12 +499,12 @@ describe("RealtimeConnection — stop()", () => {
     reg2.resolve(registerResult("q2", 0));
     client.nextGetEvents();
     await flush();
-    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0, expect.anything());
 
     // The original register promise resolving late changes nothing.
     reg1.resolve(registerResult("q1", 99));
     await flush();
-    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0);
+    expect(client.getEvents).toHaveBeenLastCalledWith("q2", 0, expect.anything());
 
     conn.stop();
   });
@@ -514,6 +514,37 @@ describe("RealtimeConnection — stop()", () => {
     const conn = makeConnection(client);
     expect(() => conn.stop()).not.toThrow();
     expect(conn.getStatus()).toBe("idle");
+  });
+
+  it("stop() aborts the in-flight long-poll's AbortSignal", async () => {
+    const client = new FakeApiClient();
+    const reg = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    conn.start();
+    reg.resolve(registerResult("q1", 0));
+    await flush();
+
+    // Grab the AbortSignal the loop handed to `getEvents`.
+    const signal = (client.getEvents.mock.calls[0]?.[2] as
+      | { signal?: AbortSignal }
+      | undefined)?.signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal!.aborted).toBe(false);
+
+    conn.stop();
+
+    // The pending long-poll was actually cancelled — the server-side
+    // request is released rather than left dangling, so we don't leak
+    // queue_id slots in dev tabs full of HMR-orphan connections.
+    expect(signal!.aborted).toBe(true);
+
+    // Resolving the original poll late changes nothing — the loop
+    // already exited on the generation check.
+    poll1.resolve({ events: [someEvent(1)] });
+    await flush();
+    expect(client.getEvents).toHaveBeenCalledTimes(1);
   });
 });
 

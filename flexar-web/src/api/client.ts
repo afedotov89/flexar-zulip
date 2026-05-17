@@ -206,6 +206,7 @@ export class ApiClient {
   async getEvents(
     queueId: string,
     lastEventId: number,
+    options: { signal?: AbortSignal } = {},
   ): Promise<GetEventsResult> {
     const body = await sendRequest<{
       events: ServerEvent[];
@@ -216,6 +217,7 @@ export class ApiClient {
         path: "/events",
         params: { queue_id: queueId, last_event_id: lastEventId },
         timeoutMs: 120_000,
+        signal: options.signal,
       },
       this.#credentials,
     );

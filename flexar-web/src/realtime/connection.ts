@@ -176,6 +176,16 @@ export class RealtimeConnection {
    * loop exits promptly and no timer outlives the connection.
    */
   #wakeBackoff: (() => void) | null = null;
+  /**
+   * AbortController for the currently in-flight `getEvents` long-poll,
+   * if one is open. `stop()` aborts it so the server-side hanging
+   * request is actually cancelled — otherwise the server holds the
+   * `queue_id` slot open until its own ~10-minute timeout, which
+   * shows up as orphan pending `/events` requests in dev tools and
+   * (in dev with frequent HMR) accumulates fast. Reset to `null`
+   * before/after every poll.
+   */
+  #pollAbort: AbortController | null = null;
 
   constructor(options: RealtimeConnectionOptions = {}) {
     this.#client = options.client ?? apiClient;
@@ -204,10 +214,12 @@ export class RealtimeConnection {
 
   /**
    * Stop the connection: abort the poll loop and reset to `"idle"`.
-   * Any `getEvents` / `registerQueue` promise still in flight is
-   * orphaned harmlessly — when it settles, the generation check makes
-   * its continuation a no-op, so nothing dispatches after `stop()`.
-   * Safe to call when already stopped.
+   * Any `getEvents` long-poll in flight is *actually* cancelled via
+   * its AbortController, so the server releases the request and we
+   * don't leak `queue_id` slots; the loop's generation check then
+   * makes the rejected promise a no-op. `registerQueue` in flight is
+   * not aborted (the request is short) and is dropped via the
+   * generation check. Safe to call when already stopped.
    */
   stop(): void {
     if (!this.#running) {
@@ -220,6 +232,11 @@ export class RealtimeConnection {
     // the connection and the loop exits without waiting out the delay.
     if (this.#wakeBackoff !== null) {
       this.#wakeBackoff();
+    }
+    // Abort the hanging long-poll, if any — see `#pollAbort`.
+    if (this.#pollAbort !== null) {
+      this.#pollAbort.abort();
+      this.#pollAbort = null;
     }
     this.#setStatus("idle");
   }
@@ -388,9 +405,16 @@ export class RealtimeConnection {
         }
       }
 
-      // Long-poll for the next batch of events.
+      // Long-poll for the next batch of events. Allocate a fresh
+      // AbortController per poll so `stop()` can actually cancel the
+      // hanging request — see `#pollAbort`.
+      this.#pollAbort = new AbortController();
       try {
-        const { events } = await this.#client.getEvents(queueId, lastEventId);
+        const { events } = await this.#client.getEvents(
+          queueId,
+          lastEventId,
+          { signal: this.#pollAbort.signal },
+        );
         if (!this.#isCurrent(runId)) {
           return;
         }
@@ -403,6 +427,13 @@ export class RealtimeConnection {
         this.#setStatus("connected");
       } catch (cause) {
         if (!this.#isCurrent(runId)) {
+          return;
+        }
+        // ABORTED is our own `stop()` cancelling the request — exit
+        // silently, the generation check above would normally catch
+        // it anyway but being explicit avoids a phantom failure
+        // bump.
+        if (isApiError(cause) && cause.code === "ABORTED") {
           return;
         }
         if (isApiError(cause) && cause.code === "BAD_EVENT_QUEUE_ID") {
@@ -420,6 +451,8 @@ export class RealtimeConnection {
         failureCount++;
         this.#setStatus("reconnecting");
         await this.#waitBackoff(runId, failureCount);
+      } finally {
+        this.#pollAbort = null;
       }
     }
   }
