@@ -34,6 +34,7 @@ import type {
 } from "../../domain";
 import { describeApiError } from "../../lib/errors";
 import { useNarrowNavigation } from "../../lib/narrow";
+import { htmlToPlainText } from "../../lib/renderedContent";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import styles from "./Recent.module.css";
@@ -58,25 +59,6 @@ interface RecentRow {
   snippet: string;
   /** Message timestamp (Unix seconds) — sort key + relative-time source. */
   timestamp: number;
-}
-
-function rawTextFromHtml(html: string): string {
-  // Quick-and-dirty plain-text extraction: drop tags, decode a small
-  // set of common entities, collapse whitespace. Good enough for a
-  // one-line preview; we're not trying to reproduce the renderer.
-  const stripped = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
-  if (stripped.length <= SNIPPET_CHARS) {
-    return stripped;
-  }
-  return stripped.slice(0, SNIPPET_CHARS - 1) + "…";
 }
 
 function relativeTime(timestamp: number, now: number): string {
@@ -197,7 +179,9 @@ export function Recent(): React.JSX.Element {
         primary,
         secondary,
         author: message.sender_full_name,
-        snippet: rawTextFromHtml(message.content),
+        snippet: htmlToPlainText(message.content, {
+          maxLength: SNIPPET_CHARS,
+        }),
         timestamp: message.timestamp,
       });
     }

@@ -8,3 +8,5 @@
 
 export { sanitizeRenderedContent } from "./sanitizeRenderedContent";
 export { parseNarrowLink } from "./narrowLink";
+export { unicodeFromEmojiClasses } from "./emojiCodepoint";
+export { htmlToPlainText } from "./htmlToPlainText";

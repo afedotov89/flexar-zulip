@@ -5,18 +5,21 @@
 //   <span aria-label="point right" class="emoji emoji-1f449"
 //         role="img" title="point right">:point_right:</span>
 //
-// The codepoint(s) are encoded in the `emoji-…` class as dash-joined
-// hex (e.g. `emoji-1f1f7-1f1fa` for the Russia flag); the inner text
-// is the colon-shortcode fallback (`:point_right:`). Without further
-// work the user just sees the shortcode text. This module replaces
-// each span's text with the actual unicode glyph derived from the
-// class, so the OS / web font renders the emoji visually.
+// The inner text is the colon-shortcode fallback — without further
+// work the user just sees `:point_right:`. This module's job is the
+// DOM-side rewrite: walk the message-content tree once after sanitise,
+// replace each span's text with the actual unicode glyph, mark each
+// touched span so a re-run after a re-render skips work it's already
+// done. The codec itself (class → glyph) lives in
+// `lib/renderedContent/emojiCodepoint.ts` so the same logic powers
+// snippet-text extraction (Recent rows, …) without re-implementing.
 //
 // Custom realm emoji (`<img class="emoji emoji-{id}" src="…">`) are
 // already images and are not touched here.
 
+import { unicodeFromEmojiClasses } from "../../../lib/renderedContent";
+
 const EMOJI_CLASS = "emoji";
-const EMOJI_CODEPOINT_PREFIX = "emoji-";
 const DECORATED_FLAG = "data-emoji-decorated";
 
 /**
@@ -33,41 +36,10 @@ export function decorateEmojis(container: HTMLElement): void {
     if (span.getAttribute(DECORATED_FLAG) === "true") {
       continue;
     }
-    const glyph = unicodeFromClasses(span.classList);
+    const glyph = unicodeFromEmojiClasses(span.classList);
     if (glyph !== null) {
       span.textContent = glyph;
     }
     span.setAttribute(DECORATED_FLAG, "true");
   }
-}
-
-/**
- * Pull the codepoint(s) out of the `emoji-…` class and return the
- * corresponding unicode string, or `null` if the class is missing or
- * unparseable. Multi-codepoint emoji (flags, ZWJ sequences) come as
- * dash-joined hex — they assemble back into the rendered glyph.
- */
-function unicodeFromClasses(classes: DOMTokenList): string | null {
-  for (const cls of classes) {
-    if (!cls.startsWith(EMOJI_CODEPOINT_PREFIX) || cls === EMOJI_CLASS) {
-      continue;
-    }
-    const hexes = cls.slice(EMOJI_CODEPOINT_PREFIX.length).split("-");
-    const codepoints: number[] = [];
-    for (const hex of hexes) {
-      if (!/^[0-9a-f]+$/i.test(hex)) {
-        return null;
-      }
-      const value = Number.parseInt(hex, 16);
-      if (!Number.isFinite(value) || value < 0 || value > 0x10ffff) {
-        return null;
-      }
-      codepoints.push(value);
-    }
-    if (codepoints.length === 0) {
-      return null;
-    }
-    return String.fromCodePoint(...codepoints);
-  }
-  return null;
 }
