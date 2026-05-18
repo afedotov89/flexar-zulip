@@ -1,1 +1,1 @@
-export { RequireAdmin } from "./RequireAdmin";
+export { RequireAdminAccess } from "./RequireAdmin";

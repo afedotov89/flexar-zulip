@@ -1,46 +1,72 @@
 // Flexar Hub Web — app-shell navbar (Phase 0.5; logout 1.1; account
-// dropdown 5.x).
+// dropdown 5.x; status-in-menu + identity-card trigger redesign).
 //
 // Full-width top bar with three slots: the app-name (left), a search
 // placeholder (center), and an actions cluster (right). The actions
-// cluster holds the theme toggle, the user-status chip, and an
-// account-menu trigger that drops down a `DropdownMenu` with
-// Settings / Administration (admin-only) / Log out. The dropdown
-// pattern matches modern messengers (Slack/Linear/Notion) — the navbar
-// stays compact and the admin entry stays out of sight for non-admins.
+// cluster holds the theme toggle and an account-menu trigger that is
+// also the user's identity card — avatar + full name on one line,
+// status emoji + status text on the second line, with a chevron that
+// drops down a `DropdownMenu` of Set/Edit status, Settings, Language,
+// Administration (admin-only), Log out.
+//
+// "Установить статус" used to be a standalone chip in the navbar; it
+// now lives at the top of the account dropdown so the navbar stays
+// scannable and the identity card communicates "who am I + what am I
+// doing" at a glance. The status editor opens in a popover anchored
+// to the account trigger, controlled by local state.
 //
 // "Administration" routes to `/admin/users` by default — the most
 // frequently-visited admin section; the user can reach the others from
 // inside via the same dropdown re-opening.
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Avatar } from "../../components/Avatar";
 import { DropdownMenu } from "../../components/DropdownMenu";
 import type { DropdownMenuEntry } from "../../components/DropdownMenu";
 import { Icon } from "../../components/Icon";
 import { IconButton } from "../../components/IconButton";
+import { Popover } from "../../components/Popover";
 import { SearchBar } from "../../features/search";
-import { StatusButton } from "../../features/userStatus";
+import { StatusEditor } from "../../features/userStatus/StatusEditor";
+import { glyphFromUnicodeEmojiCode } from "../../lib/emoji/identity";
 import { useI18n, useLocaleStore } from "../../lib/i18n";
-import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
+import { useAdminCapabilities } from "../../lib/hooks/useAdminCapabilities";
 import { useAuthStore } from "../../stores/authStore";
+import { useUsersStore } from "../../stores/usersStore";
+import { useUserStatusesStore } from "../../stores/userStatusesStore";
 import { useTheme } from "../../theme";
 import { useDrawerStore } from "../AppShell/drawerStore";
+import type { UserStatus } from "../../domain";
 import styles from "./Navbar.module.css";
 
 export function Navbar(): React.JSX.Element {
-  const { theme, toggleTheme } = useTheme();
+  const { mode, setMode } = useTheme();
   const { m } = useI18n();
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
-  const nextThemeLabel =
-    theme === "light"
-      ? m.navbar.themeToggleToDark
-      : m.navbar.themeToggleToLight;
 
   const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
-  const isAdmin = useIsAdmin();
+  // Show the "Administration" entry whenever the user holds ANY
+  // admin-adjacent capability — not only full realm admins. A
+  // member who can create bots or manage their own group still
+  // needs an entry point to /admin/*.
+  const adminCaps = useAdminCapabilities();
+
+  const ownUserId = session?.userId;
+  const ownUser = useUsersStore((s) =>
+    ownUserId === undefined ? undefined : s.getUser(ownUserId),
+  );
+  const status = useUserStatusesStore((s) =>
+    ownUserId === undefined ? undefined : s.statuses[ownUserId],
+  );
+
+  // Status editor lives in a popover anchored to the account
+  // trigger; controlled here so the dropdown menu item "Установить
+  // статус" can open it on selection.
+  const [statusEditorOpen, setStatusEditorOpen] = useState(false);
 
   // Drawer toggles — only visible at the corresponding breakpoints
   // via CSS (`.drawerToggleLeft` mobile-only, `.drawerToggleRight`
@@ -66,25 +92,54 @@ export function Navbar(): React.JSX.Element {
 
   function handleLogout(): void {
     logout();
-    // Send the user to the login screen immediately. The route guard
-    // would also catch this on the next render, but navigating here
-    // keeps the transition crisp.
     void navigate("/login", { replace: true });
   }
 
-  // Build the account-menu entries. "Administration" entry + its
-  // separator are skipped entirely for non-admins (cleaner than
-  // disabling, and admin-ness is not something the UI announces to
-  // members).
+  // Build the account-menu entries. The first item flips between
+  // "Установить статус" (no status set) and "Изменить статус"
+  // (status set) — symmetry with the trigger's identity card.
+  const statusLabel =
+    status !== undefined &&
+    (status.status_text !== "" || (status.emoji_name ?? "") !== "")
+      ? m.navbar.statusEdit
+      : m.navbar.statusSet;
+  // Theme picker: one cycling row instead of three radio rows.
+  // Theme switching is rare; eating a third of the dropdown for
+  // three permanent options was a poor real-estate trade. Cycle
+  // order light → dark → system → light matches the language
+  // switcher's single-item cycle pattern. The leading icon and
+  // label reflect the CURRENT mode so the user can verify what
+  // they're on at a glance.
+  const nextMode = (current: typeof mode): typeof mode =>
+    current === "light"
+      ? "dark"
+      : current === "dark"
+        ? "system"
+        : "light";
+  const themeLabel =
+    mode === "light"
+      ? m.navbar.themeLight
+      : mode === "dark"
+        ? m.navbar.themeDark
+        : m.navbar.themeSystem;
+  const themeIcon =
+    mode === "light" ? "sun" : mode === "dark" ? "moon" : "monitor";
+
   const accountMenuItems: DropdownMenuEntry[] = [
+    {
+      id: "status",
+      label: statusLabel,
+      icon: "smile",
+      onSelect: () => setStatusEditorOpen(true),
+    },
+    { id: "status-sep", separator: true },
     {
       id: "settings",
       label: m.navbar.settings,
       icon: "settings",
       onSelect: () => void navigate("/settings"),
     },
-    // Language switcher: a single entry that toggles between ru ↔ en.
-    // Cleaner than nested submenus while we only ship two locales.
+    // Language switcher: cycles ru ↔ en.
     {
       id: "language",
       label:
@@ -92,14 +147,25 @@ export function Navbar(): React.JSX.Element {
       icon: "globe",
       onSelect: () => setLocale(locale === "ru" ? "en" : "ru"),
     },
-    ...(isAdmin
+    // Theme switcher: cycles light → dark → system. Label is the
+    // CURRENT theme; click to advance.
+    {
+      id: "theme",
+      label: `${m.navbar.themeMenuPrefix}: ${themeLabel}`,
+      icon: themeIcon,
+      onSelect: () => setMode(nextMode(mode)),
+    },
+    ...(adminCaps.hasAnyAdminAccess
       ? ([
           { id: "admin-sep", separator: true },
           {
             id: "admin",
             label: m.navbar.administration,
             icon: "shield",
-            onSelect: () => void navigate("/admin/users"),
+            // Pick a landing tab the user is actually allowed to
+            // see — otherwise they'd hit the route's redirect.
+            onSelect: () =>
+              void navigate(landingAdminPath(adminCaps)),
           },
         ] as DropdownMenuEntry[])
       : []),
@@ -115,12 +181,6 @@ export function Navbar(): React.JSX.Element {
 
   return (
     <header className={styles.navbar}>
-      {/*
-        Mobile-only: opens the left sidebar as a drawer. Hidden at
-        ≥768px where the sidebar is a pinned column. Sits at the very
-        start of the navbar so the chat icon order matches the
-        sidebar's screen position.
-      */}
       <span className={styles.drawerToggleLeft}>
         <IconButton
           icon="menu"
@@ -135,17 +195,16 @@ export function Navbar(): React.JSX.Element {
         />
       </span>
 
-      <div className={styles.brand}>{m.navbar.brand}</div>
+      <div className={styles.brand}>
+        <img src="/favicon.svg" className={styles.brandLogo} alt="" aria-hidden />
+        <span className={styles.brandText}>{m.navbar.brand}</span>
+      </div>
 
       <div className={styles.search}>
         <SearchBar />
       </div>
 
       <div className={styles.actions}>
-        {/*
-          Tablet-and-below: opens the right sidebar (members) as a
-          drawer. Hidden at ≥1024px where the right column is pinned.
-        */}
         <span className={styles.drawerToggleRight}>
           <IconButton
             icon="users"
@@ -159,25 +218,8 @@ export function Navbar(): React.JSX.Element {
             onClick={toggleRight}
           />
         </span>
-        {/*
-          Theme toggle: icon-only (sun for "switch to light" while in
-          dark mode, moon for "switch to dark" while in light mode).
-          The previous text button used most of its width on the verb
-          and read as oddly heavyweight in a row of icon controls.
-          aria-label carries the verbose label for screen readers; a
-          tooltip on hover surfaces it visually.
-        */}
-        <IconButton
-          icon={theme === "light" ? "moon" : "sun"}
-          variant="ghost"
-          size="md"
-          aria-label={nextThemeLabel}
-          title={nextThemeLabel}
-          onClick={toggleTheme}
-        />
         {session != null && (
           <div className={styles.account}>
-            <StatusButton />
             <DropdownMenu
               trigger={
                 <button
@@ -186,8 +228,19 @@ export function Navbar(): React.JSX.Element {
                   aria-label={m.navbar.accountMenu}
                   title={session.email}
                 >
-                  <Icon name="user" size="sm" />
-                  <span className={styles.accountEmail}>{session.email}</span>
+                  <Avatar
+                    size="sm"
+                    name={ownUser?.full_name ?? session.email}
+                    src={ownUser?.avatar_url ?? undefined}
+                  />
+                  <span className={styles.accountIdentity}>
+                    <span className={styles.accountName}>
+                      {ownUser?.full_name ?? session.email}
+                    </span>
+                    <span className={styles.accountStatus}>
+                      {renderStatusLine(status, m.navbar.statusEmpty)}
+                    </span>
+                  </span>
                   <Icon name="chevron-down" size="sm" />
                 </button>
               }
@@ -195,9 +248,89 @@ export function Navbar(): React.JSX.Element {
               placement="bottom"
               aria-label={m.navbar.accountMenu}
             />
+            {/* Status editor popover, anchored to a hidden span next
+                to the trigger. The Popover's `trigger` is required;
+                we render a focus-invisible spacer and drive `open`
+                from local state so the dropdown menu item can
+                summon the editor without the user having to click
+                a separate icon. */}
+            <Popover
+              open={statusEditorOpen}
+              onOpenChange={setStatusEditorOpen}
+              placement="bottom"
+              aria-label={statusLabel}
+              trigger={
+                <span
+                  className={styles.statusEditorAnchor}
+                  aria-hidden="true"
+                />
+              }
+            >
+              <StatusEditor
+                current={status}
+                onClose={() => setStatusEditorOpen(false)}
+              />
+            </Popover>
           </div>
         )}
       </div>
     </header>
+  );
+}
+
+// Pick the admin sub-route to land on when the user opens the
+// "Administration" entry. Realm admins still land on /admin/users
+// (the historical default); everyone else lands on the first tab
+// their capabilities permit, so they don't bounce off the gate.
+function landingAdminPath(
+  caps: import("../../lib/hooks/useAdminCapabilities").AdminCapabilities,
+): string {
+  if (caps.isRealmAdmin) {
+    return "/admin/users";
+  }
+  if (caps.canCreateBots || caps.canCreateWriteOnlyBots) {
+    return "/admin/users";
+  }
+  if (
+    caps.canCreateGroups ||
+    caps.canManageAllGroups ||
+    caps.manageableGroupIds.size > 0
+  ) {
+    return "/admin/groups";
+  }
+  if (caps.canInviteUsers) {
+    return "/admin/invites";
+  }
+  return "/admin/users";
+}
+
+function renderStatusLine(
+  status: UserStatus | undefined,
+  empty: string,
+): React.ReactNode {
+  if (status === undefined) {
+    return <span className={styles.accountStatusEmpty}>{empty}</span>;
+  }
+  const glyph =
+    status.reaction_type === "unicode_emoji" &&
+    status.emoji_code !== undefined &&
+    status.emoji_code !== ""
+      ? glyphFromUnicodeEmojiCode(status.emoji_code)
+      : null;
+  const text = status.status_text ?? "";
+  if (glyph === null && text === "") {
+    return <span className={styles.accountStatusEmpty}>{empty}</span>;
+  }
+  return (
+    <>
+      {glyph !== null && (
+        <span className={styles.accountStatusEmoji} aria-hidden="true">
+          {glyph}
+        </span>
+      )}
+      {text !== "" && (
+        <span className={styles.accountStatusText}>{text}</span>
+      )}
+    </>
   );
 }

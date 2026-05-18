@@ -50,7 +50,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { RequireAuth } from "./RequireAuth";
-import { RequireAdmin } from "./RequireAdmin";
+import { RequireAdminAccess } from "./RequireAdmin";
 import { Feed } from "../pages/Feed";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFound } from "../pages/NotFound";
@@ -85,12 +85,27 @@ const AdminInvites = lazy(() =>
     default: m.AdminInvites,
   })),
 );
+const AdminGroups = lazy(() =>
+  import("../pages/Admin/AdminGroups").then((m) => ({
+    default: m.AdminGroups,
+  })),
+);
+const AdminGroupDetail = lazy(() =>
+  import("../pages/Admin/AdminGroupDetail").then((m) => ({
+    default: m.AdminGroupDetail,
+  })),
+);
 const TokenShowcase = lazy(() =>
   import("../pages/TokenShowcase").then((m) => ({ default: m.TokenShowcase })),
 );
 const PrimitivesShowcase = lazy(() =>
   import("../pages/PrimitivesShowcase").then((m) => ({
     default: m.PrimitivesShowcase,
+  })),
+);
+const SoundsShowcase = lazy(() =>
+  import("../pages/SoundsShowcase").then((m) => ({
+    default: m.SoundsShowcase,
   })),
 );
 
@@ -143,16 +158,26 @@ export const router = createBrowserRouter([
           { path: "channels", element: lazyRoute(<Channels />) },
           // Channel detail / management (Phase 5.3).
           { path: "channels/:id", element: lazyRoute(<ChannelDetail />) },
-          // Admin section — gated by RequireAdmin (Phase 5.2/5.3/5.4).
+          // Admin section — gated by RequireAdminAccess. Open to
+          // any user holding at least one admin-adjacent capability
+          // (create bots, create groups, invite, manage some group);
+          // each tab / page filters its content by the matching
+          // setting so a member sees only what they may actually
+          // touch.
           {
             path: "admin",
-            element: <RequireAdmin />,
+            element: <RequireAdminAccess />,
             children: [
               {
                 path: "organization",
                 element: lazyRoute(<AdminOrganization />),
               },
               { path: "users", element: lazyRoute(<AdminUsers />) },
+              { path: "groups", element: lazyRoute(<AdminGroups />) },
+              {
+                path: "groups/:id",
+                element: lazyRoute(<AdminGroupDetail />),
+              },
               { path: "invites", element: lazyRoute(<AdminInvites />) },
             ],
           },
@@ -171,6 +196,10 @@ export const router = createBrowserRouter([
   {
     path: "/primitives",
     element: lazyRoute(<PrimitivesShowcase />),
+  },
+  {
+    path: "/sounds",
+    element: lazyRoute(<SoundsShowcase />),
   },
   {
     path: "*",
