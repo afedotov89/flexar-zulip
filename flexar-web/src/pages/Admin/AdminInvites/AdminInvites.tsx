@@ -1,4 +1,5 @@
-// Flexar Hub Web — admin invitations management page (Phase 5.4).
+// Flexar Hub Web — admin invitations management page (Phase 5.4;
+// capability-aware in the bot/group/invite sweep).
 //
 // Lists every pending or active invitation in the realm and exposes
 // the four mutations: send per-email invites, mint a reusable link,
@@ -11,8 +12,18 @@
 // links offer Copy link + Revoke. Revoke is wrapped in a confirm
 // modal that runs the parent-supplied async, so optimistic removal +
 // restore-on-failure stays in this file.
+//
+// Capability gating: the route gate (`RequireAdminAccess`) lets in
+// anyone with any admin-adjacent power, and AdminNav hides the
+// "Приглашения" tab unless the viewer is a realm admin or in
+// `realm_can_invite_users_group`. The page itself defends the same
+// invariant against direct URL navigation (redirect home) and gates
+// per-row Revoke / Resend: a realm admin can act on any invite; a
+// member with invite-only rights can only act on invites they
+// themselves issued.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Navigate } from "react-router-dom";
 import type { Invite } from "../../../api";
 import { apiClient } from "../../../api";
 import { Badge } from "../../../components/Badge";
@@ -24,6 +35,8 @@ import { Tabs } from "../../../components/Tabs";
 import type { TabItem } from "../../../components/Tabs";
 import type { Role } from "../../../domain";
 import { describeApiError } from "../../../lib/errors";
+import { useAdminCapabilities } from "../../../lib/hooks/useAdminCapabilities";
+import { useAuthStore } from "../../../stores/authStore";
 import { useUsersStore } from "../../../stores/usersStore";
 import { CreateReusableInviteLinkModal } from "./CreateReusableInviteLinkModal";
 import { RevokeInviteConfirmModal } from "./RevokeInviteConfirmModal";
@@ -45,6 +58,9 @@ const tabs: TabItem[] = [
 
 export function AdminInvites(): React.JSX.Element {
   const usersMap = useUsersStore((s) => s.users);
+  const sessionUserId = useAuthStore((s) => s.session?.userId);
+  const caps = useAdminCapabilities();
+  const canIssue = caps.isRealmAdmin || caps.canInviteUsers;
 
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,6 +151,14 @@ export function AdminInvites(): React.JSX.Element {
     [invites],
   );
 
+  // Direct-URL defence: if the viewer can't invite, drop to root.
+  // The route gate admits anyone with any admin-adjacent power, so
+  // a user with only e.g. bot-creation rights could otherwise hit
+  // /admin/invites directly.
+  if (!canIssue) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -190,6 +214,15 @@ export function AdminInvites(): React.JSX.Element {
                   : (invite.email ?? "—");
                 const role = invite.invited_as as Role;
                 const roleLabel = roleLabels[role] ?? "—";
+                // Non-admins may only operate on invites they
+                // themselves issued — `invited_by_user_id` matches
+                // the signed-in user. The Copy-link affordance is
+                // public information once issued, so it stays
+                // available regardless.
+                const isOwnInvite =
+                  invite.invited_by_user_id !== undefined &&
+                  invite.invited_by_user_id === sessionUserId;
+                const canMutate = caps.isRealmAdmin || isOwnInvite;
                 return (
                   <li key={invite.id} className={styles.row}>
                     <div className={styles.info}>
@@ -222,25 +255,29 @@ export function AdminInvites(): React.JSX.Element {
                             : "Скопировать ссылку"}
                         </Button>
                       ) : (
-                        <Button
-                          type="button"
+                        canMutate && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              void handleResend(invite);
+                            }}
+                            loading={resendingId === invite.id}
+                          >
+                            Отправить снова
+                          </Button>
+                        )
+                      )}
+                      {canMutate && (
+                        <IconButton
+                          icon="trash"
+                          aria-label="Отозвать приглашение"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            void handleResend(invite);
-                          }}
-                          loading={resendingId === invite.id}
-                        >
-                          Отправить снова
-                        </Button>
+                          onClick={() => setRevokeTarget(invite)}
+                        />
                       )}
-                      <IconButton
-                        icon="trash"
-                        aria-label="Отозвать приглашение"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setRevokeTarget(invite)}
-                      />
                     </div>
                   </li>
                 );

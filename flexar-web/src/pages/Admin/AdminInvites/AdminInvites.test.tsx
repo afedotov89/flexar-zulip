@@ -63,8 +63,28 @@ vi.mock("../../../api", async () => {
   };
 });
 
+// Default to full-admin caps so the existing tests (which exercise
+// the historical full action set) stay green. Tests that want the
+// member-with-invite-only view mutate this object.
+const adminCapsMock = vi.hoisted(() => ({
+  isRealmAdmin: true,
+  canManageOrg: true,
+  canInviteUsers: true,
+  canCreateBots: true,
+  canCreateWriteOnlyBots: true,
+  canCreateGroups: true,
+  canManageAllGroups: true,
+  managedGroupIds: new Set<number>(),
+  manageableGroupIds: new Set<number>(),
+  hasAnyAdminAccess: true,
+}));
+vi.mock("../../../lib/hooks/useAdminCapabilities", () => ({
+  useAdminCapabilities: () => adminCapsMock,
+}));
+
 import type { Invite } from "../../../api";
 import { RoleValues } from "../../../domain";
+import { useAuthStore } from "../../../stores/authStore";
 import { useStreamsStore } from "../../../stores/streamsStore";
 import { useUsersStore } from "../../../stores/usersStore";
 import { AdminInvites } from "./AdminInvites";
@@ -260,5 +280,64 @@ describe("AdminInvites — copy link", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("https://example.com/join/xyz");
     });
+  });
+});
+
+describe("AdminInvites — non-admin capability filtering", () => {
+  const adminSnapshot = { ...adminCapsMock };
+
+  beforeEach(() => {
+    useAuthStore.setState({
+      session: { email: "me@example.com", apiKey: "k", userId: 7 },
+      status: "authenticated",
+    });
+  });
+
+  afterEach(() => {
+    Object.assign(adminCapsMock, adminSnapshot);
+  });
+
+  it("only allows revoking one's own invites when the viewer is not admin", async () => {
+    Object.assign(adminCapsMock, {
+      isRealmAdmin: false,
+      canInviteUsers: true,
+      hasAnyAdminAccess: true,
+    });
+    getInvitesMock.mockResolvedValueOnce([
+      makeInvite({
+        id: 1,
+        email: "mine@example.com",
+        invited_by_user_id: 7,
+      }),
+      makeInvite({
+        id: 2,
+        email: "other@example.com",
+        invited_by_user_id: 99,
+      }),
+    ]);
+    render(<AdminInvites />);
+    const list = await screen.findByRole("list", { name: "Приглашения" });
+    const items = within(list).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    // Mine: revoke + resend visible.
+    const mine = items.find((i) =>
+      within(i).queryByText("mine@example.com"),
+    )!;
+    expect(
+      within(mine).getByRole("button", { name: "Отозвать приглашение" }),
+    ).toBeInTheDocument();
+    expect(
+      within(mine).getByRole("button", { name: "Отправить снова" }),
+    ).toBeInTheDocument();
+    // Other's: revoke and resend hidden.
+    const others = items.find((i) =>
+      within(i).queryByText("other@example.com"),
+    )!;
+    expect(
+      within(others).queryByRole("button", { name: "Отозвать приглашение" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(others).queryByRole("button", { name: "Отправить снова" }),
+    ).not.toBeInTheDocument();
   });
 });
