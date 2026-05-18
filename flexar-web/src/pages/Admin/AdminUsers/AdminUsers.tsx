@@ -1,9 +1,22 @@
-// Flexar Hub Web — admin users management page (Phase 5.4).
+// Flexar Hub Web — admin users management page (Phase 5.4; bots tab
+// opened to non-admin owners in the capability sweep).
 //
 // Three-tab status filter (Active / Deactivated / Bots) over the
 // `useUsersStore` directory, plus a search box and a role dropdown.
 // Active rows expose Edit and Deactivate actions; deactivated rows
-// expose Reactivate. The bot tab is read-only this iteration.
+// expose Reactivate.
+//
+// Capability gating:
+//   - Realm admins see all three tabs and every user/bot in the
+//     realm (the historical behaviour).
+//   - Non-admins reach this page only when they hold
+//     `can_create_bots_group` or `can_create_write_only_bots_group`
+//     (the route gate enforces this). For them, the people tabs
+//     ("Active" / "Deactivated") are hidden — they aren't allowed
+//     to manage humans — and the Bots tab lists only their own
+//     bots (`bot_owner_id === self`). The active tab is forced to
+//     "bots" when the people tabs are hidden so the page never
+//     renders an inaccessible tab as active.
 //
 // Self-actions are hidden: the signed-in user cannot deactivate or
 // edit themselves from this screen — that requires either the personal
@@ -14,7 +27,7 @@
 // failure) and call the corresponding `apiClient` method. The
 // realtime `realm_user` event eventually reconciles either way.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
 import { Banner } from "../../../components/Banner";
@@ -27,6 +40,7 @@ import { Tabs } from "../../../components/Tabs";
 import type { TabItem } from "../../../components/Tabs";
 import type { Role, User } from "../../../domain";
 import { RoleValues } from "../../../domain";
+import { useAdminCapabilities } from "../../../lib/hooks/useAdminCapabilities";
 import { useAuthStore } from "../../../stores/authStore";
 import { useUsersStore } from "../../../stores/usersStore";
 import { DeactivateUserModal } from "./DeactivateUserModal";
@@ -36,11 +50,13 @@ import styles from "./AdminUsers.module.css";
 
 type StatusTab = "active" | "deactivated" | "bots";
 
-const tabs: TabItem[] = [
+const PEOPLE_TABS: TabItem[] = [
   { id: "active", label: "Активные" },
   { id: "deactivated", label: "Деактивированные" },
   { id: "bots", label: "Боты" },
 ];
+
+const BOTS_ONLY_TABS: TabItem[] = [{ id: "bots", label: "Боты" }];
 
 const ALL_ROLES = "all";
 
@@ -85,6 +101,12 @@ function matchesSearch(user: User, query: string): boolean {
 export function AdminUsers(): React.JSX.Element {
   const usersMap = useUsersStore((s) => s.users);
   const sessionUserId = useAuthStore((s) => s.session?.userId);
+  const caps = useAdminCapabilities();
+  // Non-admins reach this page only to manage their own bots, so the
+  // people-management tabs are hidden and the active tab is forced
+  // to "bots". For admins both views remain.
+  const showPeopleTabs = caps.isRealmAdmin;
+  const visibleTabs = showPeopleTabs ? PEOPLE_TABS : BOTS_ONLY_TABS;
   // Gate the list spinner on the directory itself, not on realtime
   // status — directory hydrates from `persist` cache instantly on
   // every reload, while realtime can take seconds to reach
@@ -93,19 +115,39 @@ export function AdminUsers(): React.JSX.Element {
   // rationale in `RequireAdmin`.
   const directoryLoading = Object.keys(usersMap).length === 0;
 
-  const [activeTab, setActiveTab] = useState<StatusTab>("active");
+  const [activeTab, setActiveTab] = useState<StatusTab>(
+    showPeopleTabs ? "active" : "bots",
+  );
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>(ALL_ROLES);
   const [editing, setEditing] = useState<User | null>(null);
   const [deactivating, setDeactivating] = useState<User | null>(null);
   const [reactivating, setReactivating] = useState<User | null>(null);
 
+  // If caps hydrate after mount and the people tabs become hidden,
+  // reset any selection on a tab the user can't see. The reverse
+  // (admin status arriving late) is rare; we don't force them off
+  // the bots tab to avoid disrupting a deliberate choice.
+  useEffect(() => {
+    if (!showPeopleTabs && activeTab !== "bots") {
+      setActiveTab("bots");
+    }
+  }, [showPeopleTabs, activeTab]);
+
   const visible = useMemo(() => {
     const trimmed = search.trim().toLowerCase();
     const all = Object.values(usersMap);
     const byTab = all.filter((user) => {
       if (activeTab === "bots") {
-        return user.is_bot;
+        if (!user.is_bot) {
+          return false;
+        }
+        // Non-admins only see bots they own. Admins (the bots-list
+        // analogue of the people lists) see every bot in the realm.
+        if (!caps.isRealmAdmin) {
+          return user.bot_owner_id === sessionUserId;
+        }
+        return true;
       }
       if (user.is_bot) {
         return false;
@@ -122,14 +164,14 @@ export function AdminUsers(): React.JSX.Element {
         sensitivity: "base",
       }),
     );
-  }, [activeTab, roleFilter, search, usersMap]);
+  }, [activeTab, roleFilter, search, usersMap, caps.isRealmAdmin, sessionUserId]);
 
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>Управление пользователями</h1>
 
       <Tabs
-        tabs={tabs}
+        tabs={visibleTabs}
         activeId={activeTab}
         onChange={(id) => setActiveTab(id as StatusTab)}
         aria-label="Фильтр по статусу"

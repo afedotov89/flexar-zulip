@@ -54,6 +54,25 @@ vi.mock("../../../api", async () => {
   };
 });
 
+// Default to an admin viewer so the historical tests that exercise
+// the people tabs see them. Individual tests can override the mock
+// to assert the non-admin (bots-only) flow.
+const adminCapsMock = vi.hoisted(() => ({
+  isRealmAdmin: true,
+  canManageOrg: true,
+  canInviteUsers: true,
+  canCreateBots: true,
+  canCreateWriteOnlyBots: true,
+  canCreateGroups: true,
+  canManageAllGroups: true,
+  managedGroupIds: new Set<number>(),
+  manageableGroupIds: new Set<number>(),
+  hasAnyAdminAccess: true,
+}));
+vi.mock("../../../lib/hooks/useAdminCapabilities", () => ({
+  useAdminCapabilities: () => adminCapsMock,
+}));
+
 import type { User } from "../../../domain";
 import { RoleValues } from "../../../domain";
 import { useAuthStore } from "../../../stores/authStore";
@@ -395,5 +414,84 @@ describe("AdminUsers — reactivate flow", () => {
       expect(reactivateUserMock).toHaveBeenCalledWith(1);
     });
     expect(useUsersStore.getState().users[1]?.is_active).toBe(true);
+  });
+});
+
+describe("AdminUsers — non-admin (bots-only) view", () => {
+  // Each test in this block swaps the capability mock to the
+  // non-admin shape before render and restores it afterwards.
+  const adminSnapshot = { ...adminCapsMock };
+
+  beforeEach(() => {
+    Object.assign(adminCapsMock, {
+      isRealmAdmin: false,
+      canManageOrg: false,
+      canInviteUsers: false,
+      canCreateBots: true,
+      canCreateWriteOnlyBots: true,
+      canCreateGroups: false,
+      canManageAllGroups: false,
+      hasAnyAdminAccess: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.assign(adminCapsMock, adminSnapshot);
+  });
+
+  it("hides the people tabs and shows only the Боты tab", () => {
+    seedSession(7);
+    seedUsers([
+      makeUser({ user_id: 7, full_name: "Member Me" }),
+      makeUser({
+        user_id: 8,
+        full_name: "My Bot",
+        is_bot: true,
+        bot_owner_id: 7,
+      }),
+    ]);
+    render(<AdminUsers />);
+
+    expect(
+      screen.queryByRole("tab", { name: "Активные" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "Деактивированные" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Боты" })).toBeInTheDocument();
+  });
+
+  it("lists only bots owned by the signed-in user", () => {
+    seedSession(7);
+    seedUsers([
+      makeUser({
+        user_id: 8,
+        full_name: "My Bot",
+        is_bot: true,
+        bot_owner_id: 7,
+      }),
+      makeUser({
+        user_id: 9,
+        full_name: "Other Bot",
+        is_bot: true,
+        bot_owner_id: 42,
+      }),
+      // Ownerless system bot (e.g. Welcome Bot): a member should
+      // never see this — only the owner-matched ones.
+      makeUser({
+        user_id: 10,
+        full_name: "Welcome Bot",
+        is_bot: true,
+        bot_owner_id: null,
+      }),
+    ]);
+    render(<AdminUsers />);
+
+    const list = screen.getByRole("list", { name: "Пользователи" });
+    const items = within(list).getAllByRole("listitem");
+    expect(items).toHaveLength(1);
+    expect(within(items[0]).getByText("My Bot")).toBeInTheDocument();
+    expect(screen.queryByText("Other Bot")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome Bot")).not.toBeInTheDocument();
   });
 });
