@@ -4,7 +4,211 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-17 (audit follow-up sweep), **feature-gaps зарыты**.
+**Последнее обновление:** 2026-05-18 (UX polish sweep — modern-messenger redesign).
+
+После закрытия Phase 6 и feature-gaps владелец вёл сессию по
+качеству восприятия как мессенджера: «уберите неконсистентности,
+сделайте как в Telegram/Slack/Discord, чтобы каждая мелочь была
+продумана». Сессия (1 день, ~25 итераций владелец↔оркестратор)
+закрыла большой UX-debt и завела новые архитектурные примитивы:
+
+### Compose box — Telegram-style редизайн
+- **Один frame** (border + radius) вокруг textarea + toolbar; toolbar
+  получил `border-top` separator вместо собственного outline.
+- **Send переехал в toolbar** на правый край вместо отдельной нижней
+  строки.
+- **Toolbar сокращён**: primary actions [emoji, attach, B, I, link],
+  все 8 secondary форматов (strike/lists/quote/spoiler/code/math/
+  poll/todo) — в **More popover** (`⋮`).
+- **Help-кнопка убрана** из toolbar; KeyboardHelpOverlay через `?`.
+- **Двойное дублирование адресата устранено**: RecipientRow рендерится
+  только когда narrow НЕ полностью разрешён (channel без topic или
+  DM без recipients). Placeholder упрощён до "Сообщение".
+- **Disabled Send — ghost-цвет** (был primary-blue даже когда disabled).
+- **Send pinned to bottom**: `margin-top: auto` чтобы compose form /
+  composeUnavailable hint всегда у низа feed-колонки, не зависал
+  под EmptyState'ом в loading/error/empty branches.
+
+### Edit message — unified с compose (один input form)
+- Вместо inline `EditMessageForm` в message-row — **`editingStore`**
+  глобальный slot (`editingMessageId: number | null`). ComposeBox
+  читает store, переключается в edit mode: fetch raw markdown,
+  stash existing draft, рендерит "Редактирование сообщения" caption +
+  Save/Cancel вместо Send.
+- MessageRow → italic hint "Редактируется в форме ниже…", hover
+  actions скрыты для message-в-edit. EditMessageForm удалён.
+- Keyboard в edit-mode: Escape = cancel, Ctrl/Cmd+Enter = save,
+  Enter = newline (не submit — accidental save при правке = реальный
+  cost).
+- UI gate для edit-time-limit: `MessageActionsMenu` скрывает
+  "Редактировать" если `(now - timestamp) > realm.edit_limit_seconds`
+  (даже для админов — server enforces для всех).
+- `AdminOrganization` — обогатил presets ограничения времени:
+  `1 час`, `1 день`, `2 дня (Telegram)`, `1 неделя`, `Без ограничений
+  (Slack/Discord)`. По умолчанию Zulip отдаёт `600s` (10 мин) =
+  anachronism.
+
+### Status emoji
+- Standalone `StatusButton` chip убран из navbar. **Account trigger
+  стал identity card**: avatar + name (semibold) / status (emoji +
+  text, italic muted placeholder когда пусто) + chevron.
+- "Установить статус" / "Изменить статус" переехал в **dropdown menu**.
+  Click → Popover anchored к hidden span под trigger открывает
+  `StatusEditor`.
+- `StatusEditor` упрощён: один `slot` button (smile-icon когда пусто,
+  emoji glyph когда задан) вместо `trigger+preview+×` тройки.
+
+### Theme picker
+- IconButton toggle убран из navbar. **3-mode picker в menu** через
+  cycling row: `Тема: Светлая` → `Тёмная` → `Системная` (как
+  language switcher cycle ru↔en). Один row вместо 3 radio-items.
+- **Новый mode `system`** — default для новых users. Live-listener
+  на `matchMedia("(prefers-color-scheme: dark)")` — OS переключение
+  → UI без рестарта.
+- `ThemeContextValue`: добавлены `mode: ThemeMode` (preference) и
+  `setMode`. `theme: ThemeName` остался для consumer'ов.
+
+### Settings — полная замена Zulip web UI
+- **Avatar upload** через `apiClient.uploadOwnAvatar()` (multipart
+  `POST /users/me/avatar`). Avatar primitive + "Сменить аватар"
+  кнопка + hidden file input.
+- **Password change** через `apiClient.changeOwnPassword()` (`PATCH
+  /settings` с old_password + new_password). Form: 3 password
+  fields + mismatch validation + reset on success.
+- Убрана ссылка "Смена пароля и аватара — через стандартный
+  интерфейс Zulip" (нарушала PRD §1.1 о полной замене web UI).
+
+### Navbar — общее
+- Bumped height 40→56px для двухстрочного identity card.
+- Trigger центрируется в actions cell (`justify-content: center`)
+  с симметричным breathing room вместо стрётчинга.
+- `padding: 0` reset на button чтобы avoid user-agent default.
+
+### Right sidebar
+- Поиск участников теперь матчит **по name OR email** (+
+  `delivery_email` для админов). Placeholder "Имя или email".
+- UserRow показывает **email под именем** (humans only — bots
+  имеют синтетические `@-bot` адреса).
+- UserRow → **clickable** для активных людей: `<button>` →
+  `goToNarrow([{operator:"dm",operand:[ownId,userId].sort()}])` —
+  один клик инициирует DM. Боты и deactivated остаются `<li>`.
+
+### Presence
+- **Свой статус "стоял idle" вечно** — app слушал presence events,
+  но никогда не emit'ил. `usePresenceEmitter` hook: первый ping на
+  mount, `setInterval(60s)` + `visibilitychange` listener (active
+  при visible, idle при hidden). Mounted в AppShell.
+- `apiClient.sendOwnPresence({status})` через `POST
+  /users/me/presence` с `slim_presence: true`.
+
+### Page chrome family — `PageHeader` primitive
+- Извлёк sticky header bar из `NarrowHeader` в shared
+  `components/PageHeader` (icon + title + optional `›` subtitle).
+- `NarrowHeader` теперь = тонкая обёртка над `PageHeader` +
+  `summarizeNarrow`.
+- `Recent`, `Inbox` тоже используют `PageHeader` (`icon="recent"` /
+  `icon="inbox"`). Drei страницы рендерят **один CSS-класс** —
+  `allSameClassName: true` в live-замере.
+
+### Recent + Inbox — message-feed visual rhythm
+- Per-row структура **mirrors Combined feed**: `recipient bar`
+  (channel › topic ИЛИ partner name) → `mini message-row` (gutter
+  avatar + sender/time header + snippet).
+- Bar стилизован byte-identical с `RecipientBar.module.css`
+  (`--color-surface-raised` bg, `--space-2 --space-4` padding,
+  border-bottom 1px). Message-row — байт-в-байт с MessageRow
+  (gutter `--control-height-lg`, gap `--space-3`, padding `--space-1
+  --space-4`).
+- "Я:" prefix для self-authored preview (вместо своего имени).
+- Avatar: для channel = last sender, для DM = partner. Bots без
+  email-строки. Self-DM поддержан.
+
+### Pygments syntax highlighting
+- Server возвращает Pygments-токенизированный HTML
+  (`<span class="nb">print</span>`), у нас не было CSS для классов
+  → всё рендерилось в default text-color.
+- **6 syntax-color tokens** в `theme.ts`: `syntaxKeyword`,
+  `syntaxBuiltin`, `syntaxString`, `syntaxNumber`, `syntaxComment`,
+  `syntaxFunction` (GitHub-light/dark палитра, AA contrast).
+- ~50 Pygments classes сгруппированы в `MessageContent.module.css`
+  в 6 семантических групп. Errors → `--color-danger`.
+
+### Emoji-size tokens
+- Новый `emojiSize` scale, context-named (НЕ sm/md, чтобы любой
+  размер был valid):
+  - `picker: 24px` — selection grids
+  - `inline: 20px` — messages, status, navbar
+  - `chip: 16px` — reaction chips (нативный render +25% →
+    визуально ~20px в 28px chip)
+- 8 consumer'ов (`ComposeEmojiPicker`, `ReactionPicker`,
+  `ReactionChip`, `MessageContent`, `StatusButton`, `UserRow`,
+  `Navbar`) — все через токены, никаких magical `1.25em` /
+  `var(--font-size-2xl)`.
+
+### Nested-popover dismissal — `OverlayLayerContext`
+- Bug: clicking emoji в picker'е (внутри StatusEditor) закрывал
+  редактор до сохранения. Cause: оба Popover'a портируются в body
+  как siblings, parent's `useDismiss` видит child click как
+  outside-press.
+- Fix: **`OverlayLayerContext`** + `useRegisterAsDescendant`
+  ([components/_overlay/OverlayLayerContext.ts](src/components/_overlay/OverlayLayerContext.ts)).
+  Каждый Popover provides layer для своих descendants + регится у
+  ближайшего ancestor. `useDismiss` принимает
+  `descendantPanels: RefObject<Set<RefObject>>` — пропускает клики
+  в зарегистрированных nested panels. Радикс/Floating-UI pattern.
+
+### Schedule presets
+- Жёстко-заданные `Завтра 09/15, Понедельник 09/15` → **context-aware
+  presets**: `Через час`, `Сегодня в 18:00` (если now < 17), `Завтра
+  в 09:00`, `В понедельник в 09:00` (если tomorrow != Monday).
+- **`Своё время…`** menu item открывает Modal с
+  `<input type="datetime-local">` + min-attribute (блокирует
+  past) + validation.
+
+### Прочие фиксы
+- **Edit popover закрывал editor** — `useDismiss` теперь treats
+  registered nested panels as inside-layer.
+- **Mode picker layout** — empty space на actions слева: trigger
+  shrink-fit + `.actions { justify-content: center }`.
+- **composeUnavailable footer** — не пиннился к низу feed-column.
+- **Recent gap** между header и first bar — 25px (из `gap` +
+  `padding-top` на `.list`) → 1px (только header border).
+- **Recent indent** 6px на rows — browser-default button padding,
+  не убрано `border: 0`-ом. `padding: 0` reset.
+- **Pygments в highlight** работают через `--color-syntax-*` для
+  обоих тем.
+- **Theme test** обновлён под новый `mode` API + cycling test.
+
+### Что сделано / не сделано
+- 1182 unit-тестов, все зелёные (`typecheck` + `lint` + `vitest`).
+- **70 файлов изменено/добавлено** за сессию (без коммитов — все
+  в working tree; рекомендация: разбить на тематические commit'ы
+  перед merge).
+- **Серверный bump `realm_message_content_edit_limit_seconds=0`**
+  на стенде НЕ сделан (auto-mode classifier дважды отказал в
+  PATCH /realm — нужна явная авторизация владельца). Если бампнете,
+  старые сообщения сразу станут редактируемыми у всех (UI-gate
+  пропустит).
+
+### Что осталось / открытые TODO
+- **HANDOFF.md commit** — текущий рабочий tree содержит весь UX
+  sweep без коммитов; разбить на ~10 тематических commit'ов
+  (compose / edit-mode / theme / settings / recipient-rhythm / etc.).
+- **Drafts.tsx / Scheduled.tsx** — audit показал тот же visual
+  pattern issue (нет avatar, нет mini-message rhythm) — не
+  переделаны (автор=ты сам, avatar-логика сложнее). Низкий
+  приоритет.
+- **`useEditorCommands` hook** — extract textarea-команд из
+  ComposeBox (`insertAtCursor` / `applyMarkdown` / `runCommand`)
+  для shared с EditMessageForm. EditMessageForm сейчас удалён, но
+  если когда-то появится второй consumer (поле статуса с
+  форматированием? AI-prompt input?), unify.
+- **TIME_LIMIT_OPTIONS** в `AdminOrganization` — добавлены 2 дня
+  и 1 неделя, "Без ограничений (как Slack/Discord)" подписан.
+
+---
+
+## Предыдущая сессия (2026-05-17, audit follow-up sweep) — feature-gaps зарыты
 
 После Фазы 6 владелец потребовал production-ready бар: разобрать
 оставшиеся «TODO/потом» и закрыть всё, что мешает воспринимать UI как
