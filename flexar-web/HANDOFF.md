@@ -4,7 +4,75 @@
 > фазами** (и при значимых решениях). Назначение — бесшовное продолжение
 > в новой сессии без потери контекста.
 
-**Последнее обновление:** 2026-05-18 (UX polish sweep — modern-messenger redesign).
+**Последнее обновление:** 2026-05-19 (capability sweep — открытие /admin/* по серверной модели прав + полный CRUD ботов).
+
+### Capability sweep — /admin/* по серверной модели прав (2026-05-19)
+
+После закрытия UX polish (2026-05-18) владелец вернулся с
+вопросом «как создать бота через UI» и обнаружил, что в нашем
+`/admin/users` Боты-таб был read-only, а вся `/admin/*` секция
+закрыта хардовым `is_admin`. Серверная модель Zulip куда богаче:
+realm-level `can_create_bots_group`, `can_create_groups`,
+`can_invite_users_group`, `can_manage_all_groups`, плюс per-group
+`can_manage_group` / `can_add_members_group` /
+`can_remove_members_group`. Member-у с правом «управление группой»
+сервер давал admin-shaped операции, а UI молча редиректил его на `/`.
+
+Семь коммитов привели UI в соответствие:
+
+- `aac4f0fa9e` хук `useAdminCapabilities` + плумбинг
+  `realm_can_*_group` (5 полей) в `Realm` и `realmReducer.REALM_KEYS`;
+  чистый `isUserInGroupSetting` walker (DFS с cycle-protect) для
+  резолва `GroupSettingValue` против `userGroupsStore`.
+- `6e4de8b141` `RequireAdmin` → `RequireAdminAccess` (пускает любого
+  с `hasAnyAdminAccess`); `AdminNav` фильтрует 4 таба per
+  capability; navbar dropdown пункт «Администрирование» теперь
+  лэндит на первый доступный sub-роут, чтобы юзер не отскакивал
+  от гейта.
+- `f87771a18d` `/admin/users` для member-а форсит таб «Боты» и
+  фильтрует строки по `bot_owner_id === self`. Admin-вид —
+  без изменений.
+- `0278ad9d25` полный CRUD ботов: `CreateBotModal` (Generic /
+  Incoming webhook / Outgoing webhook; локует тип в incoming для
+  write-only-only юзеров; success-pane с key + Копировать +
+  zuliprc), `EditBotModal` (имя + outgoing URL/interface),
+  `RegenerateBotKeyModal` (two-step confirm + reveal), per-row
+  Изменить / Сбросить ключ / Деактивировать. Deactivation
+  переиспользует существующий `DeactivateUserModal` (бот = User с
+  is_bot=true). API: `apiClient.createBot/updateBot/regenerateBotApiKey`.
+- `3426736d36` `/admin/groups` фильтрует custom-список по
+  `manageableGroupIds ∪ membership`; «Создать группу» гейтится на
+  `canCreateGroups`. `AdminGroupDetail` гейтит per-tab: Overview /
+  Permissions / Subgroups / Danger — на `canManage`; Members
+  split-gated на `canAddMembers` / `canRemoveMembers` (Zulip
+  моделирует эти настройки независимо). Новый `useGroupCapabilities`.
+- `66495b9f9c` `/admin/invites` редиректит при отсутствии
+  `can_invite_users_group`; per-row Revoke/Resend гейтится на
+  `isRealmAdmin || invited_by_user_id === self`.
+- следом — обновлены PRD §5.4a + COMPONENT_REGISTRY (4 новых
+  хука/компонента + helpers) + этот HANDOFF.
+
+**Live-протык на стенде** (`a.fedotov@friflex.com`, владелец):
+admin создал «Capability Sweep Bot» через `/admin/users` → бот
+появился в realm-users через realtime; «Сбросить ключ» → confirm
+→ новый ключ с Копировать/Скачать zuliprc; AdminNav admin-у
+показывает все 4 таба. Полный member-флоу (2-й аккаунт) не
+прогонялся в этой сессии — требует создать второго юзера и
+залогиниться — рекомендую отдельной короткой сессии добить.
+
+**Тесты:** +60 unit-тестов (useAdminCapabilities, useGroupCapabilities,
+RequireAdminAccess, AdminNav, CreateBotModal, botCredentials,
+AdminUsers non-admin, AdminGroups non-admin, AdminInvites
+non-admin); общий счёт ~474.
+
+**Архитектурный winding-up:** все будущие admin-страницы должны
+зеркалить серверные права через эти два хука; правило
+«читай is_admin напрямую» больше не действует — оно скрывает то,
+что сервер разрешает member-ам.
+
+---
+
+### UX polish sweep — modern-messenger redesign (2026-05-18)
 
 После закрытия Phase 6 и feature-gaps владелец вёл сессию по
 качеству восприятия как мессенджера: «уберите неконсистентности,
