@@ -7,7 +7,7 @@
 // optional because which `realm_*` properties a queue receives depends
 // on the `fetch_event_types` requested at registration time.
 
-import type { UserId } from "./primitives";
+import type { GroupSettingValue, UserId } from "./primitives";
 
 /** A channel folder: a named grouping of channels in the sidebar. */
 export interface ChannelFolder {
@@ -69,10 +69,43 @@ export interface Realm {
   /** Whether the organization is configured to require message topics. */
   realm_mandatory_topics?: boolean;
   /**
+   * Whether plain image URLs (`.jpg` / `.png` / `.gif` / `.webp`) are
+   * unfurled into inline thumbnails under the message that contains
+   * them. Self-hosted Zulip ships this on by default; turning it off
+   * here suppresses every `.message_inline_image` card.
+   */
+  realm_inline_image_preview?: boolean;
+  /**
+   * Whether arbitrary links are unfurled into Open Graph preview cards
+   * (title + description + thumbnail). Self-hosted Zulip ships this
+   * off by default because rendering it requires the `embed_links`
+   * queue worker plus outbound network access.
+   */
+  realm_inline_url_embed_preview?: boolean;
+  /**
    * Display name substituted for the empty-string topic when the
    * client has not opted into the `empty_topic_name` capability.
    */
   realm_empty_topic_display_name?: string;
+
+  // Realm-level group-setting permissions. Each is a Zulip
+  // group-setting value — either a user-group id or an explicit
+  // collection of users and subgroups. The UI uses these to mirror
+  // the server's permission gates: who may create bots, who may
+  // create groups, who may invite users, who may administer every
+  // group in the realm. Membership is resolved against
+  // `useUserGroupsStore` by `useAdminCapabilities`.
+
+  /** Who may create bot users of every supported type. */
+  realm_can_create_bots_group?: GroupSettingValue;
+  /** Who may create incoming-webhook bots only. */
+  realm_can_create_write_only_bots_group?: GroupSettingValue;
+  /** Who may create new user groups. */
+  realm_can_create_groups?: GroupSettingValue;
+  /** Who may administer any user group in the realm. */
+  realm_can_manage_all_groups?: GroupSettingValue;
+  /** Who may issue email invitations to new users. */
+  realm_can_invite_users_group?: GroupSettingValue;
 }
 
 /**

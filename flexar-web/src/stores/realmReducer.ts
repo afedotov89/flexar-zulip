@@ -42,6 +42,13 @@ const REALM_KEYS = [
   "realm_waiting_period_threshold",
   "realm_mandatory_topics",
   "realm_empty_topic_display_name",
+  "realm_inline_image_preview",
+  "realm_inline_url_embed_preview",
+  "realm_can_create_bots_group",
+  "realm_can_create_write_only_bots_group",
+  "realm_can_create_groups",
+  "realm_can_manage_all_groups",
+  "realm_can_invite_users_group",
 ] as const satisfies readonly (keyof Realm)[];
 
 /**
