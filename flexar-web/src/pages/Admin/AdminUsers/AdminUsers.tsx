@@ -30,7 +30,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
-import { Banner } from "../../../components/Banner";
 import { Button } from "../../../components/Button";
 import { Input } from "../../../components/Input";
 import { Select } from "../../../components/Select";
@@ -42,10 +41,14 @@ import type { Role, User } from "../../../domain";
 import { RoleValues } from "../../../domain";
 import { useAdminCapabilities } from "../../../lib/hooks/useAdminCapabilities";
 import { useAuthStore } from "../../../stores/authStore";
+import { useRealmStore } from "../../../stores/realmStore";
 import { useUsersStore } from "../../../stores/usersStore";
+import { CreateBotModal } from "./CreateBotModal";
 import { DeactivateUserModal } from "./DeactivateUserModal";
+import { EditBotModal } from "./EditBotModal";
 import { EditUserModal } from "./EditUserModal";
 import { ReactivateConfirmModal } from "./ReactivateConfirmModal";
+import { RegenerateBotKeyModal } from "./RegenerateBotKeyModal";
 import styles from "./AdminUsers.module.css";
 
 type StatusTab = "active" | "deactivated" | "bots";
@@ -123,6 +126,25 @@ export function AdminUsers(): React.JSX.Element {
   const [editing, setEditing] = useState<User | null>(null);
   const [deactivating, setDeactivating] = useState<User | null>(null);
   const [reactivating, setReactivating] = useState<User | null>(null);
+  const [creatingBot, setCreatingBot] = useState(false);
+  const [editingBot, setEditingBot] = useState<User | null>(null);
+  const [regenBot, setRegenBot] = useState<User | null>(null);
+
+  // Realm URL — used to format bot emails / build zuliprc downloads
+  // for the create + regenerate-key flows.
+  const realmUrl = useRealmStore((s) => s.realm?.realm_url);
+
+  // Owner-or-admin gate for per-bot actions. Admins can edit any
+  // bot; non-admins only theirs.
+  const canManageBot = (bot: User): boolean =>
+    caps.isRealmAdmin || bot.bot_owner_id === sessionUserId;
+
+  // Create-bot button is enabled if the user has any bot-creation
+  // capability. Disabled (with explanation) for admins on a realm
+  // that disallows creation, though the route gate alone would
+  // already prevent reaching this view in the no-capability case.
+  const canCreateAnyBot =
+    caps.isRealmAdmin || caps.canCreateBots || caps.canCreateWriteOnlyBots;
 
   // If caps hydrate after mount and the people tabs become hidden,
   // reset any selection on a tab the user can't see. The reverse
@@ -199,26 +221,18 @@ export function AdminUsers(): React.JSX.Element {
                   className={styles.roleSelect}
                 />
               )}
-            </div>
-
-            {activeTab === "bots" && (
-              // Honest affordance: bot creation isn't built into this
-              // admin UI yet, but admins still need to create bots —
-              // direct them to the upstream Zulip web client's panel
-              // instead of pretending the feature is "coming soon".
-              <Banner tone="info">
-                Создание и настройку ботов пока выполняйте через
-                стандартный интерфейс Zulip:{" "}
-                <a
-                  href="/#organization/bot-list-admin"
-                  target="_blank"
-                  rel="noreferrer noopener"
+              {activeTab === "bots" && canCreateAnyBot && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  iconLeft="plus"
+                  onClick={() => setCreatingBot(true)}
                 >
-                  Управление ботами
-                </a>
-                . Здесь они отображаются для обзора.
-              </Banner>
-            )}
+                  Создать бота
+                </Button>
+              )}
+            </div>
 
             {directoryLoading ? (
               <div className={styles.loading}>
@@ -251,7 +265,7 @@ export function AdminUsers(): React.JSX.Element {
                         </span>
                       )}
                       <div className={styles.actions}>
-                        {activeTab === "active" && !isSelf && (
+                        {activeTab === "active" && !user.is_bot && !isSelf && (
                           <>
                             <Button
                               type="button"
@@ -260,6 +274,34 @@ export function AdminUsers(): React.JSX.Element {
                               onClick={() => setEditing(user)}
                             >
                               Изменить
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeactivating(user)}
+                            >
+                              Деактивировать
+                            </Button>
+                          </>
+                        )}
+                        {activeTab === "bots" && canManageBot(user) && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingBot(user)}
+                            >
+                              Изменить
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setRegenBot(user)}
+                            >
+                              Сбросить ключ
                             </Button>
                             <Button
                               type="button"
@@ -310,6 +352,29 @@ export function AdminUsers(): React.JSX.Element {
           open={true}
           user={reactivating}
           onClose={() => setReactivating(null)}
+        />
+      )}
+      {creatingBot && (
+        <CreateBotModal
+          open={true}
+          capabilities={caps}
+          realmUrl={realmUrl}
+          onClose={() => setCreatingBot(false)}
+        />
+      )}
+      {editingBot !== null && (
+        <EditBotModal
+          open={true}
+          bot={editingBot}
+          onClose={() => setEditingBot(null)}
+        />
+      )}
+      {regenBot !== null && (
+        <RegenerateBotKeyModal
+          open={true}
+          bot={regenBot}
+          realmUrl={realmUrl}
+          onClose={() => setRegenBot(null)}
         />
       )}
     </div>

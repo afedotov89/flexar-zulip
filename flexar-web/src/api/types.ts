@@ -8,6 +8,7 @@
 // deliberately does not model because they are transport concerns.
 
 import type {
+  GroupSettingValue,
   Message,
   MessageFlag,
   MessageId,
@@ -482,12 +483,27 @@ export interface UpdateRealmParams {
   invite_required?: boolean;
   /** Days a new user must wait before having full-member permissions. */
   waiting_period_threshold?: number;
+  /** Whether direct image URLs unfurl into inline thumbnails. */
+  inline_image_preview?: boolean;
+  /** Whether arbitrary links unfurl into Open Graph preview cards. */
+  inline_url_embed_preview?: boolean;
 }
 
 // --- Admin: channels (Phase 5.3) -----------------------------------
 
 /** Privacy mode for a channel — derives the wire flags. */
 export type ChannelPrivacy = "public" | "private" | "web_public";
+
+/**
+ * Per-channel topics policy passed to create/update. Wire name is
+ * `topics_policy`; we mirror Zulip's enum values verbatim so the
+ * type doubles as the wire-level type.
+ */
+export type ChannelTopicsPolicyParam =
+  | "inherit"
+  | "disable_empty_topic"
+  | "allow_empty_topic"
+  | "empty_topic_only";
 
 /**
  * Parameters for `createChannel` (`POST /api/v1/users/me/subscriptions`
@@ -509,6 +525,18 @@ export interface CreateChannelParams {
   principals?: ReadonlyArray<UserId>;
   /** Whether the server should send an announcement message. */
   announce?: boolean;
+  /**
+   * Per-channel topics policy. Omit (or pass `"inherit"`) to defer to
+   * the realm-level setting; the explicit values override it for this
+   * channel only.
+   */
+  topicsPolicy?: ChannelTopicsPolicyParam;
+  /**
+   * Who is allowed to post — a user-group ID (typically a system group
+   * like `role:everyone` / `role:administrators` resolved to its numeric
+   * ID via `getUserGroups`). Omit to take the server default.
+   */
+  canSendMessageGroup?: number;
 }
 
 /**
@@ -524,6 +552,114 @@ export interface UpdateChannelParams {
   historyPublicToSubscribers?: boolean;
   /** Channel retention; `-1` = forever, `null` = inherit realm. */
   messageRetentionDays?: number | null;
+  /**
+   * Who can post to this channel — a user-group ID (system groups like
+   * "Administrators" or named groups), serialised on the wire as a
+   * `GroupSettingChangeRequest`.
+   */
+  canSendMessageGroup?: number;
+  /** Per-channel topics policy override (see `ChannelTopicsPolicyParam`). */
+  topicsPolicy?: ChannelTopicsPolicyParam;
+}
+
+/**
+ * One entry from `GET /api/v1/user_groups` — the full shape the server
+ * returns at the current feature level. `members` and
+ * `direct_subgroup_ids` carry only the directly-granted memberships
+ * (transitive membership is resolved client-side by walking the
+ * subgroup graph).
+ */
+export interface UserGroup {
+  id: number;
+  /**
+   * Internal name. System groups use the `role:*` namespace
+   * (`role:everyone`, `role:fullmembers`, `role:moderators`,
+   * `role:administrators`, etc.).
+   */
+  name: string;
+  description: string;
+  /** `true` for the realm's built-in role-based groups. */
+  is_system_group: boolean;
+  /** Direct member user IDs (not transitive). */
+  members: UserId[];
+  /** Direct subgroup IDs (not transitive). */
+  direct_subgroup_ids: number[];
+  /**
+   * Creator's user ID. `null` for system groups and for groups created
+   * before the server began recording this field.
+   */
+  creator_id: UserId | null;
+  /**
+   * Creation time, unix seconds. `null` for system groups (which are
+   * realm-bootstrapped, not user-created).
+   */
+  date_created: UnixTimestamp | null;
+  /** `true` once a group has been deactivated (soft-delete). */
+  deactivated: boolean;
+  /** Who may add members to this group. */
+  can_add_members_group: GroupSettingValue;
+  /** Who may join this group voluntarily. */
+  can_join_group: GroupSettingValue;
+  /** Who may leave this group voluntarily. */
+  can_leave_group: GroupSettingValue;
+  /** Who may rename, edit, or deactivate this group. */
+  can_manage_group: GroupSettingValue;
+  /** Who may @-mention this group in messages. */
+  can_mention_group: GroupSettingValue;
+  /** Who may remove members from this group. */
+  can_remove_members_group: GroupSettingValue;
+}
+
+/** Response of `GET /api/v1/user_groups`. */
+export interface GetUserGroupsResult {
+  user_groups: UserGroup[];
+}
+
+/**
+ * Parameters for `createUserGroup` (`POST /api/v1/user_groups/create`).
+ * `members` and `subgroups` are sent as JSON-encoded arrays on the wire.
+ */
+export interface CreateUserGroupParams {
+  name: string;
+  description: string;
+  /** Initial direct members; an empty array is allowed. */
+  members: UserId[];
+  /** Initial direct subgroups; defaults to empty. */
+  subgroups?: number[];
+}
+
+/**
+ * Parameters for `updateUserGroup`
+ * (`PATCH /api/v1/user_groups/{user_group_id}`) — basic metadata only.
+ * Pass only what changed.
+ */
+export interface UpdateUserGroupParams {
+  name?: string;
+  description?: string;
+  /**
+   * Reactivate a previously-deactivated group by passing `false`.
+   * There is no separate reactivate endpoint — the deactivate endpoint
+   * is one-way and reactivation goes through this edit path.
+   */
+  deactivated?: boolean;
+}
+
+/**
+ * Parameters for `updateUserGroupSettings` — same endpoint as
+ * `updateUserGroup` (`PATCH /api/v1/user_groups/{user_group_id}`), but
+ * for the `can_*_group` permission settings. Each value is sent
+ * JSON-encoded as `{new: <GroupSettingValue>}` (Zulip's
+ * `GroupSettingChangeRequest` envelope). Kept separate from
+ * `UpdateUserGroupParams` so the wire-envelope split stays visible to
+ * callers.
+ */
+export interface UpdateUserGroupSettingsParams {
+  canAddMembersGroup?: GroupSettingValue;
+  canJoinGroup?: GroupSettingValue;
+  canLeaveGroup?: GroupSettingValue;
+  canManageGroup?: GroupSettingValue;
+  canMentionGroup?: GroupSettingValue;
+  canRemoveMembersGroup?: GroupSettingValue;
 }
 
 /** Response of `GET /api/v1/streams/{stream_id}/members`. */
@@ -623,5 +759,75 @@ export interface CreateReusableInviteLinkParams {
 /** Response of `POST /api/v1/invites/multiuse`. */
 export interface CreateReusableInviteLinkResult {
   invite_link: string;
+}
+
+// --- Admin: bots (capability sweep) --------------------------------
+
+/**
+ * Parameters for `createBot` (`POST /api/v1/bots`). Mirrors the
+ * server's `add_bot_backend` signature; the API client converts
+ * `camelCase` keys to the wire `snake_case` names. Fields beyond
+ * the first three are bot-type-dependent — incoming-webhook /
+ * outgoing-webhook bots need the service-related fields, generic
+ * bots ignore them.
+ */
+export interface CreateBotParams {
+  fullName: string;
+  /** Local-part of the bot's email; the server appends the realm. */
+  shortName: string;
+  /** Wire integer: 1=generic, 2=incoming-webhook, 3=outgoing-webhook. */
+  botType: number;
+  /** Outgoing-webhook endpoint URL. */
+  payloadUrl?: string;
+  /** Outgoing-webhook interface: 1=Generic, 2=Slack-compatible. */
+  interfaceType?: number;
+  /** Outgoing-webhook / embedded service name. */
+  serviceName?: string;
+  /** Embedded / incoming-webhook config dict. */
+  config?: Readonly<Record<string, string>>;
+  /** Default channel name the bot sends to. */
+  defaultSendingStream?: string;
+  /** Default channel name the bot registers events for. */
+  defaultEventsRegisterStream?: string;
+  /** Whether the bot listens on every public channel. */
+  defaultAllPublicStreams?: boolean;
+}
+
+/** Response of `POST /api/v1/bots`. */
+export interface CreateBotResult {
+  user_id: number;
+  api_key: string;
+  avatar_url: string;
+  default_sending_stream: string | null;
+  default_events_register_stream: string | null;
+  default_all_public_streams: boolean;
+}
+
+/**
+ * Parameters for `updateBot` (`PATCH /api/v1/bots/{bot_user_id}`).
+ * Only the keys the caller wants to change are sent; the server
+ * leaves the rest untouched.
+ */
+export interface UpdateBotParams {
+  fullName?: string;
+  /** New short name; the server constructs a new email from it. */
+  shortName?: string;
+  /** Reassign ownership of the bot to a different user. */
+  botOwnerId?: number;
+  /** Outgoing-webhook URL update. */
+  servicePayloadUrl?: string;
+  /** Outgoing-webhook interface update; 1=Generic, 2=Slack-compatible. */
+  serviceInterface?: number;
+  defaultSendingStream?: string;
+  defaultEventsRegisterStream?: string;
+  defaultAllPublicStreams?: boolean;
+  config?: Readonly<Record<string, string>>;
+  /** Wire integer (100/200/300/400/600). */
+  role?: number;
+}
+
+/** Response of `POST /api/v1/bots/{bot_user_id}/api_key/regenerate`. */
+export interface RegenerateBotApiKeyResult {
+  api_key: string;
 }
 

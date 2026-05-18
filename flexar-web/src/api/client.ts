@@ -14,6 +14,7 @@
 import type {
   MessageEdit,
   MessageId,
+  PresenceMap,
   ReactionType,
   ScheduledMessage,
   ServerEvent,
@@ -27,18 +28,23 @@ import { narrowToWire } from "./narrow";
 import { sendRequest, type Params } from "./request";
 import {
   uploadFile,
+  uploadOwnAvatar,
   uploadRealmAsset,
   type UploadFileOptions,
   type UploadFileResult,
+  type UploadOwnAvatarOptions,
   type UploadRealmAssetOptions,
 } from "./upload";
 import type {
   ApiKeyResult,
+  CreateBotParams,
+  CreateBotResult,
   CreateChannelParams,
   CreateReusableInviteLinkParams,
   CreateReusableInviteLinkResult,
   CreateScheduledMessageParams,
   CreateScheduledMessageResult,
+  CreateUserGroupParams,
   Credentials,
   DeactivateUserParams,
   DeleteMessageResult,
@@ -54,9 +60,11 @@ import type {
   GetStreamsResult,
   GetSubscriptionsResult,
   GetTopicsResult,
+  GetUserGroupsResult,
   GetUsersResult,
   Invite,
   MarkAsReadResult,
+  RegenerateBotApiKeyResult,
   RegisterQueueOptions,
   RegisterQueueResult,
   RenderMarkdownResult,
@@ -67,6 +75,7 @@ import type {
   SendTypingParams,
   SubscribeParams,
   UnsubscribeParams,
+  UpdateBotParams,
   UpdateChannelParams,
   UpdateMessageFlagsParams,
   UpdateMessageFlagsResult,
@@ -74,7 +83,10 @@ import type {
   UpdateOwnUserStatusParams,
   UpdateRealmParams,
   UpdateScheduledMessageParams,
+  UpdateUserGroupParams,
+  UpdateUserGroupSettingsParams,
   UpdateUserParams,
+  UserGroup,
 } from "./types";
 
 /** Options for `getStreams` (`GET /api/v1/streams`). */
@@ -598,6 +610,52 @@ export class ApiClient {
     );
   }
 
+  // --- Presence ----------------------------------------------------
+
+  /**
+   * Update the signed-in user's presence and (in the same response)
+   * receive the current presence table for the realm. `POST
+   * /api/v1/users/me/presence`. Zulip web pings this every minute
+   * while the tab is visible so other users see "active" instead of
+   * the row stuck at "idle" / "offline".
+   *
+   * `status`:
+   *   - `"active"` — the user is in the tab and interacting.
+   *   - `"idle"`   — the tab is in the background; we still ping so
+   *                  the server doesn't decay to "offline" too soon.
+   *
+   * The returned `presences` table is the canonical refresh path for
+   * everyone (including self — the server never echoes a user's own
+   * presence event back to that user's queue). The caller should
+   * fold it into the presence store every ping.
+   *
+   * `slim_presence: true` opts into the modern keyed-by-id payload
+   * (the only shape the presence store knows how to fold), matching
+   * the `register` call we make on connect.
+   */
+  async sendOwnPresence(params: {
+    status: "active" | "idle";
+  }): Promise<{ presences: PresenceMap; serverTimestamp: number }> {
+    const body = await sendRequest<{
+      presences: PresenceMap;
+      server_timestamp: number;
+    }>(
+      {
+        method: "POST",
+        path: "/users/me/presence",
+        params: {
+          status: params.status,
+          slim_presence: true,
+        },
+      },
+      this.#credentials,
+    );
+    return {
+      presences: body.presences,
+      serverTimestamp: body.server_timestamp,
+    };
+  }
+
   // --- Scheduled messages -------------------------------------------
 
   /**
@@ -882,6 +940,8 @@ export class ApiClient {
             params.message_edit_history_visibility_policy,
           invite_required: params.invite_required,
           waiting_period_threshold: params.waiting_period_threshold,
+          inline_image_preview: params.inline_image_preview,
+          inline_url_embed_preview: params.inline_url_embed_preview,
         },
       },
       this.#credentials,
@@ -950,6 +1010,23 @@ export class ApiClient {
           history_public_to_subscribers: params.historyPublicToSubscribers,
           principals: params.principals,
           announce: params.announce,
+          // The server validates `topics_policy` with `json_to_string`,
+          // so the enum has to arrive JSON-encoded (`"empty_topic_only"`,
+          // not `empty_topic_only`). Omit when not set so the server
+          // applies its default.
+          topics_policy:
+            params.topicsPolicy !== undefined
+              ? JSON.stringify(params.topicsPolicy)
+              : undefined,
+          // `can_send_message_group` accepts a numeric user-group ID
+          // (typically resolved from a system-group like
+          // `role:everyone`). Like `topics_policy`, the field is
+          // declared as `Json[...]` on this view, so the number has to
+          // arrive JSON-encoded.
+          can_send_message_group:
+            params.canSendMessageGroup !== undefined
+              ? JSON.stringify(params.canSendMessageGroup)
+              : undefined,
         },
       },
       this.#credentials,
@@ -977,7 +1054,216 @@ export class ApiClient {
           is_web_public: params.isWebPublic,
           history_public_to_subscribers: params.historyPublicToSubscribers,
           message_retention_days: params.messageRetentionDays,
+          // The server expects a JSON-encoded `GroupSettingChangeRequest`
+          // (`{new: <id|object>}`) for any `can_*_group` setting. Omit
+          // the key entirely when the caller did not pass one.
+          can_send_message_group:
+            params.canSendMessageGroup !== undefined
+              ? JSON.stringify({ new: params.canSendMessageGroup })
+              : undefined,
+          // Unlike createChannel, the update view declares `topics_policy`
+          // as a plain `str` (not `Json[...]`), so it expects the raw
+          // enum name — no JSON wrapping.
+          topics_policy: params.topicsPolicy,
         },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * List the realm's user groups. `GET /api/v1/user_groups`. Used by
+   * channel-settings UI to resolve a system-group name (e.g.
+   * `role:administrators`) to its numeric ID for the
+   * `can_send_message_group` permission picker. Cached locally by the
+   * caller — the data changes rarely.
+   */
+  async getUserGroups(): Promise<UserGroup[]> {
+    const body = await sendRequest<GetUserGroupsResult>(
+      { method: "GET", path: "/user_groups" },
+      this.#credentials,
+    );
+    return body.user_groups;
+  }
+
+  /**
+   * Create a new user group. `POST /api/v1/user_groups/create`. The
+   * server expects `members` (and `subgroups`, when supplied) as
+   * JSON-encoded integer arrays — the request transport stringifies
+   * arrays for us. Returns the new `group_id`.
+   */
+  async createUserGroup(
+    params: CreateUserGroupParams,
+  ): Promise<{ group_id: number }> {
+    const body = await sendRequest<{ group_id: number }>(
+      {
+        method: "POST",
+        path: "/user_groups/create",
+        params: {
+          name: params.name,
+          description: params.description,
+          members: params.members,
+          subgroups: params.subgroups,
+        },
+      },
+      this.#credentials,
+    );
+    return { group_id: body.group_id };
+  }
+
+  /**
+   * Update a user group's name, description, or active/deactivated
+   * state. `PATCH /api/v1/user_groups/{groupId}`. Pass only what
+   * changed. Reactivation goes through `deactivated: false` here —
+   * there is no separate reactivate endpoint.
+   */
+  async updateUserGroup(
+    groupId: number,
+    params: UpdateUserGroupParams,
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: `/user_groups/${groupId}`,
+        params: {
+          name: params.name,
+          description: params.description,
+          deactivated: params.deactivated,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Update one or more permission settings on a user group.
+   * `PATCH /api/v1/user_groups/{groupId}` — same endpoint as
+   * `updateUserGroup` but each `can_*_group` value is wrapped in
+   * Zulip's `GroupSettingChangeRequest` envelope (`{new: <value>}`,
+   * JSON-encoded) per the server contract. Keys whose corresponding
+   * param is `undefined` are omitted entirely.
+   */
+  async updateUserGroupSettings(
+    groupId: number,
+    params: UpdateUserGroupSettingsParams,
+  ): Promise<void> {
+    // Wrap each defined permission value as `{new: ...}` and JSON-
+    // encode it (Zulip's `GroupSettingChangeRequest`). Omit undefined
+    // keys so the server does not see them at all.
+    const wire: Params = {
+      can_add_members_group:
+        params.canAddMembersGroup !== undefined
+          ? JSON.stringify({ new: params.canAddMembersGroup })
+          : undefined,
+      can_join_group:
+        params.canJoinGroup !== undefined
+          ? JSON.stringify({ new: params.canJoinGroup })
+          : undefined,
+      can_leave_group:
+        params.canLeaveGroup !== undefined
+          ? JSON.stringify({ new: params.canLeaveGroup })
+          : undefined,
+      can_manage_group:
+        params.canManageGroup !== undefined
+          ? JSON.stringify({ new: params.canManageGroup })
+          : undefined,
+      can_mention_group:
+        params.canMentionGroup !== undefined
+          ? JSON.stringify({ new: params.canMentionGroup })
+          : undefined,
+      can_remove_members_group:
+        params.canRemoveMembersGroup !== undefined
+          ? JSON.stringify({ new: params.canRemoveMembersGroup })
+          : undefined,
+    };
+    await sendRequest<unknown>(
+      { method: "PATCH", path: `/user_groups/${groupId}`, params: wire },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Deactivate a user group (soft-delete).
+   * `POST /api/v1/user_groups/{groupId}/deactivate`. Reactivation goes
+   * through `updateUserGroup({deactivated: false})`.
+   */
+  async deactivateUserGroup(groupId: number): Promise<void> {
+    await sendRequest<unknown>(
+      { method: "POST", path: `/user_groups/${groupId}/deactivate` },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Add members to a user group.
+   * `POST /api/v1/user_groups/{groupId}/members` with `add` set. The
+   * server expects JSON-encoded integer arrays; the request transport
+   * stringifies arrays for us. `delete` is sent as the empty array so
+   * the same endpoint can be reused by `removeUserGroupMembers`.
+   */
+  async addUserGroupMembers(
+    groupId: number,
+    userIds: UserId[],
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: `/user_groups/${groupId}/members`,
+        params: { add: userIds, delete: [] },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Remove members from a user group.
+   * `POST /api/v1/user_groups/{groupId}/members` with `delete` set.
+   */
+  async removeUserGroupMembers(
+    groupId: number,
+    userIds: UserId[],
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: `/user_groups/${groupId}/members`,
+        params: { add: [], delete: userIds },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Add subgroups to a user group.
+   * `POST /api/v1/user_groups/{groupId}/subgroups` with `add` set.
+   */
+  async addUserGroupSubgroups(
+    groupId: number,
+    subgroupIds: number[],
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: `/user_groups/${groupId}/subgroups`,
+        params: { add: subgroupIds, delete: [] },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Remove subgroups from a user group.
+   * `POST /api/v1/user_groups/{groupId}/subgroups` with `delete` set.
+   */
+  async removeUserGroupSubgroups(
+    groupId: number,
+    subgroupIds: number[],
+  ): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "POST",
+        path: `/user_groups/${groupId}/subgroups`,
+        params: { add: [], delete: subgroupIds },
       },
       this.#credentials,
     );
@@ -1147,6 +1433,90 @@ export class ApiClient {
     );
   }
 
+  // --- Admin: bots (capability sweep) --------------------------------
+
+  /**
+   * Create a bot user. `POST /api/v1/bots`. The server enforces the
+   * permission gate (`can_create_bots_group` / `can_create_write_
+   * only_bots_group`); on success it returns the bot's user id and
+   * its initial API key. Use of the API key is the caller's
+   * responsibility — we don't persist it.
+   *
+   * Fields specific to outgoing-webhook bots (`payloadUrl`,
+   * `interfaceType`, `serviceName`) are forwarded as the server
+   * names them; generic bots ignore them.
+   */
+  async createBot(params: CreateBotParams): Promise<CreateBotResult> {
+    const config =
+      params.config !== undefined ? { ...params.config } : undefined;
+    const body = await sendRequest<CreateBotResult>(
+      {
+        method: "POST",
+        path: "/bots",
+        params: {
+          full_name: params.fullName,
+          short_name: params.shortName,
+          bot_type: params.botType,
+          payload_url: params.payloadUrl,
+          interface_type: params.interfaceType,
+          service_name: params.serviceName,
+          config_data: config,
+          default_sending_stream: params.defaultSendingStream,
+          default_events_register_stream: params.defaultEventsRegisterStream,
+          default_all_public_streams: params.defaultAllPublicStreams,
+        },
+      },
+      this.#credentials,
+    );
+    return body;
+  }
+
+  /**
+   * Update a bot. `PATCH /api/v1/bots/{bot_user_id}`. Pass only the
+   * fields that changed. The server enforces ownership (admin or
+   * `bot_owner_id === self`).
+   */
+  async updateBot(botUserId: UserId, params: UpdateBotParams): Promise<void> {
+    const config =
+      params.config !== undefined ? { ...params.config } : undefined;
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: `/bots/${botUserId}`,
+        params: {
+          full_name: params.fullName,
+          short_name: params.shortName,
+          bot_owner_id: params.botOwnerId,
+          service_payload_url: params.servicePayloadUrl,
+          service_interface: params.serviceInterface,
+          default_sending_stream: params.defaultSendingStream,
+          default_events_register_stream: params.defaultEventsRegisterStream,
+          default_all_public_streams: params.defaultAllPublicStreams,
+          config_data: config,
+          role: params.role,
+        },
+      },
+      this.#credentials,
+    );
+  }
+
+  /**
+   * Regenerate the bot's API key.
+   * `POST /api/v1/bots/{bot_user_id}/api_key/regenerate`. The
+   * returned key is the new credential — the old one stops working
+   * the moment the server processes the request.
+   */
+  async regenerateBotApiKey(botUserId: UserId): Promise<string> {
+    const body = await sendRequest<RegenerateBotApiKeyResult>(
+      {
+        method: "POST",
+        path: `/bots/${botUserId}/api_key/regenerate`,
+      },
+      this.#credentials,
+    );
+    return body.api_key;
+  }
+
   // --- Uploads ------------------------------------------------------
 
   /**
@@ -1220,6 +1590,50 @@ export class ApiClient {
       credentials: this.#credentials,
       extraFields: { night: night === true ? "true" : "false" },
     });
+  }
+
+  /**
+   * Upload the signed-in user's avatar. `POST /api/v1/users/me/avatar`.
+   * The new `avatar_url` / `avatar_version` arrive via a subsequent
+   * `realm_user` event (users-store fold); callers don't need to read
+   * the response.
+   */
+  uploadOwnAvatar(
+    options: Omit<UploadOwnAvatarOptions, "credentials">,
+  ): Promise<void> {
+    if (this.#credentials === undefined) {
+      return Promise.reject(
+        new Error("Cannot upload avatar without credentials."),
+      );
+    }
+    return uploadOwnAvatar({
+      ...options,
+      credentials: this.#credentials,
+    });
+  }
+
+  /**
+   * Change the signed-in user's password. `PATCH /api/v1/settings`
+   * with `old_password` + `new_password`. Resolves on success;
+   * rejects with `ApiError` if the server rejects the old password
+   * or refuses the new one (e.g. too short / common). No event is
+   * emitted — success is the only signal.
+   */
+  async changeOwnPassword(params: {
+    oldPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    await sendRequest<unknown>(
+      {
+        method: "PATCH",
+        path: "/settings",
+        params: {
+          old_password: params.oldPassword,
+          new_password: params.newPassword,
+        },
+      },
+      this.#credentials,
+    );
   }
 }
 
