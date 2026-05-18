@@ -1,0 +1,1 @@
+export { AdminGroupDetail } from "./AdminGroupDetail";

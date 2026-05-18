@@ -1,0 +1,72 @@
+/*
+ * Add-subgroup inline typeahead (Phase C3). Token-only.
+ * Mirrors AddMemberInput.module.css from AdminGroups/.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--space-1);
+  margin: 0;
+  list-style: none;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.candidate {
+  display: flex;
+  flex: 1;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.candidate:hover,
+.candidate:focus-visible {
+  background-color: var(--color-hover);
+  outline: none;
+}
+
+.candidateText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+  text-align: start;
+}
+
+.candidateName {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.candidateDescription {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Inline empty-state row shown when the dropdown is open but the
+ * filter yields zero candidates. Keeps the field visibly responsive
+ * — otherwise the user sees only the input and assumes it's broken. */
+
+.empty {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}

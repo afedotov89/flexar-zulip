@@ -1,0 +1,86 @@
+/*
+ * Danger zone tab body (Phase C5). Token-only.
+ * Vertical rhythm mirrors MembersTab / SubgroupsTab.
+ */
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.subheading {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/*
+ * "Cannot deactivate" banner — body styling. The Banner primitive
+ * supplies the chrome (icon, title, tone colour); these classes scope
+ * the inner list so spacing matches the rest of the tab.
+ */
+
+.bannerLead {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.usageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  margin: var(--space-2) 0;
+  list-style: none;
+}
+
+.usageRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.usageName {
+  font-weight: var(--font-weight-medium);
+}
+
+.usageSetting {
+  color: var(--color-text-muted);
+}
+
+.bannerHint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

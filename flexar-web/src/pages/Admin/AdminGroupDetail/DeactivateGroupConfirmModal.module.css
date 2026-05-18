@@ -1,0 +1,9 @@
+/*
+ * Confirm modal for deactivating a user group (Phase C5). Token-only.
+ */
+
+.body {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}

@@ -1,0 +1,166 @@
+/*
+ * Admin: user-groups list page (Phase B1 — basic shell).
+ * Token-only. Filters, search, and the create-modal land in B2/B3.
+ */
+
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.headerHint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color var(--duration-fast);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--color-hover);
+  outline: none;
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.rowName {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowDescription {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.memberCount {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Affordance hint that the row navigates to the group's detail page —
+ * mirrors the sidebar-item arrow used by other Link-rows in the app. */
+
+.rowChevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.row:hover .rowChevron,
+.row:focus-visible .rowChevron {
+  color: var(--color-text);
+}
+
+/* Nested subgroup rows: indent + left rail mirror the system tree
+ * above, so the hierarchy reads the same way across both sections. */
+
+.childList {
+  margin: 0 0 0 var(--space-4);
+  padding: 0 0 0 1.25em;
+  list-style: none;
+  border-left: 1px solid var(--color-border);
+}
+
+/* B2/B3 additions: header action slot, search/tabs toolbar, skeleton rows. */
+
+.headerActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+
+  /* Visual breather between the search/filter row and the list below.
+   * The Tabs panel doesn't inject inter-child spacing, so the gap is
+   * declared here on the only sibling that's always present. */
+  margin-bottom: var(--space-3);
+}
+
+.search {
+  width: 16rem;
+}
+
+/* Match `.row` height so skeleton list doesn't reflow on hydrate. */
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.skeletonRow:last-child {
+  border-bottom: none;
+}
