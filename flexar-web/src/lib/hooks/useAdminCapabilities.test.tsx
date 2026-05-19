@@ -28,7 +28,6 @@ import { useAdminCapabilities, type AdminCapabilities } from "./useAdminCapabili
 
 function makeUser(overrides: Partial<User> & { user_id: number }): User {
   return {
-    user_id: overrides.user_id,
     delivery_email: null,
     email: `u${overrides.user_id}@example.com`,
     full_name: `User ${overrides.user_id}`,
@@ -51,7 +50,6 @@ function makeUser(overrides: Partial<User> & { user_id: number }): User {
 
 function makeGroup(overrides: Partial<UserGroup> & { id: number }): UserGroup {
   return {
-    id: overrides.id,
     name: `g-${overrides.id}`,
     description: "",
     is_system_group: false,

@@ -6,7 +6,6 @@ import { isUserInGroupSetting } from "./groupMembership";
 
 function group(overrides: Partial<UserGroup> & { id: number }): UserGroup {
   return {
-    id: overrides.id,
     name: `g-${overrides.id}`,
     description: "",
     is_system_group: false,
