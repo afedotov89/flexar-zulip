@@ -19,6 +19,16 @@
  */
 
 .shell {
+  /*
+   * Shared height of the top navbar — drawers and the backdrop must
+   * begin exactly where the navbar ends. The navbar itself uses the
+   * same expression in Navbar.module.css; keep the two in lockstep.
+   * (Identity-card redesign bumped this from `--control-height-lg`
+   * (40px) to 48+8=56px so the avatar + name + status fit as two
+   * lines.)
+   */
+  --navbar-height: calc(var(--space-12) + var(--space-2));
+
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -116,7 +126,7 @@
  */
 .drawerBackdrop {
   position: fixed;
-  inset: var(--control-height-lg) 0 0;
+  inset: var(--navbar-height) 0 0;
   display: none;
   width: 100%;
   padding: 0;
@@ -131,7 +141,7 @@
 @media (width <= 1023px) {
   .rightSidebar {
     position: fixed;
-    top: var(--control-height-lg);
+    top: var(--navbar-height);
     right: 0;
     bottom: 0;
     width: min(320px, 88vw);
@@ -155,7 +165,7 @@
 @media (width <= 767px) {
   .leftSidebar {
     position: fixed;
-    top: var(--control-height-lg);
+    top: var(--navbar-height);
     bottom: 0;
     left: 0;
     width: min(280px, 88vw);
