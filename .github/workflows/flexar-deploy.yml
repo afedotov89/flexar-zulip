@@ -43,6 +43,7 @@ on:
       - 'requirements/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'flexar-web/**'
       - '.github/workflows/flexar-deploy.yml'
 
 permissions:

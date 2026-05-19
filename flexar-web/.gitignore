@@ -5,3 +5,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+
+# Root `.gitignore` blanket-ignores package-lock.json (Zulip uses
+# pnpm-lock.yaml); we need flexar-web's npm lock for reproducible
+# Docker builds via `npm ci`.
+!package-lock.json

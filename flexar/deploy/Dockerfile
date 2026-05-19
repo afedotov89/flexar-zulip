@@ -76,6 +76,15 @@ RUN SKIP_VENV_SHELL_WARNING=1 ./tools/provision --build-release-tarball-only && 
     uv run --no-sync ./tools/build-release-tarball docker && \
     mv /tmp/tmp.*/zulip-server-docker.tar.gz /tmp/zulip-server-docker.tar.gz
 
+# Build the flexar-web React frontend (Phase 6.9 deploy). The Zulip
+# provision step above installed Node + npm via nvm, so `npm` is on
+# PATH for the `zulip` user. We build inside the same stage to avoid
+# carrying node_modules into the final image. The dist/ output is
+# copied into the final image below and served by nginx at the root
+# of the deployed Zulip host — flexar-web replaces Zulip's bundled
+# web frontend.
+RUN cd flexar-web && npm ci && npm run build
+
 # ------------------------------------------------------------
 # Final stage: clean image with installed Zulip.
 # ------------------------------------------------------------
@@ -85,6 +94,11 @@ ENV DATA_DIR="/data"
 
 COPY --from=build /tmp/zulip-server-docker.tar.gz /root/
 COPY flexar/deploy/custom_zulip_files/ /root/custom_zulip
+
+# flexar-web static bundle. nginx serves this at the deployed host
+# root via the custom_zulip_files override of zulip-include-frontend/app.
+# Phase 6.9 — replaces Zulip's bundled web frontend.
+COPY --from=build /home/zulip/zulip/flexar-web/dist /srv/flexar-web
 
 WORKDIR /root
 RUN \
