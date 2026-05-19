@@ -93,7 +93,7 @@ describe("LeftSidebar — data states", () => {
     connectionStatus = "connecting";
     renderSidebar();
     // The built-in views section is not rendered during loading.
-    expect(screen.queryByText("Объединённая лента")).not.toBeInTheDocument();
+    expect(screen.queryByText("Лента")).not.toBeInTheDocument();
     // The filter input is present but disabled.
     expect(
       screen.getByLabelText("Фильтр каналов и личных сообщений"),
@@ -102,7 +102,7 @@ describe("LeftSidebar — data states", () => {
 
   it("renders the built-in views once hydrated", () => {
     renderSidebar();
-    expect(screen.getByText("Объединённая лента")).toBeInTheDocument();
+    expect(screen.getByText("Лента")).toBeInTheDocument();
     expect(screen.getByText("Упоминания")).toBeInTheDocument();
     expect(screen.getByText("Черновики")).toBeInTheDocument();
   });
@@ -225,19 +225,19 @@ describe("LeftSidebar — filter", () => {
 describe("LeftSidebar — collapse", () => {
   it("collapses and expands a section header", () => {
     renderSidebar();
-    expect(screen.getByText("Объединённая лента")).toBeInTheDocument();
+    expect(screen.getByText("Лента")).toBeInTheDocument();
     const viewsToggle = screen.getByRole("button", { name: /Виды/ });
     expect(viewsToggle).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(viewsToggle);
     expect(viewsToggle).toHaveAttribute("aria-expanded", "false");
     expect(
-      screen.queryByText("Объединённая лента"),
+      screen.queryByText("Лента"),
     ).not.toBeInTheDocument();
 
     fireEvent.click(viewsToggle);
     expect(viewsToggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Объединённая лента")).toBeInTheDocument();
+    expect(screen.getByText("Лента")).toBeInTheDocument();
   });
 
   it("collapses a channel's topic list", () => {

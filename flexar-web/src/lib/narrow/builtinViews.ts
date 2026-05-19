@@ -14,7 +14,7 @@
 //   ──────────  ──────────────────  ───────  ─────────────────  ───────────────────────────
 //   inbox       Входящие            special  /inbox             —
 //   recent      Последние           special  /recent            —
-//   combined    Объединённая лента  narrow   /narrow            []  (the empty narrow)
+//   combined    Лента               narrow   /narrow            []  (the empty narrow)
 //   mentions    Упоминания          narrow   /narrow/is/mentioned        [is:mentioned]
 //   reactions   Реакции             narrow   /narrow/has/reaction/sender/me  [has:reaction, sender:me]
 //   starred     Отмеченные          narrow   /narrow/is/starred          [is:starred]
@@ -119,7 +119,7 @@ export const BUILTIN_VIEWS: readonly BuiltinView[] = [
   {
     id: "combined",
     kind: "narrow",
-    label: "Объединённая лента",
+    label: "Лента",
     icon: "combined-feed",
     narrow: COMBINED_FEED_NARROW,
     path: narrowToPath(COMBINED_FEED_NARROW),
