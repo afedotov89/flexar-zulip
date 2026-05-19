@@ -70,9 +70,12 @@ wireStore({
   },
   applyEvent: (event) => {
     if (isStreamEvent(event)) {
-      useStreamsStore.setState((state) => ({
-        streams: applyStreamEvent(state.streams, event),
-      }));
+      useStreamsStore.setState((state) =>
+        applyStreamEvent(
+          { streams: state.streams, subscriptions: state.subscriptions },
+          event,
+        ),
+      );
       return;
     }
     if (isSubscriptionEvent(event)) {

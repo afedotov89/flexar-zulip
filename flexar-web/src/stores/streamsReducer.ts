@@ -106,48 +106,73 @@ export function streamsFromInitialState(
 }
 
 /**
- * Fold one `stream` event into the channel-metadata map. Returns a new
- * map; the input is never mutated.
+ * Fold one `stream` event into the streams snapshot. Returns a new
+ * snapshot; inputs are never mutated.
  *
- *   - `create` — add the new channels.
- *   - `delete` — drop the channels (archived / lost visibility).
- *   - `update` — shallow-merge the changed property onto the channel.
+ *   - `create` — add the new channels to `streams`.
+ *   - `delete` — drop the channels from BOTH `streams` and
+ *                `subscriptions` (archived / lost visibility implies
+ *                the viewer can no longer be subscribed either —
+ *                otherwise the sidebar would render a phantom row).
+ *   - `update` — shallow-merge the changed property onto the channel
+ *                in BOTH `streams` and `subscriptions[id]` if the
+ *                viewer is subscribed. Without the subscription
+ *                mirror, a channel rename / privacy change wouldn't
+ *                reach the sidebar (which reads `subscription.name`,
+ *                `subscription.color`, etc.) until re-register.
  *
  * An `update` for an unknown channel is a no-op: the event raced ahead
  * of a `streams` map a narrower `fetch_event_types` left incomplete.
  */
 export function applyStreamEvent(
-  streams: StreamMap,
+  snapshot: StreamsSnapshot,
   event: StreamEvent,
-): StreamMap {
+): StreamsSnapshot {
   switch (event.op) {
     case "create": {
-      const next = { ...streams };
+      const streams = { ...snapshot.streams };
       for (const stream of event.streams) {
-        next[stream.stream_id] = stream;
+        streams[stream.stream_id] = stream;
       }
-      return next;
+      return { streams, subscriptions: snapshot.subscriptions };
     }
     case "delete": {
       let changed = false;
-      const next = { ...streams };
+      const streams = { ...snapshot.streams };
+      const subscriptions = { ...snapshot.subscriptions };
       for (const stream of event.streams) {
-        if (stream.stream_id in next) {
-          delete next[stream.stream_id];
+        if (stream.stream_id in streams) {
+          delete streams[stream.stream_id];
+          changed = true;
+        }
+        if (stream.stream_id in subscriptions) {
+          delete subscriptions[stream.stream_id];
           changed = true;
         }
       }
-      return changed ? next : streams;
+      return changed ? { streams, subscriptions } : snapshot;
     }
     case "update": {
-      const existing = streams[event.stream_id];
+      const existing = snapshot.streams[event.stream_id];
       if (existing === undefined) {
-        return streams;
+        return snapshot;
       }
-      return {
-        ...streams,
+      const streams = {
+        ...snapshot.streams,
         [event.stream_id]: { ...existing, [event.property]: event.value },
       };
+      const existingSub = snapshot.subscriptions[event.stream_id];
+      const subscriptions =
+        existingSub === undefined
+          ? snapshot.subscriptions
+          : {
+              ...snapshot.subscriptions,
+              [event.stream_id]: {
+                ...existingSub,
+                [event.property]: event.value,
+              },
+            };
+      return { streams, subscriptions };
     }
   }
 }

@@ -60,35 +60,66 @@ describe("applyStreamEvent", () => {
       op: "create",
       streams: [makeStream({ stream_id: 9, name: "new" })],
     };
-    const next = applyStreamEvent({}, event);
-    expect(next[9].name).toBe("new");
+    const next = applyStreamEvent(
+      { streams: {}, subscriptions: {} },
+      event,
+    );
+    expect(next.streams[9].name).toBe("new");
   });
 
-  it("delete drops the channels", () => {
-    const streams = { 9: makeStream({ stream_id: 9 }) };
-    const next = applyStreamEvent(streams, {
+  it("delete drops the channels from streams", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9 }) },
+      subscriptions: {},
+    };
+    const next = applyStreamEvent(snapshot, {
       id: 1,
       type: "stream",
       op: "delete",
       streams: [makeStream({ stream_id: 9 })],
     });
-    expect(9 in next).toBe(false);
+    expect(9 in next.streams).toBe(false);
+  });
+
+  it("delete also drops the channels from subscriptions (archive bug fix)", () => {
+    // Archiving a channel the viewer is subscribed to must drop the
+    // sidebar row too — sidebar reads from `subscriptions`, not from
+    // `streams`. Before this, the archived channel stayed visible
+    // until re-register.
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9 }) },
+      subscriptions: { 9: makeSubscription({ stream_id: 9 }) },
+    };
+    const next = applyStreamEvent(snapshot, {
+      id: 1,
+      type: "stream",
+      op: "delete",
+      streams: [makeStream({ stream_id: 9 })],
+    });
+    expect(9 in next.streams).toBe(false);
+    expect(9 in next.subscriptions).toBe(false);
   });
 
   it("delete of an unknown channel is a no-op", () => {
-    const streams = { 9: makeStream({ stream_id: 9 }) };
-    const next = applyStreamEvent(streams, {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9 }) },
+      subscriptions: {},
+    };
+    const next = applyStreamEvent(snapshot, {
       id: 1,
       type: "stream",
       op: "delete",
       streams: [makeStream({ stream_id: 404 })],
     });
-    expect(next).toBe(streams);
+    expect(next).toBe(snapshot);
   });
 
   it("update merges the changed property onto the channel", () => {
-    const streams = { 9: makeStream({ stream_id: 9, name: "old" }) };
-    const next = applyStreamEvent(streams, {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9, name: "old" }) },
+      subscriptions: {},
+    };
+    const next = applyStreamEvent(snapshot, {
       id: 1,
       type: "stream",
       op: "update",
@@ -97,13 +128,58 @@ describe("applyStreamEvent", () => {
       property: "description",
       value: "a new description",
     });
-    expect(next[9].description).toBe("a new description");
-    expect(next[9].name).toBe("old");
+    expect(next.streams[9].description).toBe("a new description");
+    expect(next.streams[9].name).toBe("old");
+  });
+
+  it("update also propagates to the matching subscription (rename bug fix)", () => {
+    // Renaming a channel must update sidebar labels — sidebar reads
+    // `subscription.name`, so without mirroring the property change
+    // into `subscriptions[id]`, a rename would only land in the
+    // sidebar after the next re-register.
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9, name: "old" }) },
+      subscriptions: {
+        9: makeSubscription({ stream_id: 9, name: "old" }),
+      },
+    };
+    const next = applyStreamEvent(snapshot, {
+      id: 1,
+      type: "stream",
+      op: "update",
+      stream_id: 9,
+      name: "old",
+      property: "name",
+      value: "renamed",
+    });
+    expect(next.streams[9].name).toBe("renamed");
+    expect(next.subscriptions[9].name).toBe("renamed");
+  });
+
+  it("update leaves subscriptions untouched when the viewer is not subscribed", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9, name: "old" }) },
+      subscriptions: {},
+    };
+    const next = applyStreamEvent(snapshot, {
+      id: 1,
+      type: "stream",
+      op: "update",
+      stream_id: 9,
+      name: "old",
+      property: "name",
+      value: "renamed",
+    });
+    expect(next.streams[9].name).toBe("renamed");
+    expect(next.subscriptions).toBe(snapshot.subscriptions);
   });
 
   it("update of an unknown channel is a no-op", () => {
-    const streams = { 9: makeStream({ stream_id: 9 }) };
-    const next = applyStreamEvent(streams, {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9 }) },
+      subscriptions: {},
+    };
+    const next = applyStreamEvent(snapshot, {
       id: 1,
       type: "stream",
       op: "update",
@@ -112,18 +188,22 @@ describe("applyStreamEvent", () => {
       property: "description",
       value: "x",
     });
-    expect(next).toBe(streams);
+    expect(next).toBe(snapshot);
   });
 
-  it("does not mutate the input map", () => {
-    const streams = { 9: makeStream({ stream_id: 9 }) };
-    applyStreamEvent(streams, {
+  it("does not mutate the input snapshot", () => {
+    const snapshot: StreamsSnapshot = {
+      streams: { 9: makeStream({ stream_id: 9 }) },
+      subscriptions: { 9: makeSubscription({ stream_id: 9 }) },
+    };
+    applyStreamEvent(snapshot, {
       id: 1,
       type: "stream",
       op: "delete",
       streams: [makeStream({ stream_id: 9 })],
     });
-    expect(9 in streams).toBe(true);
+    expect(9 in snapshot.streams).toBe(true);
+    expect(9 in snapshot.subscriptions).toBe(true);
   });
 });
 
