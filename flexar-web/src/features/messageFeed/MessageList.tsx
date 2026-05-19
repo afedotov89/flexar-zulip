@@ -161,11 +161,21 @@ export function MessageList({
     sizerRef.current?.style.setProperty("--total-size", `${totalSize}px`);
   }, [totalSize]);
 
-  // Open at the bottom: when the narrow changes (`scrollAnchorKey`)
-  // and its rows are present, jump to the last row. Tracked by a ref
-  // so the jump happens exactly once per narrow — once the user
-  // scrolls, subsequent row changes (pagination, live messages) must
-  // not yank the viewport back down.
+  // Stick-to-bottom: a chat feed opens at the most recent message and
+  // stays there while the user is reading live. The naive "jump once
+  // when rows arrive" approach fails because react-virtual jumps using
+  // estimated row heights (`estimateSize`), then real measurements come
+  // in, `totalSize` grows, and the absolute scrollTop pinned by the
+  // first jump leaves the user stranded in the middle of the feed.
+  //
+  // Invariant: `stayAtBottomRef` is true while the user is at the bottom
+  // (or has just landed on the narrow). Every `totalSize` change in that
+  // state re-scrolls to the last row, so measurement settling and newly
+  // arriving live messages both keep the viewport pinned. Scrolling up
+  // past `SCROLL_TO_BOTTOM_THRESHOLD` releases it; scrolling back into
+  // the bottom band re-arms it. The scroll handler below owns the
+  // arm/release transitions.
+  const stayAtBottomRef = useRef(true);
   const anchoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (rows.length === 0) {
@@ -175,8 +185,47 @@ export function MessageList({
       return;
     }
     anchoredKeyRef.current = scrollAnchorKey;
+    stayAtBottomRef.current = true;
     virtualizer.scrollToIndex(rows.length - 1, { align: "end" });
   }, [scrollAnchorKey, rows.length, virtualizer]);
+
+  // Re-pin to bottom whenever the scrollable area grows while in
+  // stick-mode. This is what catches the measurement-settling case
+  // (rows mount taller than the 56px estimate) and live new-message
+  // arrivals — both move the bottom edge, and we want to follow it.
+  useEffect(() => {
+    if (!stayAtBottomRef.current || rows.length === 0) {
+      return;
+    }
+    virtualizer.scrollToIndex(rows.length - 1, { align: "end" });
+  }, [totalSize, rows.length, virtualizer]);
+
+  // Release stick-to-bottom on any user-initiated scroll input. We
+  // release synchronously (not via rAF) so the next render — which the
+  // virtualizer schedules in response to the user's scroll — does NOT
+  // see `stayAtBottomRef.current === true` and yank the viewport back
+  // to the bottom in the re-pin effect above. Re-arming when the user
+  // returns to the live end is handled by the scroll handler below.
+  // Programmatic `scrollToIndex` calls (narrow-change jump, live-
+  // message follow, scrollToBottom button) do not dispatch these
+  // events, so they can't accidentally trip the release.
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (element === null) {
+      return;
+    }
+    const release = (): void => {
+      stayAtBottomRef.current = false;
+    };
+    element.addEventListener("wheel", release, { passive: true });
+    element.addEventListener("touchmove", release, { passive: true });
+    element.addEventListener("keydown", release);
+    return () => {
+      element.removeEventListener("wheel", release);
+      element.removeEventListener("touchmove", release);
+      element.removeEventListener("keydown", release);
+    };
+  }, []);
 
   // Whether the viewport is far enough from the bottom to surface the
   // "scroll to last message" affordance. Refreshed on every scroll
@@ -188,7 +237,8 @@ export function MessageList({
   // change (which includes scroll); compares the scroll offset against
   // the thresholds and asks the feed window for the next page. The feed
   // window guards against duplicate / past-the-end fetches, so calling
-  // eagerly here is safe.
+  // eagerly here is safe. Also arms / releases stick-to-bottom mode
+  // based on how far the viewport is from the live end.
   useEffect(() => {
     const element = scrollRef.current;
     if (element === null) {
@@ -205,9 +255,18 @@ export function MessageList({
     ) {
       onLoadNewer();
     }
-    // "Scroll to bottom" gate: visible only when the user is genuinely
-    // away from the live end AND there's content to land on.
+    // Distance the viewport bottom is above the content bottom. Powers
+    // both the scroll-to-bottom affordance and the stick re-arm below.
+    // Release is handled separately on user-initiated events, NOT here:
+    // a programmatic `scrollToIndex` propagates scroll-top to the DOM
+    // asynchronously, so this effect can briefly read a stale
+    // (scroll-top=0) snapshot and misread it as "user scrolled away".
     const distanceFromBottom = totalSize - (scrollTop + clientHeight);
+    if (distanceFromBottom < 4) {
+      // Re-arm the stick when scrollToBottom (or a manual return)
+      // lands the viewport back at the live end.
+      stayAtBottomRef.current = true;
+    }
     setShowScrollToBottom(
       rows.length > 0 && distanceFromBottom > SCROLL_TO_BOTTOM_THRESHOLD,
     );
