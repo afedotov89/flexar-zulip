@@ -19,10 +19,13 @@
 // look intentional rather than blank.
 
 import { useMemo } from "react";
+import { Avatar } from "../../components/Avatar";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
+import { PageHeader } from "../../components/PageHeader";
 import type { Narrow, StreamId } from "../../domain";
 import { useNarrowNavigation } from "../../lib/narrow";
+import { useAuthStore } from "../../stores/authStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUnreadStore } from "../../stores/unreadStore";
 import { useUsersStore } from "../../stores/usersStore";
@@ -33,6 +36,11 @@ interface InboxDmRow {
   participantIds: number[];
   label: string;
   count: number;
+  /** The (first) other-participant — drives the row's avatar so DM
+   *  rows read with the same identity hook as `MessageRow` and the
+   *  `Recent` page. `undefined` if the user isn't in the cache yet. */
+  avatarName: string;
+  avatarSrc: string | undefined;
 }
 
 interface InboxTopicRow {
@@ -68,9 +76,8 @@ export function Inbox(): React.JSX.Element {
   const buckets = useUnreadStore((s) => s.unread);
   const usersMap = useUsersStore((s) => s.users);
   const subscriptions = useStreamsStore((s) => s.subscriptions);
+  const ownUserId = useAuthStore((s) => s.session?.userId);
   const { goToNarrow } = useNarrowNavigation();
-  const viewerId = useUnreadStore.getState; // placeholder, unused
-  void viewerId;
 
   const dms: InboxDmRow[] = useMemo(() => {
     const rows: InboxDmRow[] = [];
@@ -85,19 +92,32 @@ export function Inbox(): React.JSX.Element {
       // in the row. With a single other participant we get their
       // name; group DMs concatenate names with a comma. Unknown ids
       // fall back to "Пользователь N".
-      const names = participantIds.map(
+      const others =
+        ownUserId === undefined
+          ? participantIds
+          : participantIds.filter((id) => id !== ownUserId);
+      const names = others.map(
         (id) => usersMap[id]?.full_name ?? `Пользователь ${id}`,
       );
+      // Avatar: the first "other" participant. For 1:1 chats that's
+      // the only counterpart; for group DMs we pick whoever sorts
+      // first in the id-ascending key. The label is the same set of
+      // names so the visual identity matches the text.
+      const partnerId = others[0];
+      const partner =
+        partnerId !== undefined ? usersMap[partnerId] : undefined;
       rows.push({
         conversationKey: key,
         participantIds,
         label: names.join(", "),
         count,
+        avatarName: partner?.full_name ?? (names.join(", ") || "?"),
+        avatarSrc: partner?.avatar_url ?? undefined,
       });
     }
     rows.sort((a, b) => a.label.localeCompare(b.label));
     return rows;
-  }, [buckets.dms, usersMap]);
+  }, [buckets.dms, usersMap, ownUserId]);
 
   const channels: InboxChannelGroup[] = useMemo(() => {
     const groups: InboxChannelGroup[] = [];
@@ -142,6 +162,7 @@ export function Inbox(): React.JSX.Element {
   if (dms.length === 0 && channels.length === 0) {
     return (
       <div className={styles.page}>
+        <PageHeader icon="inbox" title="Новые" />
         <EmptyState
           icon="inbox"
           title="Всё прочитано"
@@ -153,7 +174,8 @@ export function Inbox(): React.JSX.Element {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Новые</h1>
+      <PageHeader icon="inbox" title="Новые" />
+      <div className={styles.body}>
 
       {dms.length > 0 && (
         <section className={styles.section} aria-labelledby="inbox-dms">
@@ -172,10 +194,10 @@ export function Inbox(): React.JSX.Element {
                     className={styles.rowButton}
                     onClick={() => goToNarrow(narrow)}
                   >
-                    <Icon
-                      name="user"
+                    <Avatar
                       size="sm"
-                      className={styles.leadingIcon}
+                      name={dm.avatarName}
+                      src={dm.avatarSrc}
                     />
                     <span className={styles.rowLabel}>{dm.label}</span>
                     <span className={styles.badge}>{dm.count}</span>
@@ -256,6 +278,7 @@ export function Inbox(): React.JSX.Element {
           </ul>
         </section>
       )}
+      </div>
     </div>
   );
 }

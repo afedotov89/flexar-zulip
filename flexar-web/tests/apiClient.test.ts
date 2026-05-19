@@ -393,6 +393,35 @@ describe("request encoding", () => {
     expect(JSON.parse(body.get("to") as string)).toEqual([5, 7]);
   });
 
+  it("sendOwnPresence POSTs to /users/me/presence and returns the presences snapshot", async () => {
+    // The response carries the realm-wide presences table; the caller
+    // (usePresenceEmitter) folds it into the store every minute so
+    // self's dot — and everyone else's — stays current without
+    // depending on `presence` events.
+    mockJsonResponse({
+      result: "success",
+      msg: "",
+      presences: {
+        8: { active_timestamp: 1779105039, idle_timestamp: 1779105106 },
+        9: { active_timestamp: 1779104310 },
+      },
+      server_timestamp: 1779105123.226156,
+    });
+
+    const result = await client().sendOwnPresence({ status: "active" });
+
+    expect(calls[0].url).toBe("/api/v1/users/me/presence");
+    expect(calls[0].init.method).toBe("POST");
+    const body = new URLSearchParams(calls[0].init.body as string);
+    expect(body.get("status")).toBe("active");
+    expect(body.get("slim_presence")).toBe("true");
+    expect(result.presences).toEqual({
+      8: { active_timestamp: 1779105039, idle_timestamp: 1779105106 },
+      9: { active_timestamp: 1779104310 },
+    });
+    expect(result.serverTimestamp).toBe(1779105123.226156);
+  });
+
   it("markAllAsRead POSTs to /mark_all_as_read and surfaces the job id", async () => {
     mockJsonResponse({
       result: "success",

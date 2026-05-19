@@ -24,6 +24,7 @@ import { RecipientPills } from "./RecipientPills";
 import { TopicRowContent, TypeaheadPanel, useTopicTypeahead } from "../typeahead";
 import { useTopicsStore } from "../../../stores/topicsStore";
 import type { UserId } from "../../../domain";
+import type { ResolvedTopicsPolicy } from "../../../lib/topicsPolicy";
 import styles from "./RecipientRow.module.css";
 
 export interface RecipientRowHandle {
@@ -38,6 +39,13 @@ export type RecipientRowProps =
       onChannelChange: (streamId: number, name: string) => void;
       topic: string;
       onTopicChange: (topic: string) => void;
+      /**
+       * Effective topics policy for the selected channel. Drives whether
+       * the topic input is shown (`mandatory`/`optional`) or fully
+       * hidden because the channel runs as a single-thread chat
+       * (`empty_only`). Defaults to `mandatory`.
+       */
+      topicsPolicy?: ResolvedTopicsPolicy;
       disabled?: boolean;
     }
   | {
@@ -80,6 +88,7 @@ export const RecipientRow = forwardRef<RecipientRowHandle, RecipientRowProps>(
         onChannelChange={props.onChannelChange}
         topic={props.topic}
         onTopicChange={props.onTopicChange}
+        topicsPolicy={props.topicsPolicy ?? "mandatory"}
         disabled={props.disabled}
         topicInputRef={topicInputRef}
       />
@@ -92,6 +101,7 @@ interface ChannelTopicRowProps {
   onChannelChange: (streamId: number, name: string) => void;
   topic: string;
   onTopicChange: (topic: string) => void;
+  topicsPolicy: ResolvedTopicsPolicy;
   disabled?: boolean;
   topicInputRef: React.MutableRefObject<HTMLInputElement | null>;
 }
@@ -101,6 +111,7 @@ function ChannelTopicRow({
   onChannelChange,
   topic,
   onTopicChange,
+  topicsPolicy,
   disabled,
   topicInputRef,
 }: ChannelTopicRowProps): React.JSX.Element {
@@ -153,6 +164,25 @@ function ChannelTopicRow({
     topicInputRef.current?.focus();
   }, [onTopicChange, topicInputRef]);
 
+  // Channels in `empty_only` mode behave like Telegram/Slack chats —
+  // every message lands in the single empty topic — so we hide the
+  // topic input entirely. The channel selector stays in case the
+  // writer wants to switch destination.
+  if (topicsPolicy === "empty_only") {
+    return (
+      <div className={styles.row}>
+        <ChannelSelectorButton
+          streamId={streamId}
+          onChange={onChannelChange}
+          disabled={disabled}
+        />
+      </div>
+    );
+  }
+
+  const placeholder =
+    topicsPolicy === "optional" ? "Тема (необязательно)" : "Тема";
+
   return (
     <div className={styles.row}>
       <ChannelSelectorButton
@@ -171,7 +201,7 @@ function ChannelTopicRow({
           onKeyDown={onTopicKeyDown}
           onFocus={typeahead.handleFocus}
           onBlur={typeahead.handleBlur}
-          placeholder="Тема"
+          placeholder={placeholder}
           disabled={disabled || streamId === undefined}
           aria-label="Тема"
           aria-autocomplete="list"

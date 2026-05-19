@@ -35,6 +35,7 @@
 
 .emoji {
   flex-shrink: 0;
+  font-size: var(--emoji-size-inline);
   line-height: 1;
 }
 

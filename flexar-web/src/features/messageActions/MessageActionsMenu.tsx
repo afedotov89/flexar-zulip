@@ -71,10 +71,32 @@ export function MessageActionsMenu({
   const flags = useMessagesStore((s) => s.getFlags(message.id));
   const applyOptimisticFlag = useMessagesStore((s) => s.applyOptimisticFlag);
   const realmUrl = useRealmStore((s) => s.realm?.realm_url);
-
+  const allowEditing = useRealmStore(
+    (s) => s.realm?.realm_allow_message_editing ?? true,
+  );
+  const editLimitSeconds = useRealmStore(
+    (s) => s.realm?.realm_message_content_edit_limit_seconds ?? 0,
+  );
   const isStarred = flags.includes("starred");
   const isOwnMessage =
     viewerId !== undefined && message.sender_id === viewerId;
+
+  // The server enforces a per-realm content-edit window — and the
+  // limit applies to everyone, admins included (only topic-only
+  // edits have admin overrides on the Zulip side). Surface the same
+  // rule in the menu so users don't get an "Время для редактирования
+  // истекло" surprise after clicking Edit and waiting for the form
+  // to load.
+  //
+  //   - `realm_allow_message_editing === false` → editing is off
+  //     realm-wide, no matter who or when.
+  //   - `realm_message_content_edit_limit_seconds === 0` → unlimited.
+  //   - Otherwise → must be within the window from the message's
+  //     send timestamp.
+  const withinEditWindow =
+    editLimitSeconds === 0 ||
+    Date.now() / 1000 - message.timestamp <= editLimitSeconds;
+  const canEdit = isOwnMessage && allowEditing && withinEditWindow;
 
   const toggleFlag = useCallback(
     async (op: "add" | "remove", flag: string): Promise<void> => {
@@ -187,11 +209,13 @@ export function MessageActionsMenu({
   }
   if (isOwnMessage) {
     items.push({ id: "sep-own", separator: true });
-    items.push({
-      id: "edit",
-      label: "Редактировать",
-      onSelect: onEditRequested,
-    } satisfies DropdownMenuItem);
+    if (canEdit) {
+      items.push({
+        id: "edit",
+        label: "Редактировать",
+        onSelect: onEditRequested,
+      } satisfies DropdownMenuItem);
+    }
     items.push({
       id: "delete",
       label: "Удалить сообщение",

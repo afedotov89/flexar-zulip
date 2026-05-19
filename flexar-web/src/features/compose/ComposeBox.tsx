@@ -29,7 +29,8 @@ import {
 import { Banner } from "../../components/Banner";
 import { apiClient } from "../../api";
 import { describeApiError } from "../../lib/errors";
-import type { Narrow, UserId } from "../../domain";
+import { resolveTopicsPolicy } from "../../lib/topicsPolicy";
+import type { Message, Narrow, UserId } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
 import { useDraftsStore } from "../../stores/draftsStore";
 import { useMessagesStore } from "../../stores/messagesStore";
@@ -37,7 +38,9 @@ import { useRealmStore } from "../../stores/realmStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { Button } from "../../components/Button";
 import { useComposeFocusStore } from "./composeFocusSignal";
+import { useComposeEditingStore } from "./editingStore";
 import {
   composeFromNarrow,
   type ComposeFromNarrow,
@@ -50,7 +53,6 @@ import {
   type OptimisticSender,
 } from "./optimisticMessage";
 import { ComposePreview } from "./ComposePreview";
-import { DraftsCount } from "./DraftsCount";
 import { EmojiPickerButton } from "./EmojiPicker";
 import { FormattingToolbar, type FormattingCommand } from "./FormattingToolbar";
 import { LimitIndicator } from "./LimitIndicator";
@@ -64,6 +66,12 @@ import {
   type SelectionRange,
 } from "./markdownInsert";
 import { RecipientRow } from "./recipient";
+
+// FIXME: extract the textarea-command dispatch (insertAtCursor /
+// applyMarkdown / runCommand below) into a reusable hook. Today the
+// edit-mode branch reuses the same instance because edit is just
+// "compose in a different mode" — but if a second consumer ever
+// appears we want one canonical impl.
 import {
   UploadButton,
   UploadChips,
@@ -117,9 +125,15 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const maxMessageLength = useRealmStore(
     (s) => s.realm?.max_message_length ?? DEFAULT_MAX_MESSAGE_LENGTH,
   );
+  const realmMandatoryTopics = useRealmStore(
+    (s) => s.realm?.realm_mandatory_topics,
+  );
   const insertOptimistic = useMessagesStore((s) => s.insertOptimistic);
   const reconcileOptimistic = useMessagesStore((s) => s.reconcileOptimistic);
   const removeOptimistic = useMessagesStore((s) => s.removeOptimistic);
+  const applyOptimisticEdit = useMessagesStore((s) => s.applyOptimisticEdit);
+  const restoreMessage = useMessagesStore((s) => s.restoreMessage);
+  const getMessage = useMessagesStore((s) => s.getMessage);
   const saveDraftAction = useDraftsStore((s) => s.saveDraft);
   const deleteDraftAction = useDraftsStore((s) => s.deleteDraft);
   const getDraftAction = useDraftsStore((s) => s.getDraft);
@@ -197,6 +211,71 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   const draftKey = useMemo(() => draftKeyFor(fromNarrow), [fromNarrow]);
   const [showRestoredHint, setShowRestoredHint] = useState(false);
 
+  // Edit-mode (Telegram-style unified input): when set, this compose
+  // box switches to "edit this message" — pre-fill with raw Markdown
+  // source, Save+Cancel instead of Send, hide the recipient row
+  // (destination doesn't change on edit). See `editingStore` for
+  // why we keep this in a global slot.
+  const editingMessageId = useComposeEditingStore((s) => s.editingMessageId);
+  const stopEditing = useComposeEditingStore((s) => s.stopEditing);
+  const isEditing = editingMessageId !== null;
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editLoadError, setEditLoadError] = useState<string | null>(null);
+  // The draft we replaced when entering edit mode — restored on
+  // cancel/save so the user doesn't lose what they were typing
+  // before fixing a previous message.
+  const stashedContentRef = useRef<string | null>(null);
+
+  // Drive the edit transition on `editingMessageId` change:
+  //   non-null  → stash current draft, fetch raw Markdown, replace
+  //               textarea content + cache the Message snapshot for
+  //               the failure-restore path.
+  //   null      → restore the stashed draft (if any), drop snapshot.
+  useEffect(() => {
+    if (editingMessageId === null) {
+      if (stashedContentRef.current === null) {
+        return;
+      }
+      const restored = stashedContentRef.current;
+      stashedContentRef.current = null;
+      setForm((c) => ({ ...c, content: restored }));
+      setEditingMessage(null);
+      setEditLoadError(null);
+      return;
+    }
+    // Functional setForm so we snapshot the current draft inside the
+    // setState callback without listing form.content in deps (which
+    // would re-fire this effect on every keystroke while editing).
+    setForm((c) => {
+      stashedContentRef.current = c.content;
+      return c;
+    });
+    setEditLoadError(null);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raw = await apiClient.getRawContent(editingMessageId);
+        if (cancelled) {
+          return;
+        }
+        setEditingMessage(getMessage(editingMessageId) ?? null);
+        pendingTextareaCursor.current = raw.length;
+        setForm((c) => ({ ...c, content: raw }));
+        setShowRestoredHint(false);
+      } catch (cause) {
+        if (cancelled) {
+          return;
+        }
+        setEditLoadError(
+          describeApiError(cause, "Не удалось загрузить сообщение."),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editingMessageId, getMessage]);
+
   // Re-apply prefill when the URL narrow changes. Body comes from the
   // saved draft for the destination (if any), otherwise blank.
   useEffect(() => {
@@ -251,8 +330,19 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   ]);
 
   const formMode: "channel" | "direct" | "none" = fromNarrow.mode;
-  const topicsTopic = form.topic.trim();
   const channelStreamId = form.streamId;
+  // Resolve the channel's effective topics policy. When the channel is
+  // `empty_only` the user can't pick a topic at all and every message
+  // lands in the empty topic; we coerce here so the rest of the form
+  // sends `""` rather than whatever the writer typed before flipping
+  // to a chat-style channel.
+  const channelForTopics =
+    channelStreamId !== undefined ? getStream(channelStreamId) : undefined;
+  const topicsPolicy = resolveTopicsPolicy(channelForTopics, {
+    realm_mandatory_topics: realmMandatoryTopics,
+  });
+  const rawTopic = form.topic.trim();
+  const topicsTopic = topicsPolicy === "empty_only" ? "" : rawTopic;
 
   const dmRecipientIds = useMemo(
     () => (formMode === "direct" ? form.recipientIds : []),
@@ -273,7 +363,10 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         return null;
       }
       if (formMode === "channel") {
-        if (channelStreamId === undefined || topicsTopic === "") {
+        if (channelStreamId === undefined) {
+          return null;
+        }
+        if (topicsPolicy === "mandatory" && topicsTopic === "") {
           return null;
         }
         return {
@@ -300,6 +393,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       formMode,
       channelStreamId,
       topicsTopic,
+      topicsPolicy,
     ],
   );
 
@@ -339,17 +433,81 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   }, [form.content, textareaNode]);
 
   const canSend =
+    !isEditing &&
     !sending &&
     form.content.trim() !== "" &&
     form.content.length <= maxMessageLength &&
     (formMode === "channel"
-      ? channelStreamId !== undefined && topicsTopic !== ""
+      ? channelStreamId !== undefined &&
+        (topicsPolicy !== "mandatory" || topicsTopic !== "")
       : formMode === "direct" && form.recipientIds.length > 0);
+
+  const canSave =
+    isEditing &&
+    !sending &&
+    form.content.trim() !== "" &&
+    form.content.length <= maxMessageLength;
+
+  const handleSaveEdit = useCallback(async (): Promise<void> => {
+    if (editingMessageId === null || sending) {
+      return;
+    }
+    const content = form.content.trim();
+    if (content === "") {
+      return;
+    }
+    // No-op edit (content unchanged) — just leave edit mode, no
+    // REST round-trip. `editingMessage` is the snapshot we cached
+    // on entry; compare against its raw content (best effort —
+    // server may have re-rendered, but trimmed strings should
+    // match for the no-op case the user perceives).
+    const snapshot = editingMessage;
+    if (snapshot !== null && content === snapshot.content.trim()) {
+      stopEditing();
+      return;
+    }
+    setSending(true);
+    setErrorMessage(null);
+    if (snapshot !== null) {
+      applyOptimisticEdit({ message_id: editingMessageId, content });
+    }
+    try {
+      await apiClient.editMessage(editingMessageId, { content });
+      // Stop editing — the effect will restore the stashed draft.
+      stopEditing();
+    } catch (cause) {
+      if (snapshot !== null) {
+        restoreMessage(snapshot);
+      }
+      setErrorMessage(
+        describeApiError(cause, "Не удалось сохранить изменения."),
+      );
+    } finally {
+      setSending(false);
+    }
+  }, [
+    applyOptimisticEdit,
+    editingMessage,
+    editingMessageId,
+    form.content,
+    restoreMessage,
+    sending,
+    stopEditing,
+  ]);
+
+  const handleCancelEdit = useCallback(() => {
+    stopEditing();
+    setErrorMessage(null);
+  }, [stopEditing]);
 
   const onSubmit = useCallback(
     async (event?: FormEvent<HTMLFormElement>): Promise<void> => {
       event?.preventDefault();
       if (sending) {
+        return;
+      }
+      if (isEditing) {
+        await handleSaveEdit();
         return;
       }
       const content = form.content.trim();
@@ -373,7 +531,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
           setErrorMessage("Выберите канал для отправки.");
           return;
         }
-        if (topicsTopic === "") {
+        if (topicsPolicy === "mandatory" && topicsTopic === "") {
           setErrorMessage("В этом канале нужна тема.");
           return;
         }
@@ -450,6 +608,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       getStream,
       channelStreamId,
       topicsTopic,
+      topicsPolicy,
       insertOptimistic,
       reconcileOptimistic,
       removeOptimistic,
@@ -457,6 +616,8 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       draftKey,
       deleteDraftAction,
       typing,
+      isEditing,
+      handleSaveEdit,
     ],
   );
 
@@ -558,6 +719,29 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       if (textareaTypeahead.handleKeyDown(event)) {
         return;
       }
+      // Edit-mode shortcuts mirror Telegram / GitHub PR comments:
+      //   Escape         — cancel
+      //   Ctrl/Cmd+Enter — save
+      //   Enter          — newline (default; do NOT submit, since the
+      //                    user is correcting an existing message and
+      //                    accidental saves on a press-and-think are
+      //                    a real cost).
+      if (isEditing) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          handleCancelEdit();
+          return;
+        }
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          if (event.nativeEvent.isComposing) {
+            return;
+          }
+          event.preventDefault();
+          void handleSaveEdit();
+        }
+        return;
+      }
+      // Send-mode shortcut: Enter sends, Shift+Enter inserts a newline.
       if (event.key !== "Enter" || event.shiftKey) {
         return;
       }
@@ -567,7 +751,13 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
       event.preventDefault();
       void onSubmit();
     },
-    [onSubmit, textareaTypeahead],
+    [
+      onSubmit,
+      textareaTypeahead,
+      isEditing,
+      handleCancelEdit,
+      handleSaveEdit,
+    ],
   );
 
   // Toolbar command dispatch. Pure callbacks hand off to the right
@@ -628,38 +818,32 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
     [applyMarkdown, insertAtCursor],
   );
 
-  // Contextual placeholder: tells the user where the message goes.
-  const placeholder = useMemo<string>(() => {
-    if (formMode === "channel") {
-      if (channelStreamId === undefined) {
-        return "Выберите канал…";
-      }
-      const channelName = getStream(channelStreamId)?.name ?? "канал";
-      if (topicsTopic === "") {
-        return `Написать в # ${channelName}`;
-      }
-      return `Написать в # ${channelName} › ${topicsTopic}`;
-    }
-    if (formMode === "direct") {
-      if (form.recipientIds.length === 0) {
-        return "Выберите получателей…";
-      }
-      if (form.recipientIds.length === 1) {
-        const id = form.recipientIds[0];
-        const name = getUser(id)?.full_name ?? `User ${id}`;
-        return `Написать ${name}`;
-      }
-      return "Написать в группу";
-    }
-    return "Выберите канал или беседу…";
-  }, [
-    formMode,
-    channelStreamId,
-    topicsTopic,
-    form.recipientIds,
-    getStream,
-    getUser,
-  ]);
+  // The persistent navbar/breadcrumbs above the feed already name the
+  // destination — repeating it as the textarea placeholder produced
+  // the "triple address" UX problem the redesign fixes. A single
+  // generic prompt is enough.
+  const placeholder = "Сообщение";
+
+  // Hide the recipient row when the URL narrow already fully
+  // determines the destination (channel + topic, or DM with
+  // participants). Show it only when the writer still needs to
+  // resolve something — a channel narrow without a topic, a new DM
+  // compose without recipients — so the same form covers those
+  // cases without dragging chrome through the common path.
+  //
+  // Anchored on the URL narrow, NOT on the current form state — if
+  // we read the form, the row would unmount the moment the user
+  // started typing the topic (because `form.topic` became
+  // non-empty), and they'd lose focus mid-keystroke.
+  //
+  // Always hidden in edit mode — editing doesn't change destination.
+  const showRecipientRow =
+    !isEditing &&
+    (fromNarrow.mode === "channel"
+      ? fromNarrow.streamId === undefined || fromNarrow.topic === ""
+      : fromNarrow.mode === "direct"
+        ? fromNarrow.recipientIds.length === 0
+        : false);
 
   // Narrows that don't address a specific recipient (search,
   // is:starred / is:mentioned / is:resolved, etc.) can't accept a
@@ -668,7 +852,14 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
   // bottom of the screen, often still showing a draft restored from
   // the user's last channel narrow. Replace it with a single-line
   // hint that explains how to start writing instead.
-  if (formMode === "none") {
+  //
+  // EXCEPTION: edit mode always renders the form regardless of
+  // narrow, because editing doesn't address a recipient — it
+  // updates the message in place. Without this carve-out, clicking
+  // "Edit" on a message visible in Combined Feed / Mentions /
+  // Reactions silently fails: the row says "Редактируется в форме
+  // ниже" but there is no form to land in.
+  if (formMode === "none" && !isEditing) {
     return (
       <div className={styles.composeUnavailable} role="status">
         В этом виде нельзя начать сообщение — выберите канал, тему или
@@ -693,29 +884,41 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         </div>
       )}
 
-      <RecipientRow
-        {...(formMode === "channel"
-            ? {
-                mode: "channel" as const,
-                streamId: channelStreamId,
-                onChannelChange: (newStreamId) =>
-                  setForm((current) => ({
-                    ...current,
-                    streamId: newStreamId,
-                  })),
-                topic: form.topic,
-                onTopicChange: (newTopic) =>
-                  setForm((current) => ({ ...current, topic: newTopic })),
-                disabled: sending,
-              }
-            : {
-                mode: "direct" as const,
-                recipientIds: form.recipientIds,
-                onRecipientsChange: (next) =>
-                  setForm((current) => ({ ...current, recipientIds: next })),
-                disabled: sending,
-              })}
-      />
+      {isEditing && (
+        <p className={styles.editingCaption} aria-live="polite">
+          Редактирование сообщения
+          {editLoadError !== null && (
+            <span className={styles.editingError}> · {editLoadError}</span>
+          )}
+        </p>
+      )}
+
+      {showRecipientRow && (
+        <RecipientRow
+          {...(formMode === "channel"
+              ? {
+                  mode: "channel" as const,
+                  streamId: channelStreamId,
+                  onChannelChange: (newStreamId) =>
+                    setForm((current) => ({
+                      ...current,
+                      streamId: newStreamId,
+                    })),
+                  topic: form.topic,
+                  onTopicChange: (newTopic) =>
+                    setForm((current) => ({ ...current, topic: newTopic })),
+                  topicsPolicy,
+                  disabled: sending,
+                }
+              : {
+                  mode: "direct" as const,
+                  recipientIds: form.recipientIds,
+                  onRecipientsChange: (next) =>
+                    setForm((current) => ({ ...current, recipientIds: next })),
+                  disabled: sending,
+                })}
+        />
+      )}
 
       {showRestoredHint && (
         <p className={styles.restoredHint} aria-live="polite">
@@ -723,7 +926,7 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
         </p>
       )}
 
-      <div className={styles.editorWrap}>
+      <div className={styles.editorFrame}>
         {previewOpen ? (
           <div className={styles.previewBox}>
             <ComposePreview content={form.content} />
@@ -788,53 +991,76 @@ export function ComposeBox({ narrow }: ComposeBoxProps): React.JSX.Element {
             />
           </>
         )}
+
+        <UploadChips
+          uploads={uploadManager.uploads}
+          onCancel={uploadManager.cancel}
+          onDismiss={uploadManager.dismiss}
+        />
+
+        <FormattingToolbar
+          previewOpen={previewOpen}
+          composeEmpty={form.content.trim() === ""}
+          disabled={sending}
+          maximized={isMaximized}
+          onMaximizeToggle={() => setIsMaximized((v) => !v)}
+          onCommand={runCommand}
+          slots={{
+            upload: (
+              <UploadButton
+                onFilesChosen={enqueueFiles}
+                disabled={sending || previewOpen}
+              />
+            ),
+            emoji: (
+              <EmojiPickerButton
+                onPick={insertAtCursor}
+                disabled={sending || previewOpen}
+              />
+            ),
+          }}
+          trailing={
+            isEditing ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={handleCancelEdit}
+                  disabled={sending}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  loading={sending}
+                  disabled={!canSave}
+                >
+                  Сохранить
+                </Button>
+              </>
+            ) : (
+              <>
+                <LimitIndicator
+                  count={form.content.length}
+                  limit={maxMessageLength}
+                />
+                <SendMenu
+                  canSend={canSend}
+                  sending={sending}
+                  onSend={() => void onSubmit()}
+                  buildScheduleParams={buildScheduleParams}
+                  onScheduled={handleScheduled}
+                  onError={setErrorMessage}
+                />
+              </>
+            )
+          }
+        />
       </div>
 
-      <UploadChips
-        uploads={uploadManager.uploads}
-        onCancel={uploadManager.cancel}
-        onDismiss={uploadManager.dismiss}
-      />
-
-      <FormattingToolbar
-        previewOpen={previewOpen}
-        composeEmpty={form.content.trim() === ""}
-        disabled={sending}
-        maximized={isMaximized}
-        onMaximizeToggle={() => setIsMaximized((v) => !v)}
-        onCommand={runCommand}
-        slots={{
-          upload: (
-            <UploadButton
-              onFilesChosen={enqueueFiles}
-              disabled={sending || previewOpen}
-            />
-          ),
-          emoji: (
-            <EmojiPickerButton
-              onPick={insertAtCursor}
-              disabled={sending || previewOpen}
-            />
-          ),
-        }}
-      />
-
-      <div className={styles.bottomRow}>
-        <DraftsCount />
-        <span className={styles.spacer} />
-        <LimitIndicator
-          count={form.content.length}
-          limit={maxMessageLength}
-        />
-        <SendMenu
-          canSend={canSend}
-          sending={sending}
-          onSend={() => void onSubmit()}
-          buildScheduleParams={buildScheduleParams}
-          onScheduled={handleScheduled}
-          onError={setErrorMessage}
-        />
-      </div>
     </form>
   );
 }

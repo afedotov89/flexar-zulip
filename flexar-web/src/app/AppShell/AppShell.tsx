@@ -33,7 +33,15 @@ import { NetworkStatusBanner } from "../../features/networkStatus";
 import { NotificationCenter } from "../../features/notifications";
 import { GlobalShortcuts, KeyboardHelpOverlay } from "../../features/keyboard";
 import { useI18n } from "../../lib/i18n";
+import { usePresenceEmitter } from "../../lib/hooks/usePresenceEmitter";
 import { useDrawerStore } from "./drawerStore";
+// Side-effect import: loads the user-groups store at app-shell mount so
+// its `wireStore` registers `onInitialState` and event listeners before
+// the realtime connection's `start()` runs. Without this the directory
+// would only hydrate the first time a UI consumer (admin groups page,
+// group mention popover) is opened, missing every `user_group` event
+// that landed in between.
+import "../../stores/userGroupsStore";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -41,6 +49,12 @@ export function AppShell() {
   const drawerOpen = useDrawerStore((s) => s.open);
   const closeDrawer = useDrawerStore((s) => s.close);
   const location = useLocation();
+
+  // Keep the signed-in user's presence "active" so other clients
+  // see them as in-the-tab instead of decaying to "idle" /
+  // "offline". The hook handles the full lifecycle (interval +
+  // visibility change).
+  usePresenceEmitter();
 
   // Close any open drawer on a route change. Drawers are a way to
   // pick a destination; once a destination is picked, the drawer's

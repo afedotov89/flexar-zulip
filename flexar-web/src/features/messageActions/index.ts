@@ -1,18 +1,14 @@
 // Flexar Hub Web — message actions feature public surface (Phase 3.3).
 //
-// `MessageRow` mounts the actions menu, the inline edit form, and the
-// delete-confirm modal; the parent owns the open/close state for the
-// edit and delete affordances and the inline-error / inline-notice
-// surface near the toolbar.
+// `MessageRow` mounts the actions menu and the delete-confirm modal;
+// edit, since the Telegram-style unification, goes through the
+// global `useComposeEditingStore` and is handled by the compose box
+// at the bottom of the screen, not an inline form.
 
 export {
   MessageActionsMenu,
   type MessageActionsMenuProps,
 } from "./MessageActionsMenu";
-export {
-  EditMessageForm,
-  type EditMessageFormProps,
-} from "./EditMessageForm";
 export {
   DeleteConfirmModal,
   type DeleteConfirmModalProps,

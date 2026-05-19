@@ -36,6 +36,7 @@ export type {
 export type {
   ChannelBase,
   ChannelPermissionGroups,
+  ChannelTopicsPolicy,
   Stream,
   Subscription,
   Topic,
@@ -64,10 +65,13 @@ export type { ChannelFolder, OwnUser, Realm } from "./realm";
 
 export type { ScheduledMessage, ScheduledMessageType } from "./scheduledMessage";
 
+export type { UserGroup } from "./userGroup";
+
 export type {
   DefaultStreamsEvent,
   DeleteMessageEvent,
   HeartbeatEvent,
+  LegacyPerClientPresence,
   MessageEvent,
   PresenceEvent,
   ReactionEvent,
@@ -101,6 +105,14 @@ export type {
   UnknownEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
+  UserGroupAddEvent,
+  UserGroupAddMembersEvent,
+  UserGroupAddSubgroupsEvent,
+  UserGroupEvent,
+  UserGroupRemoveEvent,
+  UserGroupRemoveMembersEvent,
+  UserGroupRemoveSubgroupsEvent,
+  UserGroupUpdateEvent,
   UserStatusEvent,
   UserTopicEvent,
 } from "./events";

@@ -1,31 +1,36 @@
 // "Последние" — the recent-conversations screen.
 //
 // Lists every conversation the viewer has been part of recently —
-// channel topics and DMs alike — sorted by the timestamp of the
-// most recent message, newest first. Each row shows the recipient,
-// the latest message's sender + snippet, and a short relative time
-// ("сейчас" / "5 м" / "вчера" / dated). Clicking a row navigates the
-// feed into that conversation's narrow.
+// channel topics and DMs alike — sorted by the timestamp of the most
+// recent message, newest first. Each row is a Telegram-style chat
+// pill: avatar on the left (last sender for channels, the partner
+// for DMs), recipient name + topic on the top line, message snippet
+// on the second line, relative time on the right. Clicking a row
+// navigates the feed into that conversation's narrow.
+//
+// The avatar-led rhythm is intentionally the same as `MessageRow` in
+// the feed — directory and reading view share one visual language so
+// the eye doesn't have to re-learn what a row means when the user
+// switches between them.
 //
 // Data: a one-shot `getMessages` fetch on mount (anchor=newest,
 // numBefore=100, narrow=[]) — same call the combined feed would
 // make, used here to populate the recent-conversations list without
 // reaching for a virtualisation hook we don't need on this screen.
-// 100 messages is enough to fill a screen for active orgs without
-// fetching pages the user won't scroll to.
-//
-// We re-fetch on mount each visit rather than caching: the screen
-// is consulted ad-hoc, the data is small, and a stale "last activity
+// We re-fetch on mount each visit rather than caching: the screen is
+// consulted ad-hoc, the data is small, and a stale "last activity
 // 3 hours ago" reading on something that just had a new reply would
 // feel broken.
 
 import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../api";
+import { Avatar } from "../../components/Avatar";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
-import { Spinner } from "../../components/Spinner";
+import { PageHeader } from "../../components/PageHeader";
+import { MessageRowsSkeleton } from "../../components/MessageRowsSkeleton";
 import type {
   DirectMessageRecipient,
   Message,
@@ -35,6 +40,7 @@ import type {
 import { describeApiError } from "../../lib/errors";
 import { useNarrowNavigation } from "../../lib/narrow";
 import { htmlToPlainText } from "../../lib/renderedContent";
+import { useAuthStore } from "../../stores/authStore";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import styles from "./Recent.module.css";
@@ -47,14 +53,19 @@ interface RecentRow {
   key: string;
   /** Where clicking the row should navigate. */
   narrow: Narrow;
-  /** Icon for the leading slot. */
-  iconName: "hash" | "user";
-  /** Primary line: channel name + topic, or DM partner names. */
-  primary: string;
-  /** Optional secondary segment for topics: shown after a chevron. */
-  secondary?: string;
-  /** Latest message's author. */
-  author: string;
+  /**
+   * The recipient bar's identity — channel + topic, or DM partner(s).
+   * Discriminated so the bar can render the right leading icon
+   * (`hash` for channels, `user` for DMs).
+   */
+  recipient:
+    | { kind: "channel"; channelName: string; topic: string }
+    | { kind: "dm"; participants: string };
+  /** Avatar / sender for the embedded mini-message row. */
+  senderName: string;
+  senderAvatarUrl: string | undefined;
+  /** Was the latest message sent by the viewer? */
+  authorIsViewer: boolean;
   /** First line of the latest message, trimmed of HTML markup. */
   snippet: string;
   /** Message timestamp (Unix seconds) — sort key + relative-time source. */
@@ -90,6 +101,7 @@ export function Recent(): React.JSX.Element {
     | { kind: "error"; message: string }
     | { kind: "ready"; messages: readonly Message[] }
   >({ kind: "loading" });
+  const ownUserId = useAuthStore((s) => s.session?.userId);
   const subscriptions = useStreamsStore((s) => s.subscriptions);
   const usersMap = useUsersStore((s) => s.users);
   const { goToNarrow } = useNarrowNavigation();
@@ -139,21 +151,20 @@ export function Recent(): React.JSX.Element {
     for (const message of status.messages) {
       let key: string;
       let narrow: Narrow;
-      let iconName: "hash" | "user";
-      let primary: string;
-      let secondary: string | undefined;
+      let recipient: RecentRow["recipient"];
       if (message.type === "stream" && message.stream_id !== undefined) {
         const streamId = message.stream_id as StreamId;
-        const topic = message.subject;
-        key = `stream:${streamId}:${topic}`;
+        const topicName = message.subject;
+        key = `stream:${streamId}:${topicName}`;
         narrow = [
           { operator: "channel", operand: streamId },
-          { operator: "topic", operand: topic },
+          { operator: "topic", operand: topicName },
         ];
-        iconName = "hash";
-        primary =
-          subscriptions[streamId]?.name ?? `Канал ${streamId}`;
-        secondary = topic === "" ? "(без темы)" : topic;
+        recipient = {
+          kind: "channel",
+          channelName: subscriptions[streamId]?.name ?? `Канал ${streamId}`,
+          topic: topicName === "" ? "(без темы)" : topicName,
+        };
       } else if (Array.isArray(message.display_recipient)) {
         const ids = (message.display_recipient as DirectMessageRecipient[])
           .map((r) => r.id)
@@ -161,24 +172,36 @@ export function Recent(): React.JSX.Element {
           .sort((a, b) => a - b);
         key = `dm:${ids.join(",")}`;
         narrow = [{ operator: "dm", operand: ids }];
-        iconName = "user";
-        const names = ids.map(
+        const others =
+          ownUserId === undefined
+            ? ids
+            : ids.filter((id) => id !== ownUserId);
+        const namedOthers = others.map(
           (id) => usersMap[id]?.full_name ?? `Пользователь ${id}`,
         );
-        primary = names.join(", ") || "Личная беседа";
+        recipient = {
+          kind: "dm",
+          participants:
+            namedOthers.length === 0
+              ? "Личная беседа"
+              : namedOthers.join(", "),
+        };
       } else {
         continue;
       }
       if (seen.has(key)) {
         continue;
       }
+      const sender = usersMap[message.sender_id];
       seen.set(key, {
         key,
         narrow,
-        iconName,
-        primary,
-        secondary,
-        author: message.sender_full_name,
+        recipient,
+        senderName: message.sender_full_name,
+        senderAvatarUrl:
+          message.avatar_url ?? sender?.avatar_url ?? undefined,
+        authorIsViewer:
+          ownUserId !== undefined && message.sender_id === ownUserId,
         snippet: htmlToPlainText(message.content, {
           maxLength: SNIPPET_CHARS,
         }),
@@ -191,15 +214,13 @@ export function Recent(): React.JSX.Element {
     return Array.from(seen.values()).sort(
       (a, b) => b.timestamp - a.timestamp,
     );
-  }, [status, subscriptions, usersMap]);
+  }, [status, subscriptions, usersMap, ownUserId]);
 
   if (status.kind === "loading") {
     return (
       <div className={styles.page}>
-        <h1 className={styles.heading}>Последние</h1>
-        <div className={styles.loading}>
-          <Spinner size="md" aria-label="Загрузка недавних бесед" />
-        </div>
+        <PageHeader icon="recent" title="Последние" />
+        <MessageRowsSkeleton />
       </div>
     );
   }
@@ -207,7 +228,7 @@ export function Recent(): React.JSX.Element {
   if (status.kind === "error") {
     return (
       <div className={styles.page}>
-        <h1 className={styles.heading}>Последние</h1>
+        <PageHeader icon="recent" title="Последние" />
         <Banner tone="danger">{status.message}</Banner>
       </div>
     );
@@ -216,7 +237,7 @@ export function Recent(): React.JSX.Element {
   if (rows.length === 0) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.heading}>Последние</h1>
+        <PageHeader icon="recent" title="Последние" />
         <EmptyState
           icon="recent"
           title="Пока ничего нет"
@@ -239,7 +260,7 @@ export function Recent(): React.JSX.Element {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Последние</h1>
+      <PageHeader icon="recent" title="Последние" />
       <ul className={styles.list}>
         {rows.map((row) => (
           <li key={row.key} className={styles.row}>
@@ -248,31 +269,63 @@ export function Recent(): React.JSX.Element {
               className={styles.rowButton}
               onClick={() => goToNarrow(row.narrow)}
             >
-              <Icon
-                name={row.iconName}
-                size="sm"
-                className={styles.leadingIcon}
-              />
-              <div className={styles.body}>
-                <div className={styles.titleLine}>
-                  <span className={styles.primary}>{row.primary}</span>
-                  {row.secondary !== undefined && (
-                    <>
-                      <span className={styles.separator} aria-hidden="true">
-                        ›
-                      </span>
-                      <span className={styles.secondary}>{row.secondary}</span>
-                    </>
-                  )}
-                </div>
-                <div className={styles.snippetLine}>
-                  <span className={styles.author}>{row.author}:</span>{" "}
-                  <span className={styles.snippet}>{row.snippet}</span>
+              {/* Recipient bar — matches the message-feed's
+                  RecipientBar appearance (same icon + name +
+                  topic vocabulary, same surface-raised band). */}
+              <div className={styles.bar}>
+                {row.recipient.kind === "channel" ? (
+                  <>
+                    <Icon
+                      name="hash"
+                      size="sm"
+                      className={styles.barIcon}
+                    />
+                    <span className={styles.barName}>
+                      {row.recipient.channelName}
+                    </span>
+                    <span className={styles.barSeparator} aria-hidden="true">
+                      ›
+                    </span>
+                    <span className={styles.barTopic}>
+                      {row.recipient.topic}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Icon
+                      name="user"
+                      size="sm"
+                      className={styles.barIcon}
+                    />
+                    <span className={styles.barName}>
+                      {row.recipient.participants}
+                    </span>
+                  </>
+                )}
+              </div>
+              {/* Mini message-row — same `gutter | body` rhythm as
+                  feed's MessageRow: avatar in a fixed gutter,
+                  sender + time header, snippet underneath. */}
+              <div className={styles.messageRow}>
+                <span className={styles.gutter}>
+                  <Avatar
+                    size="md"
+                    name={row.senderName}
+                    src={row.senderAvatarUrl}
+                  />
+                </span>
+                <div className={styles.messageBody}>
+                  <div className={styles.messageHeader}>
+                    <span className={styles.sender}>
+                      {row.authorIsViewer ? "Я" : row.senderName}
+                    </span>
+                    <time className={styles.time}>
+                      {relativeTime(row.timestamp, now)}
+                    </time>
+                  </div>
+                  <div className={styles.snippet}>{row.snippet}</div>
                 </div>
               </div>
-              <span className={styles.time}>
-                {relativeTime(row.timestamp, now)}
-              </span>
             </button>
           </li>
         ))}

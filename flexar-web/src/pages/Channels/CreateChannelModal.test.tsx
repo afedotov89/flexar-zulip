@@ -16,8 +16,9 @@ vi.mock("../../realtime", () => ({
   },
 }));
 
-const { createChannelMock } = vi.hoisted(() => ({
+const { createChannelMock, getUserGroupsMock } = vi.hoisted(() => ({
   createChannelMock: vi.fn(),
+  getUserGroupsMock: vi.fn(),
 }));
 vi.mock("../../api", async () => {
   const actual =
@@ -26,14 +27,26 @@ vi.mock("../../api", async () => {
     ...actual,
     apiClient: {
       createChannel: createChannelMock,
+      getUserGroups: getUserGroupsMock,
     },
   };
 });
 
 import { CreateChannelModal } from "./CreateChannelModal";
 
+// Stable fixture of the four posting-policy system groups. The numeric
+// ids are arbitrary — the modal looks them up by `name`.
+const SYSTEM_GROUP_FIXTURE = [
+  { id: 11, name: "role:everyone", is_system_group: true },
+  { id: 12, name: "role:fullmembers", is_system_group: true },
+  { id: 13, name: "role:moderators", is_system_group: true },
+  { id: 14, name: "role:administrators", is_system_group: true },
+];
+
 beforeEach(() => {
   createChannelMock.mockReset();
+  getUserGroupsMock.mockReset();
+  getUserGroupsMock.mockResolvedValue(SYSTEM_GROUP_FIXTURE);
 });
 
 describe("CreateChannelModal — submit gating", () => {
@@ -69,11 +82,14 @@ describe("CreateChannelModal — privacy radios", () => {
     fireEvent.click(screen.getByRole("button", { name: "Создать" }));
 
     await waitFor(() => {
-      expect(createChannelMock).toHaveBeenCalledWith({
-        name: "marketing",
-        description: undefined,
-        privacy: "public",
-      });
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "marketing",
+          description: undefined,
+          privacy: "public",
+          topicsPolicy: undefined,
+        }),
+      );
     });
     expect(onClose).toHaveBeenCalled();
   });
@@ -91,11 +107,14 @@ describe("CreateChannelModal — privacy radios", () => {
     fireEvent.click(screen.getByRole("button", { name: "Создать" }));
 
     await waitFor(() => {
-      expect(createChannelMock).toHaveBeenCalledWith({
-        name: "secret",
-        description: undefined,
-        privacy: "private",
-      });
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "secret",
+          description: undefined,
+          privacy: "private",
+          topicsPolicy: undefined,
+        }),
+      );
     });
   });
 
@@ -112,11 +131,93 @@ describe("CreateChannelModal — privacy radios", () => {
     fireEvent.click(screen.getByRole("button", { name: "Создать" }));
 
     await waitFor(() => {
-      expect(createChannelMock).toHaveBeenCalledWith({
-        name: "marketing",
-        description: "Маркетинг и кампании",
-        privacy: "public",
-      });
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "marketing",
+          description: "Маркетинг и кампании",
+          privacy: "public",
+          topicsPolicy: undefined,
+        }),
+      );
+    });
+  });
+});
+
+describe("CreateChannelModal — topics policy", () => {
+  it("defaults to inherit (no override on the wire)", async () => {
+    createChannelMock.mockResolvedValueOnce(undefined);
+    render(<CreateChannelModal open onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Название"), {
+      target: { value: "general" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => {
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ topicsPolicy: undefined }),
+      );
+    });
+  });
+
+  it("forwards empty_topic_only when the 'Без тем' radio is selected", async () => {
+    createChannelMock.mockResolvedValueOnce(undefined);
+    render(<CreateChannelModal open onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Название"), {
+      target: { value: "general" },
+    });
+    fireEvent.click(screen.getByLabelText("Без тем (общий чат)"));
+    fireEvent.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => {
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ topicsPolicy: "empty_topic_only" }),
+      );
+    });
+  });
+
+  it("forwards disable_empty_topic when the 'Темы обязательны' radio is selected", async () => {
+    createChannelMock.mockResolvedValueOnce(undefined);
+    render(<CreateChannelModal open onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Название"), {
+      target: { value: "marketing" },
+    });
+    fireEvent.click(screen.getByLabelText("Темы обязательны"));
+    fireEvent.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => {
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ topicsPolicy: "disable_empty_topic" }),
+      );
+    });
+  });
+});
+
+describe("CreateChannelModal — posting policy", () => {
+  it("resolves the chosen system-group to its numeric id (Администраторы → 14)", async () => {
+    createChannelMock.mockResolvedValueOnce(undefined);
+    render(<CreateChannelModal open onClose={vi.fn()} />);
+
+    // Wait for the user-groups list to load so the Select is enabled.
+    await waitFor(() => {
+      expect(getUserGroupsMock).toHaveBeenCalled();
+    });
+
+    fireEvent.change(screen.getByLabelText("Название"), {
+      target: { value: "announce" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Кто может писать в канал"),
+      { target: { value: "role:administrators" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => {
+      expect(createChannelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ canSendMessageGroup: 14 }),
+      );
     });
   });
 });

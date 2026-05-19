@@ -22,7 +22,9 @@
 // `accentColor`, a data-driven content color (see `NavRow`).
 
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { StreamId, Subscription } from "../../domain";
+import { useIsAdmin } from "../../lib/hooks/useIsAdmin";
 import { narrowToPath } from "../../lib/narrow";
 import { useTopicsStore } from "../../stores/topicsStore";
 import { useUnreadStore } from "../../stores/unreadStore";
@@ -53,6 +55,7 @@ export function ChannelRow({
   currentPath,
 }: ChannelRowProps): React.JSX.Element {
   const { stream_id: streamId, name, invite_only: inviteOnly } = subscription;
+  const isAdmin = useIsAdmin();
 
   const topics = useTopicsStore((s) => s.topicsByChannel[streamId]);
   const loadStatus = useTopicsStore((s) => s.loadStatus[streamId]);
@@ -117,6 +120,15 @@ export function ChannelRow({
             <Icon name={inviteOnly ? "lock" : "hash"} size="sm" />
           }
         />
+        {isAdmin && (
+          <Link
+            to={`/channels/${streamId}`}
+            className={styles.settings}
+            aria-label={`Настройки канала ${name}`}
+          >
+            <Icon name="settings" size="sm" />
+          </Link>
+        )}
       </div>
 
       {expanded && (

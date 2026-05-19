@@ -20,13 +20,31 @@
   color: var(--color-text);
 }
 
-.privacy {
+/*
+ * Radio-group section (Доступ / Темы). Plain div + heading + stack —
+ * not a <fieldset>, because <legend> doesn't behave as a flex child in
+ * every browser and the heading then floats out of the column rhythm.
+ * The semantic group role is supplied by `role="radiogroup"` +
+ * `aria-labelledby` on the markup.
+ */
+.radioGroup {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.radioStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   padding: 0;
   margin: 0;
   border: none;
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .error {

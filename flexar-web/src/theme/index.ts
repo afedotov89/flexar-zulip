@@ -7,7 +7,7 @@
 
 export { ThemeProvider } from "./ThemeProvider";
 export { useTheme } from "./useTheme";
-export type { ThemeContextValue } from "./themeContext";
+export type { ThemeContextValue, ThemeMode } from "./themeContext";
 export {
   lightTheme,
   darkTheme,

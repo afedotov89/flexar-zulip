@@ -1,59 +1,56 @@
 /*
- * Последние (Recent) page styles. Same rhythm as Inbox / Drafts so
- * the family of special views reads consistently when the user
- * pivots between them.
+ * Последние (Recent) page. Per-row layout mirrors the message feed's
+ * two-tier visual: a recipient bar names the conversation (same look
+ * as `RecipientBar.module.css`), then a mini message-row underneath
+ * (same `gutter | body` shape as `MessageRow.module.css`).
+ *
+ * The chrome at page level is the shared `PageHeader` primitive —
+ * the band, height, padding, border are all owned there.
  */
 
 .page {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-bg);
   overflow-y: auto;
 }
 
-.heading {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-5);
-}
-
+/* Full-bleed list of conversations. Rows abut each other — same as
+   the feed where recipient bars and messages stack without gap.
+   The recipient bar's own border-bottom is the only visual break
+   between conversations, matching feed behaviour byte for byte. */
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
+/* The row itself is just a click target; visual structure lives in
+   the inner `.bar` + `.messageRow`. No card chrome — surface comes
+   from the bar/message-row primitives matching feed appearance. */
 .row {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  /* container only; no per-row chrome */
 }
 
+/* `padding: 0` resets browser-default button padding so the inner
+   `.bar` and `.messageRow` sit flush against the row's left/right
+   edges — otherwise the bar is indented by user-agent button
+   padding (~6px each side) and reads as cards inside a card. */
 .rowButton {
   display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
+  flex-direction: column;
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 0;
   font: inherit;
   color: var(--color-text);
   text-align: start;
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: background-color var(--duration-fast);
 }
 
 .rowButton:hover {
@@ -65,69 +62,88 @@
   outline-offset: -2px;
 }
 
-.leadingIcon {
+/* ---- Recipient bar (mirrors `RecipientBar.module.css`) ---------- */
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.barIcon {
   flex-shrink: 0;
-  margin-top: 2px;
   color: var(--color-text-muted);
 }
 
-.body {
+.barName {
+  flex-shrink: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.barSeparator {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.barTopic {
+  overflow: hidden;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Mini message-row (mirrors `MessageRow.module.css`) --------- */
+.messageRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-1) var(--space-4);
+}
+
+/* Fixed-width gutter so the body column starts at the same x as
+   feed messages — `--control-height-lg` centres the `md` avatar. */
+.gutter {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  width: var(--control-height-lg);
+}
+
+.messageBody {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-0);
   min-width: 0;
 }
 
-.titleLine {
+.messageHeader {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
   align-items: baseline;
-  overflow: hidden;
+}
+
+.sender {
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-}
-
-.primary {
-  flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.separator {
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-}
-
-.secondary {
-  min-width: 0;
-  overflow: hidden;
-  font-weight: var(--font-weight-medium);
   color: var(--color-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.snippetLine {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.author {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-}
-
-.snippet {
-  color: var(--color-text-muted);
 }
 
 .time {
-  flex-shrink: 0;
-  margin-top: 2px;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+.snippet {
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

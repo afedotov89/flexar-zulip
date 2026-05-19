@@ -158,4 +158,41 @@ describe("filterUsers", () => {
     // Input is already ordered (Ada, Alan, Grace) — order is kept.
     expect(matched.map((e) => e.user.user_id)).toEqual([1, 3, 2]);
   });
+
+  it("matches by email substring too", () => {
+    const emailEntries = orderUsers(
+      [
+        makeUser({
+          user_id: 10,
+          full_name: "Polina Sokolova",
+          email: "polina@friflex.com",
+        }),
+        makeUser({
+          user_id: 11,
+          full_name: "Petr Ivanov",
+          email: "petr@example.org",
+        }),
+      ],
+      () => "active",
+    );
+    // Query matches no name but is part of the first user's email.
+    const matched = filterUsers(emailEntries, "friflex");
+    expect(matched.map((e) => e.user.user_id)).toEqual([10]);
+  });
+
+  it("matches by delivery_email when the realm exposes it", () => {
+    const entries = orderUsers(
+      [
+        makeUser({
+          user_id: 20,
+          full_name: "Bot Account",
+          email: "bot@public.example",
+          delivery_email: "hidden@friflex.com",
+        }),
+      ],
+      () => "active",
+    );
+    expect(filterUsers(entries, "hidden")).toHaveLength(1);
+    expect(filterUsers(entries, "friflex")).toHaveLength(1);
+  });
 });

@@ -79,6 +79,16 @@
   white-space: nowrap;
 }
 
+/* Trailing slot — typically a `check` icon flagging the currently-
+   selected option in a radio-like group (e.g. theme picker). Tinted
+   to the accent colour so the selection reads even in a long list. */
+.itemTrailing {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--color-accent);
+}
+
 .separator {
   height: 1px;
   margin: var(--space-1) 0;

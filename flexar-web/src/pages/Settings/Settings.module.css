@@ -68,3 +68,55 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* Avatar block — flex row with current avatar on the left, change /
+   error controls on the right. Sits inside the Profile section. */
+.avatarRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+/* Shrink-fit children so the "Сменить аватар" button reads as a
+   button, not a stretched bar — flex columns default to `stretch`
+   cross-axis which made it span the entire control column. */
+.avatarControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+}
+
+.avatarHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.avatarError {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}
+
+/* Password-change form — three stacked password fields, then the
+   Save button. Each field has its own label. */
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 24rem;
+}
+
+.passwordField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.passwordFieldError {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}
+
+.passwordSubmit {
+  align-self: flex-start;
+}

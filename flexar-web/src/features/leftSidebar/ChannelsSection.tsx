@@ -8,8 +8,16 @@
 // collapse state lives here (a set of expanded channel ids); the filter
 // query is passed down from the sidebar and matches channel names.
 //
-// The section header carries the "+" add-channel control which
-// navigates to the browse-channels screen (Phase 5.5).
+// The section header carries a `⋮` more-menu trigger (not `+` —
+// `+` reads as "create directly" but this opens a dropdown). The
+// menu has two actions:
+//   - "Создать канал" — opens `CreateChannelModal` directly. Prior
+//     wiring jumped to /channels list with another button-click
+//     required, which the owner flagged as wrong UX (one menu pick
+//     should reach the modal, same pattern as Slack / Discord
+//     channel-create).
+//   - "Все каналы" — navigates to /channels (browse + subscribe).
+//     Kept as a menu item because there is no other entry point.
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +25,9 @@ import type { StreamId, Subscription } from "../../domain";
 import { narrowToPath, useCurrentNarrow } from "../../lib/narrow";
 import { useStreamsStore } from "../../stores/streamsStore";
 import { useUnreadStore } from "../../stores/unreadStore";
+import { DropdownMenu } from "../../components/DropdownMenu";
 import { IconButton } from "../../components/IconButton";
+import { CreateChannelModal } from "../../pages/Channels/CreateChannelModal";
 import { ChannelRow } from "./ChannelRow";
 import { SidebarSection } from "./SidebarSection";
 import styles from "./ChannelsSection.module.css";
@@ -48,6 +58,12 @@ export function ChannelsSection({
   const getChannelUnread = useUnreadStore((s) => s.getChannelUnread);
   const currentNarrow = useCurrentNarrow();
   const navigate = useNavigate();
+  // Modal opens directly from the "+" menu's "Создать канал" item.
+  // Mounting here keeps the affordance local to the sidebar section
+  // that triggers it; closing routes through `onClose` so a created
+  // channel doesn't auto-navigate (the realtime `subscription` event
+  // adds it to the sidebar by itself).
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Channels start expanded; this set holds the ids the user collapsed.
   const [collapsedChannels, setCollapsedChannels] = useState<Set<StreamId>>(
@@ -105,12 +121,31 @@ export function ChannelsSection({
         );
 
   const addChannelButton = (
-    <IconButton
-      icon="plus"
-      size="sm"
-      variant="ghost"
+    <DropdownMenu
+      placement="bottom"
       aria-label="Добавить канал"
-      onClick={() => void navigate("/channels")}
+      items={[
+        {
+          id: "create",
+          label: "Создать канал",
+          icon: "plus",
+          onSelect: () => setCreateOpen(true),
+        },
+        {
+          id: "browse",
+          label: "Все каналы",
+          icon: "hash",
+          onSelect: () => void navigate("/channels"),
+        },
+      ]}
+      trigger={
+        <IconButton
+          icon="dots-vertical"
+          size="sm"
+          variant="ghost"
+          aria-label="Действия с каналами"
+        />
+      }
     />
   );
 
@@ -142,6 +177,10 @@ export function ChannelsSection({
           );
         })
       )}
+      <CreateChannelModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
     </SidebarSection>
   );
 }

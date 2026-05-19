@@ -28,11 +28,22 @@ export interface PresenceState {
   presences: PresenceMap;
   /** Look up a single user's presence, or `undefined` if unknown. */
   getPresence: (userId: UserId) => Presence | undefined;
+  /**
+   * Merge a fresh `presences` snapshot (as returned by both `register`
+   * and the `POST /users/me/presence` ping) into state. Used by
+   * `usePresenceEmitter` to refresh self + everyone else every minute,
+   * since the server does not echo a user's own presence event back to
+   * that user's own queue.
+   */
+  mergePresences: (presences: PresenceMap) => void;
 }
 
-export const usePresenceStore = create<PresenceState>()((_set, get) => ({
+export const usePresenceStore = create<PresenceState>()((set, get) => ({
   presences: {},
   getPresence: (userId) => get().presences[userId],
+  mergePresences: (presences) => {
+    set((state) => ({ presences: { ...state.presences, ...presences } }));
+  },
 }));
 
 // Wire to the realtime layer at module load — before `start()` runs.

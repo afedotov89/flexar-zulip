@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
-import { IconButton } from "../../components/IconButton";
+import { Icon } from "../../components/Icon";
 import { Input } from "../../components/Input";
 import { Popover } from "../../components/Popover";
 import { ComposeEmojiPicker } from "../compose/EmojiPicker/ComposeEmojiPicker";
@@ -91,10 +91,6 @@ export function StatusEditor({
     setPickerOpen(false);
   };
 
-  const handleClearEmoji = (): void => {
-    setEmoji(null);
-  };
-
   const handleSave = async (): Promise<void> => {
     if (text.length > MAX_STATUS_TEXT) {
       setError(`Статус не должен превышать ${MAX_STATUS_TEXT} символов.`);
@@ -144,13 +140,24 @@ export function StatusEditor({
       <div className={styles.row}>
         <Popover
           trigger={
-            <IconButton
-              icon="smile"
-              size="md"
-              variant="secondary"
-              aria-label="Выбрать эмодзи статуса"
+            <button
+              type="button"
+              className={styles.slot}
+              aria-label={
+                emoji === null
+                  ? "Выбрать эмодзи статуса"
+                  : `Изменить эмодзи статуса (сейчас :${emoji.emojiName}:)`
+              }
               disabled={busy}
-            />
+            >
+              {emoji === null ? (
+                <Icon name="smile" size="md" aria-hidden />
+              ) : (
+                <span className={styles.slotGlyph} aria-hidden>
+                  {emoji.glyph || `:${emoji.emojiName}:`}
+                </span>
+              )}
+            </button>
           }
           placement="bottom"
           open={pickerOpen}
@@ -159,21 +166,6 @@ export function StatusEditor({
         >
           <ComposeEmojiPicker onPick={handlePickEmoji} />
         </Popover>
-        {emoji !== null && (
-          <span className={styles.emojiPreview}>
-            <span aria-label={`Выбран эмодзи: ${emoji.emojiName}`}>
-              {emoji.glyph || `:${emoji.emojiName}:`}
-            </span>
-            <IconButton
-              icon="close"
-              size="sm"
-              variant="ghost"
-              aria-label="Убрать эмодзи статуса"
-              onClick={handleClearEmoji}
-              disabled={busy}
-            />
-          </span>
-        )}
         <Input
           aria-label="Текст статуса"
           value={text}

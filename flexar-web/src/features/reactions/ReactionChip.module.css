@@ -46,7 +46,7 @@
 }
 
 .glyph {
-  font-size: var(--font-size-md);
+  font-size: var(--emoji-size-chip);
   line-height: var(--line-height-tight);
 }
 

@@ -74,21 +74,45 @@ describe("AppShell", () => {
     expect(main).toContainElement(screen.getByText("Всё прочитано"));
   });
 
-  it("toggles the theme via the navbar toggle button", () => {
+  it("switches the theme via the account-menu cycle row", () => {
+    // The standalone navbar toggle was retired in favour of a
+    // cycling row in the account dropdown (light → dark → system).
+    // Three radio rows ate a third of the menu for a rarely-changed
+    // setting; the cycle compresses it to one.
     render(<App />);
 
+    // Default: no stored choice → mode "system" → resolved theme
+    // tracks `prefers-color-scheme`. jsdom's matchMedia returns
+    // matches=false, so the resolved theme is "light".
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    const toggle = screen.getByRole("button", {
-      name: "Тёмная тема",
-    });
 
+    // First open + click: system → light. The row label is
+    // "Тема: Системная" because it shows the CURRENT mode.
     act(() => {
-      toggle.click();
+      screen
+        .getByRole("button", { name: "Меню аккаунта" })
+        .click();
     });
+    act(() => {
+      screen
+        .getByRole("menuitem", { name: /Тема:/ })
+        .click();
+    });
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(window.localStorage.getItem("flexar-hub:theme")).toBe("light");
 
+    // Second cycle: light → dark.
+    act(() => {
+      screen
+        .getByRole("button", { name: "Меню аккаунта" })
+        .click();
+    });
+    act(() => {
+      screen
+        .getByRole("menuitem", { name: /Тема:/ })
+        .click();
+    });
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(
-      screen.getByRole("button", { name: "Светлая тема" }),
-    ).toBeInTheDocument();
+    expect(window.localStorage.getItem("flexar-hub:theme")).toBe("dark");
   });
 });

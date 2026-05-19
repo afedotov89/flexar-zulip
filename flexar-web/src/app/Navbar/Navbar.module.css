@@ -1,5 +1,5 @@
 /*
- * App-shell navbar styles (Phase 0.5).
+ * App-shell navbar styles (Phase 0.5; identity-card redesign).
  * Every design value is a `var(--token)`; only pure-layout values
  * (flex, 100%, auto, 0, 1) are literal, per ENGINEERING_GUIDE §2/§4.
  */
@@ -12,16 +12,18 @@
  * line up vertically when both rows are visible. The center cell
  * fills the rest.
  *
- * `align-items: stretch` (CSS Grid default) keeps each slot the full
- * navbar height so the bottom border meets the column borders below
- * without a gap.
+ * Height bumped to ~56px (`--space-12` + `--space-2` = 48+8) for the
+ * identity-card trigger: a single 40px `--control-height-lg` couldn't
+ * hold avatar + name + status as a two-line layout without feeling
+ * cramped. 56px matches the visual rhythm of Telegram desktop and
+ * Slack while staying compact enough for narrow viewports.
  */
 .navbar {
   display: grid;
   flex-shrink: 0;
   grid-template-columns: 240px 1fr 280px;
   align-items: center;
-  height: var(--control-height-lg);
+  height: calc(var(--space-12) + var(--space-2));
   color: var(--color-text);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -32,6 +34,7 @@
 
 .brand {
   display: flex;
+  gap: var(--space-2);
   align-items: center;
   height: 100%;
   padding: 0 var(--space-4);
@@ -39,6 +42,25 @@
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wide);
   border-right: 1px solid var(--color-border);
+}
+
+/*
+ * Brand mark: chat-bubble silhouette around the F-stack — same asset
+ * served as /favicon.svg, so the in-app brand and the browser tab
+ * icon stay in lockstep. `flex-shrink: 0` keeps it from collapsing
+ * if the name ever wraps; ~1.6em tracks the wide brand font so the
+ * mark reads at roughly cap-height regardless of zoom.
+ */
+.brandLogo {
+  flex-shrink: 0;
+  width: 2em;
+  height: 2em;
+}
+
+.brandText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search {
@@ -64,17 +86,37 @@
   border-radius: var(--radius-md);
 }
 
+/*
+ * Content pinned to the LEFT of the actions cell so the trigger's
+ * avatar lands on the same vertical line as the user-row avatars
+ * in the right sidebar below. `padding-left: var(--space-4)` puts
+ * the trigger 16px from the cell edge — combined with the
+ * trigger's own 8px inner padding + 1px border it lands the avatar
+ * at the sidebar's content-x rhythm (25px from sidebar edge).
+ *
+ * Earlier `justify-content: center` distributed breathing room
+ * symmetrically inside the cell, but that left the avatar visibly
+ * misaligned with the column below (the owner flagged 21px of
+ * drift). Left-pinning to the shared content-x is the correct
+ * fix.
+ */
 .actions {
   display: flex;
   gap: var(--space-2);
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   height: 100%;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-4);
   border-left: 1px solid var(--color-border);
 }
 
+/*
+ * Identity slot. Shrink-fit so the trigger is exactly as wide as
+ * its content (avatar + name/status + chevron). Centering of the
+ * trigger inside the actions cell happens at the `.actions` level.
+ */
 .account {
+  position: relative;
   display: flex;
   flex-shrink: 0;
   gap: var(--space-3);
@@ -82,36 +124,19 @@
 }
 
 /*
- * Email is hidden from the navbar (it lives in the trigger's title
- * tooltip and inside the dropdown menu's header). At
- * `--container-width-xs` (240px) it ate most of the actions cell,
- * pushing statusButton ~90px into the search cell territory — the
- * visible "overlap" the user flagged. The compact icon+chevron
- * trigger fits cleanly within the 280px actions column matching the
- * right sidebar below.
- */
-.accountEmail {
-  display: none;
-}
-
-/*
- * Account trigger height has to fit inside the 40px navbar with
- * visible breathing room — the previous `--space-2` (8px) y-padding
- * made the rendered button 37.5px tall, leaving <2px clearance
- * to navbar's bottom border on either side. The button visually
- * fused with the navbar's bottom edge (what the user called
- * "наложение"). Tighten vertical padding to `--space-1` (4px) so
- * the button matches the status / search bar heights (~28-30px) in
- * the same row.
+ * Identity-card trigger: a square avatar on the left, then a column
+ * with `accountName` (sm, semibold) and `accountStatus` (xs, muted,
+ * emoji + text). The chevron on the right echoes the "this opens a
+ * menu" affordance familiar from the old icon-only trigger. Tight
+ * shrink-fit — `.actions` centers it inside the actions cell so
+ * breathing room sits equally on both sides.
  */
 .accountTrigger {
   display: flex;
   gap: var(--space-2);
   align-items: center;
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
   color: var(--color-text);
   cursor: pointer;
   background-color: transparent;
@@ -133,6 +158,77 @@
 .accountTrigger:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+.accountIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 12rem;
+}
+
+/* `display: block` (set below) makes `text-overflow: ellipsis`
+   actually clip within the column's `max-width` constraint. */
+.accountName {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountStatus {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.accountStatusEmoji {
+  flex-shrink: 0;
+  font-size: var(--emoji-size-inline);
+  line-height: 1;
+}
+
+.accountStatusText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accountStatusEmpty {
+  /* Italic muted hint when no status is set — invites the user to
+     open the menu and set one without screaming for attention. */
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+/*
+ * Hidden anchor for the status-editor Popover. The Popover needs a
+ * DOM element as its trigger so the panel positions correctly; we
+ * route control through local state from the dropdown menu item.
+ * The anchor sits adjacent to the account trigger so the editor
+ * lands under the trigger area, matching the visual origin of the
+ * "Установить статус" menu click.
+ */
+.statusEditorAnchor {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }
 
 /* ---- Mobile drawer toggles (6.4) -------------------------------- */
@@ -179,5 +275,11 @@
 
   .brand {
     display: none;
+  }
+
+  /* Identity column shrinks more aggressively on phone — the avatar
+     + chevron alone are enough at that width. */
+  .accountIdentity {
+    max-width: 6rem;
   }
 }

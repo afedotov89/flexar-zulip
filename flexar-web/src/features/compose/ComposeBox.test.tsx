@@ -157,18 +157,31 @@ const channelOnlyNarrow: Narrow = [{ operator: "channel", operand: 7 }];
 const dmNarrow: Narrow = [{ operator: "dm", operand: [5, 9] }];
 
 describe("ComposeBox — pre-fill from narrow", () => {
-  it("pre-fills channel and topic from a channel+topic narrow", () => {
+  it("pre-fills channel and topic from a channel+topic narrow (verified via send payload)", async () => {
+    // The recipient-row UI is hidden when the URL narrow already
+    // fully specifies the destination (redesign — no point asking
+    // the writer to re-pick what they navigated to). Prefill still
+    // happens internally; verify it through the send payload, which
+    // is the only thing that has to be right.
+    sendMessageMock.mockResolvedValue({ id: 1 });
     render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
-    // Channel pill-button now exposes the channel name as its
-    // aria-label (`Канал #<name>`).
-    expect(
-      screen.getByRole("button", { name: "Канал #engineering" }),
-    ).toBeInTheDocument();
-    const topic = screen.getByLabelText("Тема") as HTMLInputElement;
-    expect(topic.value).toBe("deploys");
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "ping" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    await waitFor(() => {
+      expect(sendMessageMock).toHaveBeenCalledWith({
+        type: "channel",
+        to: 7,
+        topic: "deploys",
+        content: "ping",
+      });
+    });
   });
 
-  it("pre-fills channel only when the narrow has no topic", () => {
+  it("shows the channel pill + topic input only when the narrow lacks a topic", () => {
+    // Channel-only narrow: the writer still has to pick a topic, so
+    // the recipient row appears with the pre-selected channel pill
+    // and an empty topic input.
     render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
     expect(
       screen.getByRole("button", { name: "Канал #engineering" }),
@@ -177,12 +190,25 @@ describe("ComposeBox — pre-fill from narrow", () => {
     expect(topic.value).toBe("");
   });
 
-  it("pre-fills DM recipients from a dm narrow, stripping the viewer", () => {
+  it("pre-fills DM recipients from a dm narrow, stripping the viewer (verified via send payload)", async () => {
+    // As with channel+topic narrows, the recipient row is hidden when
+    // the URL narrow already pins the destination. The viewer is
+    // dropped from `recipientIds` so the API call addresses only the
+    // counterpart; verify through the send payload.
+    sendMessageMock.mockResolvedValue({ id: 2 });
     render(<MemoryRouter><ComposeBox narrow={dmNarrow} /></MemoryRouter>);
-    // DM recipient is now rendered as a chip with a Remove button.
-    expect(
-      screen.getByRole("button", { name: "Убрать Hamlet" }),
-    ).toBeInTheDocument();
+    const textarea = screen.getByLabelText("Сообщение") as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "hi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    // The viewer (userId 9) is stripped from the recipient list;
+    // the message is addressed to the counterpart (userId 5).
+    await waitFor(() => {
+      expect(sendMessageMock).toHaveBeenCalledWith({
+        type: "direct",
+        to: [5],
+        content: "hi",
+      });
+    });
   });
 
   it("shows a hint instead of the compose form when the narrow has no recipient", () => {
@@ -232,13 +258,22 @@ describe("ComposeBox — send", () => {
         content: "hello",
       });
     });
-    // Body cleared, recipient/topic preserved.
+    // Body cleared. The recipient-row UI is hidden when the URL
+    // narrow already fully specifies the destination, so we verify
+    // the topic survives by sending again and checking the payload.
     expect((screen.getByLabelText("Сообщение") as HTMLTextAreaElement).value).toBe(
       "",
     );
-    expect((screen.getByLabelText("Тема") as HTMLInputElement).value).toBe(
-      "deploys",
-    );
+    fireEvent.change(textarea, { target: { value: "follow-up" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    await waitFor(() => {
+      expect(sendMessageMock).toHaveBeenLastCalledWith({
+        type: "channel",
+        to: 7,
+        topic: "deploys",
+        content: "follow-up",
+      });
+    });
   });
 
   it("sends on Enter and inserts a newline on Shift+Enter", async () => {

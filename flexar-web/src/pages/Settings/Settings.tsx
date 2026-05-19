@@ -1,21 +1,23 @@
-// Personal settings page (Phase 5.1).
+// Personal settings page (Phase 5.1; account-level controls added).
 //
-// Single-screen layout with three blocks: Profile (display name),
-// Preferences (24-hour time + theme already in navbar), Notifications
-// (sound + desktop). Each control is bound to `useUserSettingsStore`
-// (snapshot from register, refreshed by realtime `user_settings`
-// events) and writes through `apiClient.updateOwnSettings`.
+// Four blocks:
+//   1. Профиль — display name + avatar upload
+//   2. Безопасность — password change (POST /settings)
+//   3. Предпочтения — 24-hour time, starred counters
+//   4. Уведомления — sound + desktop + typing
 //
-// The form is autosave-on-toggle for booleans and explicit-save for
-// the display-name input, so a typo doesn't fire a request per
-// keystroke. Errors surface as a Banner; success is implied by the
-// realtime echo updating the store under the bound control.
+// All bound to `useUserSettingsStore` (snapshot from register,
+// refreshed by realtime `user_settings` events) and write through
+// `apiClient.updateOwnSettings` for booleans, dedicated methods for
+// avatar (`uploadOwnAvatar`) and password (`changeOwnPassword`).
 //
-// Account-level changes (password, API key) are deliberately not
-// implemented here — those need careful safety treatment and link
-// out to the canonical Zulip account screen instead.
+// We intentionally implement avatar + password ourselves rather than
+// linking to Zulip's web UI — this app is a full replacement of that
+// surface (PRD §1.1), so falling back to it for any user-facing
+// flow defeats the purpose.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Avatar } from "../../components/Avatar";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
@@ -28,6 +30,14 @@ import { useUserSettingsStore } from "../../stores/userSettingsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import styles from "./Settings.module.css";
 
+/**
+ * Accepted MIME types for the avatar input. Matches the realm-icon
+ * uploader's list — Zulip's `/users/me/avatar` endpoint stores any
+ * image MIME it can transcode, but limiting on the client side
+ * filters out PDFs / videos in the file picker.
+ */
+const AVATAR_ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
+
 export function Settings(): React.JSX.Element {
   const session = useAuthStore((s) => s.session);
   const usersMap = useUsersStore((s) => s.users);
@@ -38,6 +48,7 @@ export function Settings(): React.JSX.Element {
   const [displayName, setDisplayName] = useState(ownUser?.full_name ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Sync the controlled input when the store hydrates after a cold
   // mount (the page can be rendered before `realm_user` arrives).
@@ -88,9 +99,21 @@ export function Settings(): React.JSX.Element {
           {error}
         </Banner>
       )}
+      {notice !== null && (
+        <Banner tone="success" onDismiss={() => setNotice(null)}>
+          {notice}
+        </Banner>
+      )}
 
       <section className={styles.section}>
         <h2 className={styles.sectionHeading}>Профиль</h2>
+
+        <AvatarRow
+          user={ownUser}
+          onError={setError}
+          onUploaded={() => setNotice("Аватар обновлён.")}
+        />
+
         <div className={styles.row}>
           <label className={styles.label} htmlFor="settings-display-name">
             Отображаемое имя
@@ -115,11 +138,15 @@ export function Settings(): React.JSX.Element {
             </Button>
           </div>
         </div>
-        <p className={styles.muted}>
-          Email: {session?.email ?? "—"}.
-          {" "}
-          Смена пароля и аватара — через стандартный интерфейс Zulip.
-        </p>
+        <p className={styles.muted}>Email: {session?.email ?? "—"}.</p>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionHeading}>Безопасность</h2>
+        <PasswordChangeForm
+          onError={setError}
+          onSuccess={() => setNotice("Пароль обновлён.")}
+        />
       </section>
 
       <section className={styles.section}>
@@ -196,3 +223,194 @@ function ToggleRow({
   );
 }
 
+interface AvatarRowProps {
+  user: import("../../domain").User | undefined;
+  onError: (message: string) => void;
+  onUploaded: () => void;
+}
+
+function AvatarRow({
+  user,
+  onError,
+  onUploaded,
+}: AvatarRowProps): React.JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const choose = (): void => {
+    inputRef.current?.click();
+  };
+
+  const onFileChosen = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const file = event.currentTarget.files?.[0];
+    // Clear the input so the same file can be re-picked after an error.
+    event.currentTarget.value = "";
+    if (file === undefined) {
+      return;
+    }
+    setUploading(true);
+    try {
+      await apiClient.uploadOwnAvatar({ file });
+      onUploaded();
+    } catch (cause) {
+      onError(describeApiError(cause, "Не удалось загрузить аватар."));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className={styles.avatarRow}>
+      <Avatar
+        size="lg"
+        name={user?.full_name ?? "?"}
+        src={user?.avatar_url ?? undefined}
+      />
+      <div className={styles.avatarControls}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={choose}
+          loading={uploading}
+        >
+          {user?.avatar_url ? "Сменить аватар" : "Загрузить аватар"}
+        </Button>
+        <span className={styles.avatarHint}>
+          PNG, JPEG, GIF или WebP. Изменение применится через несколько секунд.
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={AVATAR_ACCEPT}
+          hidden
+          onChange={(event) => void onFileChosen(event)}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface PasswordChangeFormProps {
+  onError: (message: string) => void;
+  onSuccess: () => void;
+}
+
+function PasswordChangeForm({
+  onError,
+  onSuccess,
+}: PasswordChangeFormProps): React.JSX.Element {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [mismatch, setMismatch] = useState(false);
+
+  const reset = (): void => {
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setMismatch(false);
+  };
+
+  const submit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+    if (saving) {
+      return;
+    }
+    if (newPassword.length === 0 || oldPassword.length === 0) {
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMismatch(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiClient.changeOwnPassword({ oldPassword, newPassword });
+      reset();
+      onSuccess();
+    } catch (cause) {
+      onError(describeApiError(cause, "Не удалось изменить пароль."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form
+      className={styles.passwordForm}
+      onSubmit={(event) => void submit(event)}
+    >
+      <div className={styles.passwordField}>
+        <label className={styles.label} htmlFor="settings-old-password">
+          Текущий пароль
+        </label>
+        <Input
+          id="settings-old-password"
+          type="password"
+          autoComplete="current-password"
+          value={oldPassword}
+          onChange={(event) => setOldPassword(event.currentTarget.value)}
+          disabled={saving}
+        />
+      </div>
+      <div className={styles.passwordField}>
+        <label className={styles.label} htmlFor="settings-new-password">
+          Новый пароль
+        </label>
+        <Input
+          id="settings-new-password"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(event) => {
+            setNewPassword(event.currentTarget.value);
+            setMismatch(false);
+          }}
+          disabled={saving}
+        />
+      </div>
+      <div className={styles.passwordField}>
+        <label className={styles.label} htmlFor="settings-confirm-password">
+          Подтвердите новый пароль
+        </label>
+        <Input
+          id="settings-confirm-password"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(event) => {
+            setConfirmPassword(event.currentTarget.value);
+            setMismatch(false);
+          }}
+          disabled={saving}
+        />
+        {mismatch && (
+          <span className={styles.passwordFieldError}>
+            Подтверждение не совпадает с новым паролем.
+          </span>
+        )}
+      </div>
+      <div className={styles.passwordSubmit}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          loading={saving}
+          disabled={
+            oldPassword.length === 0 ||
+            newPassword.length === 0 ||
+            confirmPassword.length === 0
+          }
+        >
+          Изменить пароль
+        </Button>
+      </div>
+    </form>
+  );
+}

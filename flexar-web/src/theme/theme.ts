@@ -162,6 +162,19 @@ export interface ColorRoles {
   avatar3: string;
   avatar4: string;
   avatar5: string;
+  // Syntax-highlighting palette for code blocks (Pygments token
+  // classes — `k`, `nb`, `s2`, `nf`, `c1`, `mi`, …). The server
+  // pre-tokenises code blocks and ships them as `<span class="…">`;
+  // we map the Pygments class vocabulary onto these six semantic
+  // roles in `MessageContent.module.css`. Light + dark palettes are
+  // tuned to GitHub's syntax colours, which are familiar to most
+  // developers and contrast-tested.
+  syntaxKeyword: string;
+  syntaxBuiltin: string;
+  syntaxString: string;
+  syntaxNumber: string;
+  syntaxComment: string;
+  syntaxFunction: string;
 }
 
 // Light role values. Accent and the page/surface/border anchors use the
@@ -194,6 +207,13 @@ const lightColors: ColorRoles = {
   avatar3,
   avatar4,
   avatar5,
+  // Light syntax palette (GitHub-light derived).
+  syntaxKeyword: "hsl(355deg 65% 45%)",
+  syntaxBuiltin: "hsl(210deg 100% 40%)",
+  syntaxString: "hsl(140deg 50% 30%)",
+  syntaxNumber: "hsl(34deg 90% 38%)",
+  syntaxComment: "hsl(212deg 9% 50%)",
+  syntaxFunction: "hsl(265deg 50% 45%)",
 };
 
 // Dark role values. Accent brightens slightly for contrast on dark
@@ -226,6 +246,14 @@ const darkColors: ColorRoles = {
   avatar3,
   avatar4,
   avatar5,
+  // Dark syntax palette (GitHub-dark derived). All tuned for ≥4.5:1
+  // contrast against `surface` so AA holds for code-block text.
+  syntaxKeyword: "hsl(355deg 100% 75%)",
+  syntaxBuiltin: "hsl(208deg 100% 75%)",
+  syntaxString: "hsl(140deg 50% 65%)",
+  syntaxNumber: "hsl(34deg 80% 65%)",
+  syntaxComment: "hsl(212deg 9% 60%)",
+  syntaxFunction: "hsl(265deg 80% 80%)",
 };
 
 // The full typed theme: the shared `scales` plus a per-theme colour set.

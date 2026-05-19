@@ -6,3 +6,4 @@
 
 export { ComposeBox, type ComposeBoxProps } from "./ComposeBox";
 export { useComposeFocusStore } from "./composeFocusSignal";
+export { useComposeEditingStore } from "./editingStore";

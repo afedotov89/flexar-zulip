@@ -380,12 +380,24 @@ describe("LeftSidebar — direct messages", () => {
   });
 });
 
-describe("LeftSidebar — add channel", () => {
-  it("renders an operable add-channel button in the channels header", () => {
+describe("LeftSidebar — channel actions menu", () => {
+  // The channels header carries a `⋮` trigger (a `+` would imply
+  // "create directly" but the affordance is a menu). Opening it must
+  // surface both entry points — direct create and browse-all — so the
+  // user reaches a modal in one pick rather than landing on the
+  // /channels list with another button to click.
+  it("opens a menu with Create / Browse entries", () => {
     renderSidebar();
-    const addButton = screen.getByRole("button", { name: "Добавить канал" });
-    expect(addButton).toBeEnabled();
-    // No-op for now (target screen is a later phase); clicking must not throw.
-    fireEvent.click(addButton);
+    const trigger = screen.getByRole("button", {
+      name: "Действия с каналами",
+    });
+    expect(trigger).toBeEnabled();
+    fireEvent.click(trigger);
+    expect(
+      screen.getByRole("menuitem", { name: "Создать канал" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "Все каналы" }),
+    ).toBeInTheDocument();
   });
 });

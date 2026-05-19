@@ -42,11 +42,10 @@ import { IconButton } from "../../components/IconButton";
 import type { EmojiIdentity, Message, Narrow } from "../../domain";
 import { useAuthStore } from "../../stores/authStore";
 import { useNarrowNavigation } from "../../lib/narrow";
-import { useComposeFocusStore } from "../compose";
+import { useComposeFocusStore, useComposeEditingStore } from "../compose";
 import {
   DeleteConfirmModal,
   EditHistoryModal,
-  EditMessageForm,
   MessageActionsMenu,
 } from "../messageActions";
 import {
@@ -159,7 +158,9 @@ export function MessageRow({
     queueMicrotask(() => requestComposeFocus());
   }, [message, goToNarrow, requestComposeFocus]);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const startEditing = useComposeEditingStore((s) => s.startEditing);
+  const editingMessageId = useComposeEditingStore((s) => s.editingMessageId);
+  const isBeingEdited = editingMessageId === message.id;
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -198,8 +199,11 @@ export function MessageRow({
   const handleEditRequested = useCallback(() => {
     setActionError(null);
     setActionNotice(null);
-    setIsEditing(true);
-  }, []);
+    startEditing(message.id);
+    // Focus the compose textarea (now in edit mode) so the user can
+    // start typing immediately — same focus-signal path replies use.
+    queueMicrotask(() => requestComposeFocus());
+  }, [message.id, requestComposeFocus, startEditing]);
 
   const handleDeleteRequested = useCallback(() => {
     setActionError(null);
@@ -252,50 +256,46 @@ export function MessageRow({
             <time className={styles.time}>{time}</time>
           </div>
         )}
-        {isEditing ? (
-          <EditMessageForm
-            message={message}
-            onClose={() => setIsEditing(false)}
+        {detectPoll(message.submessages) !== null && viewerId !== undefined ? (
+          <PollWidget
+            messageId={message.id}
+            submessages={message.submessages}
+            viewerUserId={viewerId}
+          />
+        ) : detectTodo(message.submessages) !== null &&
+          viewerId !== undefined ? (
+          <TodoWidget
+            messageId={message.id}
+            submessages={message.submessages}
+            viewerUserId={viewerId}
           />
         ) : (
-          <>
-            {detectPoll(message.submessages) !== null && viewerId !== undefined ? (
-              <PollWidget
-                messageId={message.id}
-                submessages={message.submessages}
-                viewerUserId={viewerId}
-              />
-            ) : detectTodo(message.submessages) !== null &&
-              viewerId !== undefined ? (
-              <TodoWidget
-                messageId={message.id}
-                submessages={message.submessages}
-                viewerUserId={viewerId}
-              />
-            ) : (
-              <MessageContent content={message.content} />
-            )}
-            <ReactionsRow
-              message={message}
-              viewerId={viewerId}
-              toggle={toggle}
-              errorMessage={errorMessage}
-            />
-            {actionError !== null && (
-              <p className={styles.actionError} role="alert">
-                {actionError}
-              </p>
-            )}
-            {actionNotice !== null && (
-              <p className={styles.actionNotice} role="status">
-                {actionNotice}
-              </p>
-            )}
-          </>
+          <MessageContent content={message.content} />
+        )}
+        {isBeingEdited && (
+          <p className={styles.beingEditedHint} aria-live="polite">
+            Редактируется в форме ниже…
+          </p>
+        )}
+        <ReactionsRow
+          message={message}
+          viewerId={viewerId}
+          toggle={toggle}
+          errorMessage={errorMessage}
+        />
+        {actionError !== null && (
+          <p className={styles.actionError} role="alert">
+            {actionError}
+          </p>
+        )}
+        {actionNotice !== null && (
+          <p className={styles.actionNotice} role="status">
+            {actionNotice}
+          </p>
         )}
       </div>
 
-      {!isEditing && (
+      {!isBeingEdited && (
         <HoverActions
           message={message}
           viewerId={viewerId}

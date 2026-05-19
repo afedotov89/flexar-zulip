@@ -11,3 +11,8 @@ export { useOverlayPosition } from "./useOverlayPosition";
 export type { OverlayPlacement } from "./useOverlayPosition";
 export { useDismiss } from "./useDismiss";
 export { getTabbableElements, createFocusTrapHandler } from "./focus";
+export {
+  OverlayLayerContext,
+  useRegisterAsDescendant,
+} from "./OverlayLayerContext";
+export type { OverlayLayer } from "./OverlayLayerContext";

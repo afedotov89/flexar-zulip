@@ -129,8 +129,8 @@ export function RightSidebar(): React.JSX.Element {
           type="search"
           size="sm"
           iconLeft="search"
-          placeholder="Фильтр участников"
-          aria-label="Фильтр участников"
+          placeholder="Имя или email"
+          aria-label="Фильтр участников по имени или email"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
           disabled={loading}

@@ -25,7 +25,14 @@ export interface Messages {
     brand: string;
     themeToggleToDark: string;
     themeToggleToLight: string;
+    themeLight: string;
+    themeDark: string;
+    themeSystem: string;
+    themeMenuPrefix: string;
     statusButton: string;
+    statusSet: string;
+    statusEdit: string;
+    statusEmpty: string;
     accountMenu: string;
     settings: string;
     administration: string;
@@ -79,7 +86,14 @@ export const messages: Record<Locale, Messages> = {
       brand: "Flexar Messenger",
       themeToggleToDark: "Тёмная тема",
       themeToggleToLight: "Светлая тема",
+      themeLight: "Светлая",
+      themeDark: "Тёмная",
+      themeSystem: "Системная",
+      themeMenuPrefix: "Тема",
       statusButton: "Установить статус",
+      statusSet: "Установить статус",
+      statusEdit: "Изменить статус",
+      statusEmpty: "Нет статуса",
       accountMenu: "Меню аккаунта",
       settings: "Настройки",
       administration: "Администрирование",
@@ -134,7 +148,14 @@ export const messages: Record<Locale, Messages> = {
       brand: "Flexar Messenger",
       themeToggleToDark: "Dark theme",
       themeToggleToLight: "Light theme",
+      themeLight: "Light",
+      themeDark: "Dark",
+      themeSystem: "System",
+      themeMenuPrefix: "Theme",
       statusButton: "Set status",
+      statusSet: "Set status",
+      statusEdit: "Edit status",
+      statusEmpty: "No status",
       accountMenu: "Account menu",
       settings: "Settings",
       administration: "Administration",

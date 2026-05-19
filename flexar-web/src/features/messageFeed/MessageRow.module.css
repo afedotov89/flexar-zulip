@@ -132,3 +132,16 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/*
+ * "Being edited" hint — shown under the message body while the
+ * compose box at the bottom is in edit mode for THIS message. Same
+ * xs/muted vocabulary as the action notice; non-blocking, the
+ * message body itself stays visible.
+ */
+.beingEditedHint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+}

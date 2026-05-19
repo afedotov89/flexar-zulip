@@ -2,15 +2,19 @@ import { render, screen, act } from "@testing-library/react";
 import { ThemeProvider, useTheme } from "../src/theme";
 
 function ThemeProbe() {
-  const { theme, setTheme, toggleTheme } = useTheme();
+  const { mode, theme, setMode, toggleTheme } = useTheme();
   return (
     <div>
+      <span data-testid="mode">{mode}</span>
       <span data-testid="theme">{theme}</span>
       <button type="button" onClick={toggleTheme}>
         toggle
       </button>
-      <button type="button" onClick={() => setTheme("dark")}>
+      <button type="button" onClick={() => setMode("dark")}>
         set-dark
+      </button>
+      <button type="button" onClick={() => setMode("system")}>
+        set-system
       </button>
     </div>
   );
@@ -45,35 +49,48 @@ describe("ThemeProvider", () => {
     expect(styleNodes[0].textContent).toContain("--space-3: 12px;");
   });
 
-  it("respects a stored theme choice on first load", () => {
+  it("respects a stored mode on first load", () => {
     window.localStorage.setItem(STORAGE_KEY, "dark");
     render(
       <ThemeProvider>
         <ThemeProbe />
       </ThemeProvider>,
     );
+    expect(screen.getByTestId("mode")).toHaveTextContent("dark");
     expect(screen.getByTestId("theme")).toHaveTextContent("dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
-  it("toggleTheme flips the theme and persists it", () => {
+  it("defaults to 'system' when no stored choice exists", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
       </ThemeProvider>,
     );
+    expect(screen.getByTestId("mode")).toHaveTextContent("system");
+  });
+
+  it("toggleTheme flips the resolved theme and writes an explicit mode", () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>,
+    );
+    // jsdom's default matchMedia returns matches=false, so initial
+    // resolved theme under "system" is "light".
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
 
     act(() => {
       screen.getByRole("button", { name: "toggle" }).click();
     });
 
+    expect(screen.getByTestId("mode")).toHaveTextContent("dark");
     expect(screen.getByTestId("theme")).toHaveTextContent("dark");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
-  it("setTheme applies and persists an explicit choice", () => {
+  it("setMode applies and persists an explicit choice", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
@@ -82,8 +99,26 @@ describe("ThemeProvider", () => {
     act(() => {
       screen.getByRole("button", { name: "set-dark" }).click();
     });
-    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
+    expect(screen.getByTestId("mode")).toHaveTextContent("dark");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("dark");
+  });
+
+  it("setMode('system') resolves theme via prefers-color-scheme", () => {
+    window.localStorage.setItem(STORAGE_KEY, "dark");
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
+    act(() => {
+      screen.getByRole("button", { name: "set-system" }).click();
+    });
+    // jsdom's matchMedia returns matches=false by default; "system"
+    // therefore resolves to "light".
+    expect(screen.getByTestId("mode")).toHaveTextContent("system");
+    expect(screen.getByTestId("theme")).toHaveTextContent("light");
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("system");
   });
 
   it("throws when useTheme is used outside a provider", () => {

@@ -25,12 +25,14 @@ const {
   subscribeMock,
   unsubscribeMock,
   getChannelSubscribersMock,
+  getUserGroupsMock,
 } = vi.hoisted(() => ({
   updateChannelMock: vi.fn(),
   archiveChannelMock: vi.fn(),
   subscribeMock: vi.fn(),
   unsubscribeMock: vi.fn(),
   getChannelSubscribersMock: vi.fn(),
+  getUserGroupsMock: vi.fn(),
 }));
 vi.mock("../../../api", async () => {
   const actual =
@@ -43,6 +45,7 @@ vi.mock("../../../api", async () => {
       subscribe: subscribeMock,
       unsubscribe: unsubscribeMock,
       getChannelSubscribers: getChannelSubscribersMock,
+      getUserGroups: getUserGroupsMock,
     },
   };
 });
@@ -124,6 +127,8 @@ beforeEach(() => {
   unsubscribeMock.mockReset();
   getChannelSubscribersMock.mockReset();
   getChannelSubscribersMock.mockResolvedValue([]);
+  getUserGroupsMock.mockReset();
+  getUserGroupsMock.mockResolvedValue([]);
   useStreamsStore.setState({ streams: {}, subscriptions: {} });
   useUsersStore.setState({ users: {} });
 });

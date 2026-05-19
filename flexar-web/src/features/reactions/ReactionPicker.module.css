@@ -1,16 +1,22 @@
 /*
  * Reaction picker (Phase 3.2). Sits inside `Popover`'s panel surface,
  * which already supplies background/border/shadow/radius — the picker
- * adds layout for the search row and the glyph grid. Width is bounded
- * by `--container-width-xs` so the popover does not balloon.
+ * adds layout for the search row and the glyph grid.
+ *
+ * Grid sizing: cells size to `1fr` of an 8-column track and stay
+ * square via `aspect-ratio: 1`; we don't pin them to an explicit
+ * pixel width. Pinning to `--control-height-md` (36px) plus 8 cols +
+ * gaps + padding ballooned content to ~324px inside the 240px
+ * picker — a horizontal scrollbar on top of the vertical one.
+ * `minmax(0, 1fr)` lets tracks shrink below the cell's intrinsic
+ * min content so only the vertical scrollbar remains.
  */
 
 .picker {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  width: var(--container-width-xs);
-  max-width: var(--container-width-sm);
+  width: var(--container-width-sm);
 }
 
 .searchRow {
@@ -20,19 +26,19 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: var(--space-1);
-  max-height: calc(var(--space-12) * 4);
-  padding: var(--space-1);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-0);
+  max-height: calc(var(--space-12) * 5);
+  padding: var(--space-2);
   overflow-y: auto;
 }
 
 .cell {
   display: flex;
+  aspect-ratio: 1;
   align-items: center;
   justify-content: center;
-  width: var(--control-height-md);
-  height: var(--control-height-md);
+  min-width: 0;
   padding: var(--space-0);
   font-family: var(--font-family-base);
   color: var(--color-text);
@@ -53,7 +59,7 @@
 }
 
 .glyph {
-  font-size: var(--font-size-lg);
+  font-size: var(--emoji-size-picker);
   line-height: var(--line-height-tight);
 }
 

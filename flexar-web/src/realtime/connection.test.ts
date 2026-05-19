@@ -697,6 +697,54 @@ describe("RealtimeConnection — subscriptions", () => {
     conn.stop();
   });
 
+  it("replays the most recent snapshot to a listener that subscribes after register", async () => {
+    // A code-split / lazy-loaded store (e.g. `defaultStreamsStore`
+    // behind the admin route's React.lazy) only runs its `wireStore`
+    // call when its module first executes — long after the initial
+    // register. Without replay, that listener would silently miss the
+    // snapshot and the store would stay empty.
+    const client = new FakeApiClient();
+    const reg = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    conn.start();
+    reg.resolve(registerResult("q1", 0, { realm_default_streams: [1, 2, 3] }));
+    poll1.resolve({ events: [] });
+    await flush();
+
+    const snapshots: RegisterQueueResult[] = [];
+    conn.onInitialState((state) => snapshots.push(state));
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      queueId: "q1",
+      realm_default_streams: [1, 2, 3],
+    });
+
+    conn.stop();
+  });
+
+  it("drops the cached snapshot on stop() so a re-login does not replay stale data", async () => {
+    const client = new FakeApiClient();
+    const reg = client.nextRegister();
+    const poll1 = client.nextGetEvents();
+    const conn = makeConnection(client);
+
+    conn.start();
+    reg.resolve(registerResult("q1", 0, { realm_users: [{ user_id: 1 }] }));
+    poll1.resolve({ events: [] });
+    await flush();
+    conn.stop();
+
+    const snapshots: RegisterQueueResult[] = [];
+    conn.onInitialState((state) => snapshots.push(state));
+
+    // After stop(), there is no live snapshot — the previous session's
+    // data must not leak to a listener subscribed for the next session.
+    expect(snapshots).toEqual([]);
+  });
+
   it("notifies status listeners on transitions", async () => {
     const client = new FakeApiClient();
     const reg = client.nextRegister();

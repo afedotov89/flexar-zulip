@@ -47,6 +47,7 @@ export function scaleVariableDeclarations(): string[] {
     ...scaleVars("space", scales.space),
     ...scaleVars("radius", scales.radius),
     ...scaleVars("font-size", scales.fontSize),
+    ...scaleVars("emoji-size", scales.emojiSize),
     ...scaleVars("font-weight", scales.fontWeight),
     ...scaleVars("line-height", scales.lineHeight),
     ...scaleVars("letter-spacing", scales.letterSpacing),

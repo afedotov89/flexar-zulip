@@ -1,59 +1,88 @@
-// Pure helpers for the schedule-send popover (Phase 4.5).
+// Pure helpers for the schedule-send menu (Phase 4.5, redesign).
 //
 // Two responsibilities, both kept side-effect-free so they unit-test
 // without mounting React or stubbing time:
 //
-//   - `presetTimes(now)` returns the four presets the popover offers
-//     ("Tomorrow morning" / "Tomorrow afternoon" / "Monday morning" /
-//     "Monday afternoon"). The semantics match Zulip's web client so
-//     a user moving between the apps does not get surprised.
+//   - `presetTimes(now)` returns the context-aware quick presets the
+//     menu offers. The set adapts to the current moment so we never
+//     surface a preset that's already in the past, and we deduplicate
+//     when two would resolve to the same day-and-hour ("Завтра в 9:00"
+//     == "В понедельник в 9:00" on Sundays). A trailing "Своё время"
+//     entry is added by the menu component so users can pick any
+//     date / time the browser's datetime input allows.
 //
 //   - `parseDateTimeLocal` / `formatDateTimeLocal` convert between an
 //     `<input type="datetime-local">` value (a `YYYY-MM-DDTHH:mm`
 //     string in local time) and a `Date`. The browser does the
 //     locale-respecting picker; we only do the shape glue.
 
-/** Description of one preset row in the popover. */
+/** Description of one preset row in the menu. */
 export interface SchedulePreset {
   /** Stable id used as the React key and aria-label suffix. */
-  id: "tomorrow-morning" | "tomorrow-afternoon" | "monday-morning" | "monday-afternoon";
+  id:
+    | "in-an-hour"
+    | "this-evening"
+    | "tomorrow-morning"
+    | "monday-morning";
   /** Short ru-RU label shown in the row. */
   label: string;
   /** The absolute send time the preset resolves to. */
   date: Date;
 }
 
+/** Local hour for the "morning" presets. */
+const MORNING_HOUR = 9;
+/** Local hour for the "evening" preset. */
+const EVENING_HOUR = 18;
 /**
- * The four send-later presets, anchored to `now`. "Morning" is 09:00
- * local time; "afternoon" is 15:00. "Monday" is the next Monday — when
- * `now` is itself a Monday earlier than 09:00, that same Monday counts;
- * otherwise the next one.
+ * If the current local hour is already at or past this, the "Сегодня
+ * вечером" preset is dropped — it would either be in the past or so
+ * close to now that it's effectively a click-by-mistake hazard.
+ */
+const EVENING_CUTOFF_HOUR = 17;
+
+/**
+ * Build the quick-schedule preset list, anchored to `now`. The set
+ * adapts: we always include "Через час" and "Завтра в 09:00", and
+ * conditionally add the evening / Monday rows when they would resolve
+ * to a distinct future moment.
  */
 export function presetTimes(now: Date = new Date()): SchedulePreset[] {
+  const presets: SchedulePreset[] = [];
+
+  presets.push({
+    id: "in-an-hour",
+    label: "Через час",
+    date: new Date(now.getTime() + 60 * 60 * 1000),
+  });
+
+  if (now.getHours() < EVENING_CUTOFF_HOUR) {
+    presets.push({
+      id: "this-evening",
+      label: `Сегодня в ${formatHour(EVENING_HOUR)}`,
+      date: atHourOfDay(now, EVENING_HOUR),
+    });
+  }
+
   const tomorrow = startOfNextDay(now);
+  presets.push({
+    id: "tomorrow-morning",
+    label: `Завтра в ${formatHour(MORNING_HOUR)}`,
+    date: atHourOfDay(tomorrow, MORNING_HOUR),
+  });
+
+  // Drop the Monday row when tomorrow IS Monday — the two presets
+  // would resolve to the same instant and look like a duplicate.
   const monday = nextMondayFrom(now);
-  return [
-    {
-      id: "tomorrow-morning",
-      label: "Завтра, 09:00",
-      date: atHour(tomorrow, 9),
-    },
-    {
-      id: "tomorrow-afternoon",
-      label: "Завтра, 15:00",
-      date: atHour(tomorrow, 15),
-    },
-    {
+  if (!isSameDay(monday, tomorrow)) {
+    presets.push({
       id: "monday-morning",
-      label: "В понедельник, 09:00",
-      date: atHour(monday, 9),
-    },
-    {
-      id: "monday-afternoon",
-      label: "В понедельник, 15:00",
-      date: atHour(monday, 15),
-    },
-  ];
+      label: `В понедельник в ${formatHour(MORNING_HOUR)}`,
+      date: atHourOfDay(monday, MORNING_HOUR),
+    });
+  }
+
+  return presets;
 }
 
 /** Local-midnight of the day after `now`. */
@@ -66,9 +95,8 @@ function startOfNextDay(now: Date): Date {
 
 /**
  * The next Monday at local-midnight. When `now` is already a Monday
- * earlier than 09:00 we still pick the *upcoming* Monday — picking
- * "today" would just duplicate the "Tomorrow morning" preset on
- * Sundays. The two-day-spread keeps the four presets distinct.
+ * earlier than `MORNING_HOUR:00` we still pick the *upcoming* Monday
+ * — picking "today" would risk a preset that's only minutes away.
  */
 function nextMondayFrom(now: Date): Date {
   const candidate = new Date(now);
@@ -83,10 +111,23 @@ function nextMondayFrom(now: Date): Date {
 }
 
 /** Return a copy of `date` with local hour set to `hour` (minute=0). */
-function atHour(date: Date, hour: number): Date {
+function atHourOfDay(date: Date, hour: number): Date {
   const next = new Date(date);
   next.setHours(hour, 0, 0, 0);
   return next;
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** "HH:MM" zero-padded — small helper so labels read consistently. */
+function formatHour(hour: number): string {
+  return `${hour.toString().padStart(2, "0")}:00`;
 }
 
 /**

@@ -11,29 +11,23 @@
 //
 // `presence` *events*, however, can arrive in either format. The
 // connection does not declare the `simplified_presence_events` client
-// capability, so the server may send the legacy shape
-// (`user_id` + `presence` keyed by client name). `applyPresenceEvent`
-// handles both:
+// capability, so the server sends the legacy shape: `user_id` plus
+// `presence` keyed by client name with `{ client, status, timestamp,
+// pushable }` per-client records. `applyPresenceEvent` handles both:
 //   - modern: `event.presences` is a `PresenceMap` — merge it in.
-//   - legacy: `event.user_id` + `event.presence` — the domain types
-//     `event.presence` as `Record<string, Presence>` (per-client
-//     `Presence` records). We collapse those into one `Presence` by
-//     taking the newest timestamp seen across the per-client records.
-//
-// NOTE for the orchestrator: the domain `PresenceEvent.presence` field
-// is typed `Record<string, Presence>`, but Zulip's actual legacy
-// presence wire format keys by client name with
-// `{ client, status, timestamp, pushable }` records — not `Presence`
-// objects. This reducer follows the *domain type* (the frozen
-// contract), not the raw wire shape; if the legacy format matters in
-// practice, the precise event type needs revisiting through the
-// orchestrator. In practice the connection requests `slimPresence` and
-// can additionally declare `simplified_presence_events` to receive
-// only the modern format, sidestepping this entirely.
+//   - legacy: `event.user_id` + `event.presence` — collapse into one
+//     modern `Presence` by taking, across all per-client records, the
+//     newest `timestamp` whose `status` is "active" (→
+//     `active_timestamp`) and likewise for "idle" (→ `idle_timestamp`).
 //
 // Reducers are pure: they return a new map and never mutate the input.
 
-import type { Presence, PresenceEvent, PresenceMap } from "../domain";
+import type {
+  LegacyPerClientPresence,
+  Presence,
+  PresenceEvent,
+  PresenceMap,
+} from "../domain";
 import type { InitialState } from "../realtime";
 
 /**
@@ -53,27 +47,25 @@ export function presenceFromInitialState(state: InitialState): PresenceMap {
 
 /**
  * Collapse the per-client records of a legacy `presence` event into one
- * modern `Presence`. The domain types each per-client record as a
- * `Presence`; we take the newest `active_timestamp` and the newest
- * `idle_timestamp` seen across all the client records.
+ * modern `Presence`. Each per-client record carries `{client, status,
+ * timestamp, pushable}`; we take the newest `timestamp` whose `status`
+ * is `"active"` as the user's `active_timestamp`, and likewise for
+ * `"idle"`.
  */
 function legacyPresenceToModern(
-  perClient: Record<string, Presence>,
+  perClient: Record<string, LegacyPerClientPresence>,
 ): Presence {
   let active: number | undefined;
   let idle: number | undefined;
   for (const entry of Object.values(perClient)) {
-    if (
-      entry.active_timestamp !== undefined &&
-      (active === undefined || entry.active_timestamp > active)
-    ) {
-      active = entry.active_timestamp;
-    }
-    if (
-      entry.idle_timestamp !== undefined &&
-      (idle === undefined || entry.idle_timestamp > idle)
-    ) {
-      idle = entry.idle_timestamp;
+    if (entry.status === "active") {
+      if (active === undefined || entry.timestamp > active) {
+        active = entry.timestamp;
+      }
+    } else if (entry.status === "idle") {
+      if (idle === undefined || entry.timestamp > idle) {
+        idle = entry.timestamp;
+      }
     }
   }
   const collapsed: Presence = {};

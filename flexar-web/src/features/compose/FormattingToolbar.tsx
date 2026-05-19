@@ -1,21 +1,24 @@
-// Compose formatting toolbar — horizontally-scrollable strip of
-// icon-buttons grouped by purpose (preview / attach / insert /
-// inline format / block format / widgets / help).
+// Compose formatting toolbar — lives inside the editor frame.
 //
-// The actual textarea manipulation lives in `markdownInsert` (pure
-// helpers); this component is the chrome + a `command` callback that
-// the parent runs against the current value+selection.
+// Layout (Telegram/Slack-style, left → right):
 //
-// Most actions are disabled while preview mode is on (you're not
-// editing). Poll / Todo are additionally gated on an empty compose
-// (Zulip rule: widgets can't be inserted into mid-message text).
+//   [📎 attach] [😊 emoji] | [B] [I] [🔗 link] | [⋮ more]   spacer
+//   [👁 preview] [⤢ maximize]   [LimitIndicator] [Send ▾]
 //
-// Horizontal overflow is handled with `overflow-x: auto` + a thin
-// scrollbar in CSS; explicit scroller buttons (`<`/`>` arrows like
-// Zulip has) are a polish iteration if it becomes uncomfortable.
+// "More" hides the long-tail formatting commands (strike, lists,
+// quote, spoiler, code, math, poll, todo) behind a single popover so
+// the always-visible row stays scannable. The KeyboardHelpOverlay
+// (`?` shortcut) is the discoverability path for the markdown help
+// that used to sit in this toolbar.
+//
+// Send and the character-count indicator are slots — the parent owns
+// their state. Putting them inside the toolbar means the writer's
+// eye doesn't have to leave the input frame to find Send.
 
-import { type ReactElement } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { IconButton } from "../../components/IconButton";
+import { Popover } from "../../components/Popover";
+import { Icon } from "../../components/Icon";
 import type { IconName } from "../../icons";
 import { Tooltip } from "../../components/Tooltip";
 import styles from "./FormattingToolbar.module.css";
@@ -52,75 +55,49 @@ export interface FormattingToolbarProps {
   /** Invoked with the chosen command. */
   onCommand: (command: FormattingCommand) => void;
   /** Slot for the emoji / upload popover triggers — they own their
-   *  own popovers, the toolbar just gives them a row position.
-   *  Schedule lives in the Send split-button (`SendMenu`), not here. */
+   *  own popovers, the toolbar just gives them a row position. The
+   *  upload slot is optional: the edit-message form reuses this
+   *  toolbar but doesn't expose attachment uploads. */
   slots: {
-    upload: ReactElement;
+    upload?: ReactElement;
     emoji: ReactElement;
   };
+  /** Right-aligned cluster: character-limit indicator + Send (compose)
+   *  or Cancel + Save (edit). */
+  trailing: ReactNode;
 }
 
-interface ToolbarButton {
+interface PrimaryButton {
   id: FormattingCommand;
   icon: IconName;
   label: string;
-  /** When `true`, the button stays usable in preview mode. */
-  inPreview?: boolean;
-  /** When `true`, the button is only enabled on an empty compose. */
+}
+
+interface SecondaryItem {
+  id: FormattingCommand;
+  icon: IconName;
+  label: string;
+  /** When `true`, the item is only enabled on an empty compose. */
   emptyOnly?: boolean;
 }
 
-const INLINE_FORMAT: ToolbarButton[] = [
-  { id: "link", icon: "link", label: "Ссылка" },
+const PRIMARY: PrimaryButton[] = [
   { id: "bold", icon: "bold", label: "Жирный" },
   { id: "italic", icon: "italic", label: "Курсив" },
-  { id: "strikethrough", icon: "strikethrough", label: "Зачёркнутый" },
+  { id: "link", icon: "link", label: "Ссылка" },
 ];
 
-const BLOCK_FORMAT: ToolbarButton[] = [
+const SECONDARY: SecondaryItem[] = [
+  { id: "strikethrough", icon: "strikethrough", label: "Зачёркнутый" },
   { id: "ordered-list", icon: "ordered-list", label: "Нумерованный список" },
   { id: "unordered-list", icon: "unordered-list", label: "Маркированный список" },
   { id: "quote", icon: "quote", label: "Цитата" },
   { id: "spoiler", icon: "eye-off", label: "Спойлер" },
   { id: "code-block", icon: "code-block", label: "Блок кода" },
   { id: "math", icon: "math", label: "Математика (LaTeX)" },
-];
-
-const WIDGETS: ToolbarButton[] = [
   { id: "poll", icon: "poll", label: "Опрос", emptyOnly: true },
   { id: "todo", icon: "todo", label: "Список задач", emptyOnly: true },
 ];
-
-function ToolbarIconButton({
-  button,
-  previewOpen,
-  composeEmpty,
-  disabled,
-  onCommand,
-}: {
-  button: ToolbarButton;
-  previewOpen: boolean;
-  composeEmpty: boolean;
-  disabled: boolean;
-  onCommand: (command: FormattingCommand) => void;
-}): React.JSX.Element {
-  const isDisabled =
-    disabled ||
-    (!button.inPreview && previewOpen) ||
-    (button.emptyOnly === true && !composeEmpty);
-  return (
-    <Tooltip content={button.label}>
-      <IconButton
-        icon={button.icon}
-        size="sm"
-        variant="ghost"
-        aria-label={button.label}
-        disabled={isDisabled}
-        onClick={() => onCommand(button.id)}
-      />
-    </Tooltip>
-  );
-}
 
 export function FormattingToolbar({
   previewOpen,
@@ -130,6 +107,7 @@ export function FormattingToolbar({
   onMaximizeToggle,
   onCommand,
   slots,
+  trailing,
 }: FormattingToolbarProps): React.JSX.Element {
   return (
     <div
@@ -137,7 +115,45 @@ export function FormattingToolbar({
       role="toolbar"
       aria-label="Форматирование сообщения"
     >
-      {/* Preview toggle: always enabled (it _is_ the way out of preview). */}
+      {/* Insert section — first because they are the most-frequent
+          actions (attach / emoji are picked many times per session,
+          formatting is intermittent). */}
+      {slots.emoji}
+      {slots.upload ?? null}
+
+      <div className={styles.divider} aria-hidden="true" />
+
+      {/* Inline formatting — the basics everyone uses. */}
+      {PRIMARY.map((b) => (
+        <Tooltip key={b.id} content={b.label}>
+          <IconButton
+            icon={b.icon}
+            size="sm"
+            variant="ghost"
+            aria-label={b.label}
+            disabled={disabled || previewOpen}
+            onClick={() => onCommand(b.id)}
+          />
+        </Tooltip>
+      ))}
+
+      <div className={styles.divider} aria-hidden="true" />
+
+      {/* Long-tail formatting — strike, lists, quote, spoiler, code,
+          math, poll, todo. Behind one popover so the always-visible
+          row stays short. */}
+      <MoreMenu
+        composeEmpty={composeEmpty}
+        previewOpen={previewOpen}
+        disabled={disabled}
+        onCommand={onCommand}
+      />
+
+      <span className={styles.spacer} aria-hidden="true" />
+
+      {/* View toggles — preview & maximize. Preview gets the
+          characteristic eye/pen pair and stays enabled while in
+          preview (it's the way out). */}
       <Tooltip content={previewOpen ? "Выйти из превью" : "Превью"}>
         <IconButton
           icon={previewOpen ? "pen" : "eye"}
@@ -149,58 +165,6 @@ export function FormattingToolbar({
           onClick={() => onCommand("preview-toggle")}
         />
       </Tooltip>
-
-      {/* Upload — opens system file picker (UploadButton owns it). */}
-      {slots.upload}
-
-      <div className={styles.divider} aria-hidden="true" />
-
-      {/* Insert section. Emoji is a popover-owning slot. */}
-      {slots.emoji}
-
-      <div className={styles.divider} aria-hidden="true" />
-
-      {/* Inline format. */}
-      {INLINE_FORMAT.map((b) => (
-        <ToolbarIconButton
-          key={b.id}
-          button={b}
-          previewOpen={previewOpen}
-          composeEmpty={composeEmpty}
-          disabled={disabled}
-          onCommand={onCommand}
-        />
-      ))}
-
-      <div className={styles.divider} aria-hidden="true" />
-
-      {/* Block format. */}
-      {BLOCK_FORMAT.map((b) => (
-        <ToolbarIconButton
-          key={b.id}
-          button={b}
-          previewOpen={previewOpen}
-          composeEmpty={composeEmpty}
-          disabled={disabled}
-          onCommand={onCommand}
-        />
-      ))}
-
-      <div className={styles.divider} aria-hidden="true" />
-
-      {/* Widgets (poll / todo) — empty-compose only. */}
-      {WIDGETS.map((b) => (
-        <ToolbarIconButton
-          key={b.id}
-          button={b}
-          previewOpen={previewOpen}
-          composeEmpty={composeEmpty}
-          disabled={disabled}
-          onCommand={onCommand}
-        />
-      ))}
-
-      <div className={styles.spacer} aria-hidden="true" />
 
       <Tooltip
         content={maximized ? "Свернуть compose" : "Развернуть compose"}
@@ -216,16 +180,74 @@ export function FormattingToolbar({
         />
       </Tooltip>
 
-      <Tooltip content="Подсказка по форматированию">
+      <div className={styles.divider} aria-hidden="true" />
+
+      {/* Send + character-limit cluster — provided by the parent so
+          the toolbar doesn't need to know about send state. */}
+      {trailing}
+    </div>
+  );
+}
+
+function MoreMenu({
+  composeEmpty,
+  previewOpen,
+  disabled,
+  onCommand,
+}: {
+  composeEmpty: boolean;
+  previewOpen: boolean;
+  disabled: boolean;
+  onCommand: (command: FormattingCommand) => void;
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      placement="top"
+      aria-label="Дополнительное форматирование"
+      trigger={
+        // Popover clones its trigger to attach ref + click + aria —
+        // wrapping the IconButton in Tooltip swallows those props at
+        // the Tooltip layer, and the popover never opens. The
+        // aria-label is descriptive enough; the tooltip is a polish
+        // add-on we can wire back via Popover's own future tooltip
+        // slot if it becomes needed.
         <IconButton
-          icon="help-circle"
+          icon="dots-vertical"
           size="sm"
           variant="ghost"
-          aria-label="Подсказка по форматированию"
-          disabled={disabled}
-          onClick={() => onCommand("help")}
+          aria-label="Ещё форматирование"
+          title="Ещё форматирование"
+          disabled={disabled || previewOpen}
         />
-      </Tooltip>
-    </div>
+      }
+    >
+      <div className={styles.moreMenu} role="menu">
+        {SECONDARY.map((item) => {
+          const itemDisabled =
+            disabled ||
+            previewOpen ||
+            (item.emptyOnly === true && !composeEmpty);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              className={styles.moreItem}
+              disabled={itemDisabled}
+              onClick={() => {
+                onCommand(item.id);
+                setOpen(false);
+              }}
+            >
+              <Icon name={item.icon} size="sm" aria-hidden />
+              <span className={styles.moreItemLabel}>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </Popover>
   );
 }

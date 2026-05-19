@@ -1,42 +1,19 @@
 /*
- * Compose formatting toolbar. Horizontal strip with grouped buttons
- * separated by 1px dividers; overflows horizontally with a slim
- * scrollbar when there isn't enough room.
+ * Compose formatting toolbar — lives INSIDE the editor frame, so it
+ * doesn't draw its own border; a 1px `border-top` separates it
+ * visually from the textarea above. Horizontal layout: insert slots
+ * (emoji, attach), inline formatting (B/I/link), a "more" popover
+ * for the long tail (strike/lists/quote/spoiler/code/math/poll/todo),
+ * a spacer, view toggles (preview, maximize), then the SendMenu.
  */
 
 .toolbar {
-  position: relative;
   display: flex;
+  flex-shrink: 0;
   gap: var(--space-1);
   align-items: center;
-  padding: var(--space-1) var(--space-2);
-  overflow-x: auto;
-  background-color: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  scrollbar-width: thin;
-
-  /*
-   * Edge-fade hint that there is more toolbar past the right margin
-   * when content overflows. `mask-image` uses opacity, not token
-   * colours — opaque black means "show", transparent means "fade".
-   * The ramp is 24px wide so we don't eat the rightmost icon when
-   * there's no overflow either.
-   */
-  mask-image: linear-gradient(
-    to right,
-    black calc(100% - 24px),
-    transparent 100%
-  );
-}
-
-.toolbar::-webkit-scrollbar {
-  height: 4px;
-}
-
-.toolbar::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-strong);
-  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-top: 1px solid var(--color-border);
 }
 
 .divider {
@@ -48,5 +25,53 @@
 }
 
 .spacer {
+  flex: 1;
+}
+
+/*
+ * "More" popover panel — list of secondary formatting commands. Plain
+ * vertical menu, each row a full-width button. Uses the same
+ * `--space-2` rhythm as the primary toolbar so the long tail still
+ * feels like part of the same control.
+ */
+.moreMenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+  min-width: 14rem;
+  padding: var(--space-1);
+}
+
+.moreItem {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast);
+}
+
+.moreItem:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.moreItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.moreItem:hover:not(:disabled) {
+  background-color: var(--color-hover);
+}
+
+.moreItemLabel {
   flex: 1;
 }

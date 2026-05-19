@@ -185,16 +185,36 @@ const ALLOWED_ATTR: readonly string[] = [
 // and friends. Mirrors the spirit of Zulip's own `sanitize_url`.
 const ALLOWED_URI_REGEXP = /^(?:https?:|mailto:|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i;
 
-// `style` is allowlisted only for KaTeX, whose server-rendered HTML
-// positions glyphs with inline length values (`height`, `width`,
-// `margin`, `top`, `vertical-align`, …) — it never uses `url()`,
-// `expression()`, `@import` or behaviours. DOMPurify does not deeply
-// sanitise CSS property *values*, so this hook is the guard: any
-// `style` attribute whose value contains a function-call / at-rule
-// token that could fetch or execute is dropped wholesale. Legitimate
-// KaTeX styles pass untouched; nothing dangerous can ride in on a
-// `style` attribute.
-const DANGEROUS_STYLE_TOKEN = /url\s*\(|expression\s*\(|javascript:|@import|behaviou?r\s*:/i;
+// `style` is allowlisted because two server-rendered features need it:
+//
+//   - KaTeX positions glyphs with inline length values (`height`,
+//     `width`, `margin`, `top`, `vertical-align`, …) — never `url()`,
+//     `expression()`, `@import` or behaviours.
+//   - `.message_embed_image` (the OG link-preview thumbnail) sets its
+//     `background-image` to a Zulip-issued camo URL of the shape
+//     `/external_content/<hmac>/<hex-encoded-url>`. Same origin,
+//     HMAC-signed by the server.
+//
+// DOMPurify does not deeply sanitise CSS property *values*, so this hook
+// is the guard. The policy: always drop `style` if it contains a
+// non-`url()` dangerous token (`expression()`, `javascript:`, `@import`,
+// `behavior:`). For `url()`, drop unless every occurrence points to a
+// same-origin root-relative path (`/…`, not `//…`, no scheme). KaTeX
+// styles have no `url()` at all and pass untouched.
+const ALWAYS_DANGEROUS_STYLE_TOKEN =
+  /expression\s*\(|javascript:|@import|behaviou?r\s*:/i;
+
+// Matches one `url(...)` call. Capture groups 1/2/3 are the inner URL
+// for the three quoting forms: double-quoted, single-quoted, unquoted.
+const URL_FUNCTION_RE =
+  /url\s*\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi;
+
+// Same-origin root-relative path: a single leading `/`, no protocol-
+// relative `//`, no scheme, restricted to URL-safe ASCII path chars.
+// Covers `/external_content/<hex>/<hex>` and `/user_uploads/<…>`.
+// Rejects anything that could leave the origin or carry a scheme.
+const SAFE_SAME_ORIGIN_PATH_RE =
+  /^\/(?!\/)[A-Za-z0-9._~%/-]*$/;
 
 let hookInstalled = false;
 
@@ -204,8 +224,21 @@ function installStyleGuardHook(): void {
   }
   hookInstalled = true;
   DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
-    if (data.attrName === "style" && DANGEROUS_STYLE_TOKEN.test(data.attrValue)) {
+    if (data.attrName !== "style") {
+      return;
+    }
+    if (ALWAYS_DANGEROUS_STYLE_TOKEN.test(data.attrValue)) {
       data.keepAttr = false;
+      return;
+    }
+    // Validate every `url(…)` call individually. The regex iterates
+    // each occurrence; a single bad URL drops the whole attribute.
+    for (const match of data.attrValue.matchAll(URL_FUNCTION_RE)) {
+      const inner = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+      if (!SAFE_SAME_ORIGIN_PATH_RE.test(inner)) {
+        data.keepAttr = false;
+        return;
+      }
     }
   });
 }

@@ -91,6 +91,18 @@ export default defineConfig(({ mode }) => {
         // the warning block above for setup.
         "/user_uploads": authedMediaProxy("/user_uploads"),
         "/thumbnail": authedMediaProxy("/thumbnail"),
+        // OG link-preview thumbnails. The `embed_links` worker writes
+        // a `.message_embed_image` whose `background-image` points at
+        // `/external_content/<hmac>/<hex>` — Zulip's go-camo proxy
+        // for external OG images. Public endpoint (HMAC-signed URLs
+        // are the auth), so no Basic header needed; this proxy just
+        // routes the request to the backend instead of the Vite SPA
+        // catch-all.
+        "/external_content": {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     build: {

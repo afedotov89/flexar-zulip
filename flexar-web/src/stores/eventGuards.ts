@@ -27,6 +27,7 @@ import type {
   TypingEvent,
   UpdateMessageEvent,
   UpdateMessageFlagsEvent,
+  UserGroupEvent,
   UserSettingsUpdateEvent,
   UserStatusEvent,
 } from "../domain";
@@ -65,6 +66,12 @@ export function isRealmUserEvent(
 
 export function isStreamEvent(event: ServerEvent): event is StreamEvent {
   return event.type === "stream";
+}
+
+export function isUserGroupEvent(
+  event: ServerEvent,
+): event is UserGroupEvent {
+  return event.type === "user_group";
 }
 
 export function isSubscriptionEvent(

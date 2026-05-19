@@ -26,6 +26,19 @@ export type TopicVisibilityPolicy =
   (typeof TopicVisibilityPolicy)[keyof typeof TopicVisibilityPolicy];
 
 /**
+ * Per-channel topics policy. `inherit` defers to the realm-level
+ * `realm_disable_empty_topic` setting; the explicit values override it for
+ * this channel. `empty_topic_only` is the "no topics, single thread"
+ * shape (Slack/Telegram-style chat); `allow_empty_topic` is the mixed
+ * mode where a topic is optional.
+ */
+export type ChannelTopicsPolicy =
+  | "inherit"
+  | "disable_empty_topic"
+  | "allow_empty_topic"
+  | "empty_topic_only";
+
+/**
  * The set of `can_*_group` permission fields shared by channel and
  * subscription objects. Each is a group-setting value naming who holds
  * the permission. They are grouped here because the server adds new
@@ -80,6 +93,12 @@ export interface ChannelBase extends ChannelPermissionGroups {
   stream_weekly_traffic: number | null;
   /** Count of non-deactivated subscribers, maintained from peer events. */
   subscriber_count: number;
+  /**
+   * Per-channel topics policy. Absent (or `"inherit"`) means defer to
+   * the realm-level `realm_disable_empty_topic` setting; the explicit
+   * values override it for this channel only.
+   */
+  topics_policy?: ChannelTopicsPolicy;
 }
 
 /**

@@ -73,15 +73,34 @@ describe("applyPresenceEvent — modern format", () => {
 });
 
 describe("applyPresenceEvent — legacy format", () => {
-  it("collapses per-client records into one Presence by newest timestamps", () => {
+  it("collapses per-client records by status, taking the newest timestamp of each", () => {
+    // Real Zulip wire shape: per-client records carry
+    // {client, status, timestamp, pushable}. Active records contribute
+    // to active_timestamp, idle records to idle_timestamp.
     const event: PresenceEvent = {
       id: 1,
       type: "presence",
       user_id: 3,
       server_timestamp: 9999,
       presence: {
-        website: { active_timestamp: 1000, idle_timestamp: 800 },
-        ZulipMobile: { active_timestamp: 1500, idle_timestamp: 1200 },
+        website: {
+          client: "website",
+          status: "active",
+          timestamp: 1500,
+          pushable: false,
+        },
+        ZulipMobile: {
+          client: "ZulipMobile",
+          status: "idle",
+          timestamp: 1200,
+          pushable: true,
+        },
+        ZulipElectron: {
+          client: "ZulipElectron",
+          status: "active",
+          timestamp: 1000,
+          pushable: false,
+        },
       },
     };
     const next = applyPresenceEvent({}, event);
@@ -91,17 +110,44 @@ describe("applyPresenceEvent — legacy format", () => {
     });
   });
 
-  it("yields an empty Presence when no client record has a timestamp", () => {
+  it("yields an empty Presence when no client record matches a known status", () => {
     const next = applyPresenceEvent(
       {},
       {
         id: 1,
         type: "presence",
         user_id: 3,
-        presence: { website: {} },
+        presence: {},
       },
     );
     expect(next[3]).toEqual({});
+  });
+
+  it("preserves a user's snapshot state for users not in the event", () => {
+    // Regression: each event covers exactly one user. Other users'
+    // entries must survive unchanged — otherwise dots silently expire
+    // for everyone except the most recently emitted user.
+    const state: PresenceMap = {
+      1: { active_timestamp: 1000 },
+      2: { active_timestamp: 900 },
+    };
+    const next = applyPresenceEvent(state, {
+      id: 1,
+      type: "presence",
+      user_id: 1,
+      presence: {
+        website: {
+          client: "website",
+          status: "active",
+          timestamp: 2000,
+          pushable: false,
+        },
+      },
+    });
+    expect(next).toEqual({
+      1: { active_timestamp: 2000 },
+      2: { active_timestamp: 900 },
+    });
   });
 });
 

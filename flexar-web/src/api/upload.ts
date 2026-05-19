@@ -148,6 +148,19 @@ export interface UploadRealmAssetOptions {
 }
 
 /**
+ * Per-call options for `uploadOwnAvatar`. Same shape as realm-asset
+ * uploads but addresses `/users/me/avatar`; the new URL arrives via
+ * a subsequent `realm_user` event (users-store fold), not in the
+ * response body, so this resolves to `void`.
+ */
+export interface UploadOwnAvatarOptions {
+  file: File;
+  credentials: UploadCredentials;
+  onProgress?: (fraction: number) => void;
+  signal?: AbortSignal;
+}
+
+/**
  * Upload the organization's icon or logo. Resolves on success;
  * rejects with `ApiError` on transport failure, server error, or
  * abort. The server replies with `{result: "success"}` and no body
@@ -215,6 +228,73 @@ export function uploadRealmAsset(
         form.append(key, value);
       }
     }
+    xhr.send(form);
+  });
+}
+
+/**
+ * Upload the signed-in user's avatar (`POST /users/me/avatar`). The
+ * new avatar URL doesn't come back in the response body — it lands
+ * via the next `realm_user` event with `avatar_url`/`avatar_version`
+ * deltas (users-store fold).
+ */
+export function uploadOwnAvatar(
+  options: UploadOwnAvatarOptions,
+): Promise<void> {
+  const { file, credentials, onProgress, signal } = options;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/users/me/avatar`, true);
+    xhr.setRequestHeader("Authorization", basicAuthHeader(credentials));
+    xhr.responseType = "text";
+
+    if (signal !== undefined) {
+      if (signal.aborted) {
+        reject(abortError());
+        return;
+      }
+      signal.addEventListener("abort", () => xhr.abort(), { once: true });
+    }
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress !== undefined) {
+        onProgress(event.loaded / event.total);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      const body = parseJson(xhr.responseText);
+      if (xhr.status < 200 || xhr.status >= 300 || isErrorBody(body)) {
+        if (isErrorBody(body)) {
+          const code = typeof body.code === "string" ? body.code : "BAD_REQUEST";
+          reject(new ApiError(body.msg, code, xhr.status, body));
+        } else {
+          reject(
+            new ApiError(
+              `Upload failed with HTTP ${xhr.status}.`,
+              "HTTP_ERROR",
+              xhr.status,
+            ),
+          );
+        }
+        return;
+      }
+      resolve();
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new ApiError("Network request failed.", "NETWORK_ERROR", 0));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(abortError());
+    });
+
+    const form = new FormData();
+    // Zulip's `/users/me/avatar` endpoint also accepts the file under
+    // the `file` field. The single-file shape — no `extraFields` — is
+    // the only difference from `uploadRealmAsset`.
+    form.append("file", file, file.name);
     xhr.send(form);
   });
 }

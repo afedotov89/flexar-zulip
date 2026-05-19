@@ -31,7 +31,8 @@ import type {
 } from "./primitives";
 import type { ScheduledMessage } from "./scheduledMessage";
 import type { Stream, Subscription, TopicVisibilityPolicy } from "./stream";
-import type { Presence, PresenceMap, User } from "./user";
+import type { PresenceMap, User } from "./user";
+import type { UserGroup } from "./userGroup";
 
 /** Fields present on every event delivered through the queue. */
 interface EventBase {
@@ -273,6 +274,93 @@ export type RealmUserEvent =
   | RealmUserUpdateEvent;
 
 /**
+ * A user group was created, or a previously-deactivated group was
+ * reactivated. `group` is the full `UserGroup` shape (same as a
+ * `realm_user_groups` snapshot entry). `for_reactivation` distinguishes
+ * the first-creation case (`false`) from a reactivation (`true`); the
+ * reducer treats both identically — insert / overwrite by id — so the
+ * field is carried only for downstream UI signalling.
+ */
+export interface UserGroupAddEvent extends EventBase {
+  type: "user_group";
+  op: "add";
+  group: UserGroup;
+  for_reactivation: boolean;
+}
+
+/** A user group was deactivated. The directory drops the entry by id. */
+export interface UserGroupRemoveEvent extends EventBase {
+  type: "user_group";
+  op: "remove";
+  group_id: number;
+}
+
+/**
+ * A partial-field update to an existing user group. Covers metadata
+ * (`name`, `description`, `deactivated`) and every `can_*_group`
+ * permission setting. The server sends only the changed fields in
+ * `data`; the reducer shallow-merges them onto the existing entry.
+ */
+export interface UserGroupUpdateEvent extends EventBase {
+  type: "user_group";
+  op: "update";
+  group_id: number;
+  data: Partial<{
+    name: string;
+    description: string;
+    deactivated: boolean;
+    can_add_members_group: GroupSettingValue;
+    can_join_group: GroupSettingValue;
+    can_leave_group: GroupSettingValue;
+    can_manage_group: GroupSettingValue;
+    can_mention_group: GroupSettingValue;
+    can_remove_members_group: GroupSettingValue;
+  }>;
+}
+
+/** Users were directly added as members of a group. */
+export interface UserGroupAddMembersEvent extends EventBase {
+  type: "user_group";
+  op: "add_members";
+  group_id: number;
+  user_ids: UserId[];
+}
+
+/** Users were directly removed from a group's members. */
+export interface UserGroupRemoveMembersEvent extends EventBase {
+  type: "user_group";
+  op: "remove_members";
+  group_id: number;
+  user_ids: UserId[];
+}
+
+/** Subgroups were directly added to a group. */
+export interface UserGroupAddSubgroupsEvent extends EventBase {
+  type: "user_group";
+  op: "add_subgroups";
+  group_id: number;
+  direct_subgroup_ids: number[];
+}
+
+/** Subgroups were directly removed from a group. */
+export interface UserGroupRemoveSubgroupsEvent extends EventBase {
+  type: "user_group";
+  op: "remove_subgroups";
+  group_id: number;
+  direct_subgroup_ids: number[];
+}
+
+/** All `user_group` event variants. */
+export type UserGroupEvent =
+  | UserGroupAddEvent
+  | UserGroupRemoveEvent
+  | UserGroupUpdateEvent
+  | UserGroupAddMembersEvent
+  | UserGroupRemoveMembersEvent
+  | UserGroupAddSubgroupsEvent
+  | UserGroupRemoveSubgroupsEvent;
+
+/**
  * A user came back online. Clients with the `simplified_presence_events`
  * capability receive `presences`; older clients receive the legacy
  * `user_id` + `presence` fields instead.
@@ -285,8 +373,28 @@ export interface PresenceEvent extends EventBase {
   user_id?: UserId;
   /** Legacy format: when the server received the presence. */
   server_timestamp?: number;
-  /** Legacy format: the user's presence keyed by client name. */
-  presence?: Record<string, Presence>;
+  /**
+   * Legacy format: per-client records keyed by client name. The wire
+   * shape carries `{client, status, timestamp, pushable}`, NOT the
+   * modern `Presence` (with `active_timestamp`/`idle_timestamp`).
+   * `presenceReducer.legacyPresenceToModern` collapses these into one
+   * modern `Presence` per user.
+   */
+  presence?: Record<string, LegacyPerClientPresence>;
+}
+
+/**
+ * Per-client presence record as Zulip sends it in legacy `presence`
+ * events (before the `simplified_presence_events` capability). One
+ * record per client (e.g. `website`, `ZulipMobile`); see
+ * `presenceReducer.legacyPresenceToModern` for the collapse into a
+ * single modern `Presence`.
+ */
+export interface LegacyPerClientPresence {
+  client: string;
+  status: "active" | "idle";
+  timestamp: UnixTimestamp;
+  pushable: boolean;
 }
 
 /** Identity of a user referenced in a typing event. */
@@ -490,6 +598,7 @@ export type ServerEvent =
   | RealmEvent
   | DefaultStreamsEvent
   | RealmEmojiUpdateEvent
+  | UserGroupEvent
   | PresenceEvent
   | TypingEvent
   | UserStatusEvent

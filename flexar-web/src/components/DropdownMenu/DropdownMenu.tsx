@@ -35,6 +35,10 @@ export interface DropdownMenuItem {
   label: string;
   /** Optional leading icon, by name from the Flexar icon set. */
   icon?: IconName;
+  /** Optional trailing icon — typically `"check"` to signal that
+   *  the item is the currently-selected option in a radio-like
+   *  group (e.g. the theme picker in the account menu). */
+  trailing?: IconName;
   /** Renders the item in the danger colour role. */
   danger?: boolean;
   /** Greys the item out and makes it non-interactive. */
@@ -211,6 +215,11 @@ export function DropdownMenu({
                 </span>
               )}
               <span className={styles.itemLabel}>{entry.label}</span>
+              {entry.trailing !== undefined && (
+                <span className={styles.itemTrailing}>
+                  <Icon name={entry.trailing} size="sm" />
+                </span>
+              )}
             </button>
           );
         })}

@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "../../../api";
+import type { ChannelTopicsPolicyParam, UserGroup } from "../../../api";
 import { Badge } from "../../../components/Badge";
 import { Banner } from "../../../components/Banner";
 import { Button } from "../../../components/Button";
@@ -57,6 +58,36 @@ const retentionOptions = [
   { value: "30", label: "30 дней" },
   { value: "90", label: "90 дней" },
   { value: "365", label: "365 дней" },
+];
+
+// Posting-policy options. Each is the Zulip system-group name; we
+// resolve to the realm's numeric group ID at submit time via the
+// user-groups list. Order goes from most-permissive to least, matching
+// Zulip's legacy `STREAM_POST_POLICY_*` ordering. `role:nobody` is
+// intentionally excluded — it would lock the channel even to admins,
+// who would then need a workaround to change the setting back.
+const POSTING_GROUPS = [
+  { name: "role:everyone", label: "Все участники" },
+  { name: "role:fullmembers", label: "Полные участники" },
+  { name: "role:moderators", label: "Модераторы" },
+  { name: "role:administrators", label: "Администраторы" },
+] as const;
+
+// Sentinel value for the select when the channel's current setting
+// references a non-system (named or composite) group we don't surface
+// in the simplified picker.
+const POSTING_CUSTOM = "__custom__";
+
+// Per-channel topics policy options. `inherit` defers to the realm's
+// `realm_disable_empty_topic` setting; the explicit values override it.
+const TOPICS_POLICY_OPTIONS: ReadonlyArray<{
+  value: ChannelTopicsPolicyParam;
+  label: string;
+}> = [
+  { value: "inherit", label: "Наследовать настройку организации" },
+  { value: "disable_empty_topic", label: "Темы обязательны" },
+  { value: "allow_empty_topic", label: "Темы необязательны" },
+  { value: "empty_topic_only", label: "Без тем (общий чат)" },
 ];
 
 function retentionToValue(days: number | null): string {
@@ -447,6 +478,7 @@ function AccessSection({
   );
 
   const retentionValue = retentionToValue(stream.message_retention_days);
+  const posting = usePostingPolicyOptions(stream, onError);
 
   return (
     <section className={styles.section}>
@@ -484,6 +516,55 @@ function AccessSection({
       </div>
 
       <div className={styles.field}>
+        <label className={styles.label} htmlFor="channel-posting-policy">
+          Кто может писать в канал
+        </label>
+        <Select
+          id="channel-posting-policy"
+          value={posting.value}
+          options={posting.options}
+          disabled={posting.disabled}
+          onChange={(event) => {
+            const next = posting.resolveSelection(event.currentTarget.value);
+            if (next === undefined) {
+              return;
+            }
+            void submit("Не удалось изменить разрешения на запись.", {
+              canSendMessageGroup: next,
+            });
+          }}
+        />
+        <span className={styles.muted}>
+          Чтобы получился «канал-объявления» (как в Telegram), выберите
+          «Администраторы» — остальные смогут только читать.
+        </span>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="channel-topics-policy">
+          Темы
+        </label>
+        <Select
+          id="channel-topics-policy"
+          value={stream.topics_policy ?? "inherit"}
+          options={TOPICS_POLICY_OPTIONS.map((o) => ({
+            value: o.value,
+            label: o.label,
+          }))}
+          onChange={(event) =>
+            void submit("Не удалось изменить настройку тем.", {
+              topicsPolicy: event.currentTarget.value as ChannelTopicsPolicyParam,
+            })
+          }
+        />
+        <span className={styles.muted}>
+          «Без тем» превращает канал в один общий чат, где каждое сообщение
+          уходит в пустую тему — удобно для небольших обсуждений в стиле
+          Telegram или Slack.
+        </span>
+      </div>
+
+      <div className={styles.field}>
         <label className={styles.label} htmlFor="channel-retention">
           Срок хранения сообщений
         </label>
@@ -500,6 +581,107 @@ function AccessSection({
       </div>
     </section>
   );
+}
+
+// Loads the realm's user-groups once per mount and projects the
+// channel's current `can_send_message_group` value onto the simplified
+// system-group picker. Returns everything the Select needs: the
+// current value, the options to render, whether to disable
+// interaction, and a resolver from the chosen option-value back to the
+// numeric group ID to send to the server.
+function usePostingPolicyOptions(
+  stream: Stream,
+  onError: (message: string | null) => void,
+): {
+  value: string;
+  options: { value: string; label: string; disabled?: boolean }[];
+  disabled: boolean;
+  resolveSelection: (value: string) => number | undefined;
+} {
+  const [groups, setGroups] = useState<UserGroup[] | undefined>(undefined);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .getUserGroups()
+      .then((list) => {
+        if (!cancelled) {
+          setGroups(list);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setFailed(true);
+          onError(
+            describeApiError(cause, "Не удалось загрузить группы пользователей."),
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onError]);
+
+  // Map system-group `name` → id from the freshly-fetched list. When
+  // groups haven't loaded yet, the map is empty and the select is
+  // disabled (rendered with a single placeholder option).
+  const sysGroupIdByName = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const g of groups ?? []) {
+      if (g.is_system_group) {
+        map.set(g.name, g.id);
+      }
+    }
+    return map;
+  }, [groups]);
+
+  const currentRaw = stream.can_send_message_group;
+  const currentSysGroup = useMemo(() => {
+    if (typeof currentRaw !== "number") {
+      return undefined;
+    }
+    return (groups ?? []).find(
+      (g) => g.id === currentRaw && g.is_system_group,
+    );
+  }, [currentRaw, groups]);
+
+  const isCustom =
+    groups !== undefined &&
+    currentRaw !== undefined &&
+    currentSysGroup === undefined;
+
+  const options: { value: string; label: string; disabled?: boolean }[] =
+    POSTING_GROUPS.map(({ name, label }) => ({
+      value: name,
+      label,
+      disabled: !sysGroupIdByName.has(name),
+    }));
+  if (isCustom) {
+    options.unshift({
+      value: POSTING_CUSTOM,
+      label: "Особая группа (доступна только в Zulip)",
+      disabled: true,
+    });
+  }
+
+  const value = isCustom
+    ? POSTING_CUSTOM
+    : (currentSysGroup?.name ?? "role:everyone");
+
+  const resolveSelection = (selected: string): number | undefined => {
+    if (selected === POSTING_CUSTOM) {
+      return undefined;
+    }
+    return sysGroupIdByName.get(selected);
+  };
+
+  return {
+    value,
+    options,
+    disabled: groups === undefined || failed,
+    resolveSelection,
+  };
 }
 
 interface SubscribersSectionProps {

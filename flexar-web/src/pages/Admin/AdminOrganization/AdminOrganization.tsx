@@ -40,15 +40,22 @@ import { useStreamsStore } from "../../../stores/streamsStore";
 import styles from "./AdminOrganization.module.css";
 
 // Values mirror the server's accepted seconds for the corresponding
-// `realm.message_content_*_limit_seconds` settings; `0` is the server's
-// "unlimited" sentinel.
+// `realm.message_content_*_limit_seconds` settings; `0` is the
+// server's "unlimited" sentinel. Presets span modern messenger
+// vocabulary — Telegram allows 48h edits, Slack / Discord are
+// unlimited, WhatsApp / iMessage are 15-min only. We expose the
+// whole spectrum so admins can pick what fits their org's audit
+// posture rather than the 10-minute Zulip default that surprises
+// users into "истёк лимит" errors after lunch.
 const TIME_LIMIT_OPTIONS: SelectOption[] = [
   { value: "60", label: "60 секунд" },
   { value: "300", label: "5 минут" },
   { value: "600", label: "10 минут" },
   { value: "3600", label: "1 час" },
   { value: "86400", label: "1 день" },
-  { value: "0", label: "Без ограничений" },
+  { value: "172800", label: "2 дня (как Telegram)" },
+  { value: "604800", label: "1 неделя" },
+  { value: "0", label: "Без ограничений (как Slack/Discord)" },
 ];
 
 // Server's `message_retention_days` accepts `-1` for "forever" plus any
@@ -459,6 +466,18 @@ function MessagesSection({
     RETENTION_OPTIONS,
     realm.realm_message_retention_days,
   );
+  // Both URL-preview settings are off by default on self-hosted Zulip
+  // (`inline_url_embed_preview` because it needs the `embed_links`
+  // queue worker running + outbound network; `inline_image_preview`
+  // is more lenient and usually safe). The CSS for the rendered
+  // preview cards (`.message_embed` / `.message_inline_image`) is
+  // already in `MessageContent.module.css` (Phase 4.8) — flipping
+  // these toggles is the only thing that gates whether anything
+  // actually appears in the message body.
+  const inlineUrlEmbed =
+    realm.realm_inline_url_embed_preview ?? false;
+  const inlineImagePreview =
+    realm.realm_inline_image_preview ?? true;
 
   return (
     <section className={styles.section}>
@@ -530,6 +549,41 @@ function MessagesSection({
             })
           }
         />
+      </div>
+
+      <div className={styles.row}>
+        <Toggle
+          label="Превью изображений по прямым ссылкам"
+          checked={inlineImagePreview}
+          onChange={(event) =>
+            void onSubmit({
+              inline_image_preview: event.currentTarget.checked,
+            })
+          }
+        />
+        <span className={styles.muted}>
+          Прямые URL на .jpg / .png / .gif / .webp разворачиваются
+          в инлайн-превью под сообщением.
+        </span>
+      </div>
+
+      <div className={styles.row}>
+        <Toggle
+          label="Превью ссылок (Open Graph)"
+          checked={inlineUrlEmbed}
+          onChange={(event) =>
+            void onSubmit({
+              inline_url_embed_preview: event.currentTarget.checked,
+            })
+          }
+        />
+        <span className={styles.muted}>
+          Любая ссылка с OG-метаданными становится карточкой
+          (заголовок + описание + превью). Требует серверного
+          фонового процесса <code>embed_links</code>; если он не
+          запущен, карточки не появятся даже при включённом
+          переключателе.
+        </span>
       </div>
     </section>
   );

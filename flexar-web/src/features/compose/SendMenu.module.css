@@ -2,6 +2,12 @@
  * Send / Schedule split-button. The Send button and the chevron sit
  * next to each other with a 1px primary-tone seam, so they read as
  * one control.
+ *
+ * Disabled state: the primary accent colour stops fully signalling
+ * "ready to fire" — Button's 0.55 opacity over accent still reads
+ * as blue. While there is nothing to send we drop both halves to a
+ * neutral ghost-tone fill so the user immediately sees the control
+ * is not actionable. Once there is content the accent returns.
  */
 
 .group {
@@ -12,6 +18,11 @@
 .sendButton {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+.sendButton:disabled {
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-raised);
 }
 
 .chevron {
@@ -36,9 +47,11 @@
 }
 
 .chevron:disabled {
+  color: var(--color-text-muted);
   cursor: not-allowed;
-  background-color: var(--color-accent);
-  opacity: 0.5;
+  background-color: var(--color-surface-raised);
+  border-left-color: var(--color-border);
+  opacity: 1;
 }
 
 .chevron:hover:not(:disabled) {
@@ -47,4 +60,51 @@
 
 .chevron:active:not(:disabled) {
   background-color: var(--color-accent-active);
+}
+
+/*
+ * Custom schedule picker (Modal body). A single labeled
+ * datetime-local input — the browser ships a competent calendar +
+ * clock widget for it on every platform we target, so we don't
+ * reimplement a calendar of our own. The styles below shape the
+ * input to match our other form controls (Input primitive).
+ */
+.customForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 18rem;
+}
+
+.customLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.customInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast);
+}
+
+.customInput:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.customInput:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.customError {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
 }

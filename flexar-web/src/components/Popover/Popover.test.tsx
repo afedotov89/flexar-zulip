@@ -113,6 +113,32 @@ describe("Popover", () => {
     expect(panel.style.getPropertyValue("--overlay-y")).not.toBe("");
   });
 
+  it("does not close when a nested popover is clicked", () => {
+    // Regression: every popover panel is portaled to <body>, so a
+    // nested popover lives as a sibling — not a DOM descendant — of
+    // its parent panel. Without the overlay-layer context, the
+    // parent's outside-press dismissal sees the nested click as
+    // outside and closes itself before the child can do anything.
+    // The user-visible failure was the status editor closing as
+    // soon as the user clicked an emoji in its embedded picker.
+    render(
+      <Popover trigger={<button>Outer</button>} aria-label="outer">
+        <Popover trigger={<button>Inner trigger</button>} aria-label="inner">
+          <button>Inner action</button>
+        </Popover>
+      </Popover>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Outer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inner trigger" }));
+    expect(screen.getByRole("dialog", { name: "outer" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "inner" })).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Inner action" }));
+    // Both popovers should still be open — the inner click is logically
+    // inside the outer popover via the layer context.
+    expect(screen.getByRole("dialog", { name: "outer" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "inner" })).toBeInTheDocument();
+  });
+
   it("supports controlled open state", () => {
     function Controlled(): React.JSX.Element {
       const [open, setOpen] = useState(false);

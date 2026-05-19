@@ -1,11 +1,13 @@
 /*
- * Persistent narrow header. Sticky inside the feed column so the
- * "you are here" indicator never scrolls away with the message list,
- * matching Slack / Zulip web / Discord chrome conventions.
+ * PageHeader primitive — sticky chrome at the top of a centre-column
+ * page. The canonical implementation: every page that needs a
+ * "you are here" band imports this primitive instead of restyling
+ * the chrome locally.
  *
- * Sits above MessageList in the feed flex column and gets `z-index:
- * var(--z-sticky)` so it overlays the in-flow recipient bars when
- * they slide under it.
+ * Sticky inside the page's own scroll container (not the page) so it
+ * stays put while the body scrolls underneath. `z-index: --z-sticky`
+ * keeps it above inline recipient bars / list separators that slide
+ * under it.
  */
 
 .header {
@@ -13,15 +15,16 @@
   top: 0;
   z-index: var(--z-sticky);
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
   gap: var(--space-2);
+  align-items: center;
   min-height: var(--space-8);
   padding: var(--space-2) var(--space-4);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 
-  /* Truncate very long channel / topic names rather than wrap the
-     header to two rows. */
+  /* Truncate very long page titles rather than wrap the chrome to
+     two rows — keeps the band a stable, single-line affordance. */
   overflow: hidden;
 }
 
@@ -32,10 +35,10 @@
 
 .primary {
   flex-shrink: 0;
+  overflow: hidden;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -47,9 +50,9 @@
 
 .secondary {
   min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-md);
   color: var(--color-text);
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

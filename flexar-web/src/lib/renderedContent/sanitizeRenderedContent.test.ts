@@ -112,6 +112,23 @@ describe("sanitizeRenderedContent — malicious input", () => {
     );
     expect(out).not.toContain("javascript:");
   });
+
+  it("drops a style attribute whose url() points off-origin", () => {
+    // Even though the URL syntactically looks like a path, the
+    // protocol-relative `//evil.com` would leave the origin. The whole
+    // style attribute is dropped — better than picking individual
+    // url() calls apart and leaving partial styles.
+    for (const evil of [
+      "//evil.com/x.png",
+      "http://evil.com/x.png",
+      "data:image/png;base64,AAAA",
+    ]) {
+      const out = sanitizeRenderedContent(
+        `<div class="message_embed_image" style="background-image: url(${evil})"></div>`,
+      );
+      expect(parse(out).querySelector("div")?.getAttribute("style")).toBeNull();
+    }
+  });
 });
 
 describe("sanitizeRenderedContent — legitimate Zulip markup", () => {
@@ -217,6 +234,25 @@ describe("sanitizeRenderedContent — legitimate Zulip markup", () => {
     expect(root.querySelector(".base")?.getAttribute("style")).toContain(
       "height",
     );
+  });
+
+  it("keeps an OG link-preview thumbnail's same-origin background-image", () => {
+    // Zulip's `embed_links` worker stores the OG image as a
+    // `.message_embed_image` whose inline `background-image` points at
+    // the camo-style `/external_content/<hmac>/<hex-encoded-url>`
+    // endpoint — same origin, HMAC-signed. Without this style the
+    // OG card renders a blank 6rem×6rem slot instead of the image.
+    const html =
+      '<div class="message_embed"><a class="message_embed_image"' +
+      ' href="https://example.com"' +
+      ' style="background-image: url(&quot;/external_content/777bb2/68747470&quot;)">' +
+      "</a></div>";
+    const out = sanitizeRenderedContent(html);
+    const style = parse(out)
+      .querySelector(".message_embed_image")
+      ?.getAttribute("style");
+    expect(style).toContain("background-image");
+    expect(style).toContain("/external_content/");
   });
 
   it("keeps safe links: http(s), mailto, relative and narrow hashes", () => {

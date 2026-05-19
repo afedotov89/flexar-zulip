@@ -60,7 +60,7 @@ describe("RightSidebar — data states", () => {
     renderSidebar();
     // No section heading is rendered during loading.
     expect(screen.queryByText("Участники организации")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Фильтр участников")).toBeDisabled();
+    expect(screen.getByLabelText("Фильтр участников по имени или email")).toBeDisabled();
   });
 
   it("shows an empty state when there are no users", () => {
@@ -146,7 +146,7 @@ describe("RightSidebar — filter", () => {
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
     expect(screen.getByText("Grace Hopper")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Фильтр участников"), {
+    fireEvent.change(screen.getByLabelText("Фильтр участников по имени или email"), {
       target: { value: "ada" },
     });
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe("RightSidebar — filter", () => {
 
   it("shows a no-matches empty state when the filter matches nothing", () => {
     renderSidebar();
-    fireEvent.change(screen.getByLabelText("Фильтр участников"), {
+    fireEvent.change(screen.getByLabelText("Фильтр участников по имени или email"), {
       target: { value: "zzz" },
     });
     expect(screen.getByText("Ничего не найдено")).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe("RightSidebar — narrow context", () => {
       },
     });
     renderSidebar("/narrow/channel/7");
-    fireEvent.change(screen.getByLabelText("Фильтр участников"), {
+    fireEvent.change(screen.getByLabelText("Фильтр участников по имени или email"), {
       target: { value: "ada" },
     });
     const channelSection = screen

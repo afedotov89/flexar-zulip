@@ -9,35 +9,47 @@ import {
 } from "./schedulePresets";
 
 describe("presetTimes", () => {
-  it("on a Wednesday gives tomorrow + next Monday", () => {
+  it("on a midday Wednesday gives in-an-hour, this-evening, tomorrow, and Monday", () => {
     // Wednesday 2024-05-15 at 12:00 local time.
     const now = new Date(2024, 4, 15, 12, 0, 0);
     const presets = presetTimes(now);
     expect(presets.map((p) => p.id)).toEqual([
+      "in-an-hour",
+      "this-evening",
       "tomorrow-morning",
-      "tomorrow-afternoon",
       "monday-morning",
-      "monday-afternoon",
     ]);
-    // Tomorrow morning: Thu 2024-05-16 09:00.
-    expect(presets[0]?.date.getDay()).toBe(4);
-    expect(presets[0]?.date.getHours()).toBe(9);
-    // Tomorrow afternoon: Thu 2024-05-16 15:00.
-    expect(presets[1]?.date.getHours()).toBe(15);
-    // Monday morning: Mon 2024-05-20 09:00.
-    expect(presets[2]?.date.getDay()).toBe(1);
-    expect(presets[2]?.date.getDate()).toBe(20);
+    // "Через час": exactly one hour from now.
+    expect(presets[0]?.date.getTime()).toBe(now.getTime() + 60 * 60 * 1000);
+    // "Сегодня в 18:00": same day, 18:00.
+    expect(presets[1]?.date.getDate()).toBe(15);
+    expect(presets[1]?.date.getHours()).toBe(18);
+    // "Завтра в 09:00": Thu 2024-05-16 09:00.
+    expect(presets[2]?.date.getDay()).toBe(4);
+    expect(presets[2]?.date.getDate()).toBe(16);
     expect(presets[2]?.date.getHours()).toBe(9);
+    // "В понедельник в 09:00": Mon 2024-05-20 09:00.
+    expect(presets[3]?.date.getDay()).toBe(1);
+    expect(presets[3]?.date.getDate()).toBe(20);
+    expect(presets[3]?.date.getHours()).toBe(9);
   });
 
-  it("on a Sunday picks the very next Monday", () => {
-    // Sunday 2024-05-19 at 11:00.
+  it("after the evening cutoff drops 'Сегодня вечером'", () => {
+    // Wednesday at 18:30 — past the 17:00 cutoff, so showing 18:00
+    // today would be in the past / minutes away.
+    const now = new Date(2024, 4, 15, 18, 30, 0);
+    const ids = presetTimes(now).map((p) => p.id);
+    expect(ids).not.toContain("this-evening");
+    expect(ids).toContain("tomorrow-morning");
+  });
+
+  it("on a Sunday drops the Monday row because tomorrow IS Monday", () => {
+    // Sunday 2024-05-19 at 11:00 — tomorrow == Monday, so the two
+    // would resolve to the same instant.
     const now = new Date(2024, 4, 19, 11, 0, 0);
-    const monday = presetTimes(now).find(
-      (p) => p.id === "monday-morning",
-    )?.date;
-    expect(monday?.getDay()).toBe(1);
-    expect(monday?.getDate()).toBe(20);
+    const ids = presetTimes(now).map((p) => p.id);
+    expect(ids).toContain("tomorrow-morning");
+    expect(ids).not.toContain("monday-morning");
   });
 
   it("on a Monday before 09:00 picks the *next* Monday, not today", () => {

@@ -1,19 +1,20 @@
 // A single person row in the right sidebar's user lists (1.8).
 //
-// Presentational: an avatar with an overlaid presence dot, the user's
-// name, and — for bots and deactivated accounts — a short trailing
-// tag. The right sidebar's user lists are not navigational in this
-// phase (there is no per-user narrow target yet), so a row is a plain
-// non-interactive list item, not a link or button. Data and the
-// user's presence arrive as props; the row touches no store. The
-// `PresenceDot` carries the accessible presence label, so the row
-// itself adds no extra status text.
+// Avatar with an overlaid presence dot, the user's name, status,
+// email, plus — for bots and deactivated accounts — a short
+// trailing tag. Clicking the row opens a direct-message narrow
+// with that user (the standard way to start a 1:1 conversation
+// from the directory in Slack / Telegram). Bots and deactivated
+// accounts stay non-interactive — DMs to them aren't useful in
+// most setups.
 
 import type { Presence, User, UserStatus } from "../../domain";
 import { Avatar } from "../../components/Avatar";
 import { PresenceDot } from "../../components/PresenceDot";
 import { useUserStatusesStore } from "../../stores/userStatusesStore";
+import { useAuthStore } from "../../stores/authStore";
 import { glyphFromUnicodeEmojiCode } from "../../lib/emoji/identity";
+import { useNarrowNavigation } from "../../lib/narrow";
 import styles from "./UserRow.module.css";
 
 export interface UserRowProps {
@@ -40,9 +41,17 @@ export function UserRow({ user, presence }: UserRowProps): React.JSX.Element {
       : undefined;
 
   const status = useUserStatusesStore((s) => s.statuses[user.user_id]);
+  const ownUserId = useAuthStore((s) => s.session?.userId);
+  const { goToNarrow } = useNarrowNavigation();
 
-  return (
-    <li className={styles.row}>
+  // Clickable for active humans only — bots and deactivated accounts
+  // stay as plain rows (DMing a Notification Bot / Email Gateway is
+  // not a useful interaction). Self-DMs are allowed (Zulip supports
+  // sending a message to yourself as a personal notepad).
+  const isDmTarget = user.is_active && !user.is_bot;
+
+  const content = (
+    <>
       <span className={styles.avatarSlot}>
         <Avatar
           size="sm"
@@ -61,8 +70,44 @@ export function UserRow({ user, presence }: UserRowProps): React.JSX.Element {
         {status?.status_text !== undefined && status.status_text !== "" && (
           <span className={styles.statusText}>{status.status_text}</span>
         )}
+        {/* Email — third line, muted, ellipsis-clipped. Bots get an
+            `@<realm>-bot` placeholder address that's noisy and adds
+            no signal, so the email line is humans-only. */}
+        {!user.is_bot && user.email !== "" && (
+          <span className={styles.email} title={user.email}>
+            {user.email}
+          </span>
+        )}
       </span>
       {tag !== undefined && <span className={styles.tag}>{tag}</span>}
+    </>
+  );
+
+  if (!isDmTarget) {
+    return <li className={styles.row}>{content}</li>;
+  }
+
+  // Open a DM narrow with this user — for self-DMs the recipient is
+  // just our own id; otherwise the (sorted-asc) pair `[self, peer]`
+  // matches the conventional DM key shape used everywhere else.
+  const handleClick = (): void => {
+    const recipients =
+      ownUserId === undefined || ownUserId === user.user_id
+        ? [user.user_id]
+        : [ownUserId, user.user_id].sort((a, b) => a - b);
+    goToNarrow([{ operator: "dm", operand: recipients }]);
+  };
+
+  return (
+    <li>
+      <button
+        type="button"
+        className={`${styles.row} ${styles.clickable}`}
+        onClick={handleClick}
+        aria-label={`Личная переписка с ${user.full_name}`}
+      >
+        {content}
+      </button>
     </li>
   );
 }

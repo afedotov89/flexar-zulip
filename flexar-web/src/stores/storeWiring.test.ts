@@ -77,10 +77,11 @@ const { useTypingStore } = await import("./typingStore");
 const { useScheduledMessagesStore } = await import("./scheduledMessagesStore");
 const { useUserStatusesStore } = await import("./userStatusesStore");
 const { useUserSettingsStore } = await import("./userSettingsStore");
+const { useUserGroupsStore } = await import("./userGroupsStore");
 const { useAuthStore } = await import("./authStore");
 
 // The number of server-state stores that wire themselves at module load.
-const STORE_COUNT = 13;
+const STORE_COUNT = 14;
 
 describe("server-state stores — wiring", () => {
   beforeEach(() => {
@@ -104,6 +105,7 @@ describe("server-state stores — wiring", () => {
     });
     useUserStatusesStore.setState({ statuses: {} });
     useUserSettingsStore.setState({ settings: {} });
+    useUserGroupsStore.setState({ userGroups: {} });
   });
 
   it("every store subscribes at module load", () => {
@@ -465,6 +467,42 @@ describe("server-state stores — wiring", () => {
     emitInitialState();
     expect(useScheduledMessagesStore.getState().scheduledMessages).toEqual({});
     expect(useScheduledMessagesStore.getState().loadStatus).toBe("idle");
+  });
+
+  it("hydrates and folds user_group events into the user-groups store", () => {
+    emitInitialState({
+      realm_user_groups: [
+        {
+          id: 7,
+          name: "ops",
+          description: "",
+          is_system_group: false,
+          members: [1, 2],
+          direct_subgroup_ids: [],
+          creator_id: 1,
+          date_created: 100,
+          deactivated: false,
+          can_add_members_group: 11,
+          can_join_group: 11,
+          can_leave_group: 11,
+          can_manage_group: 11,
+          can_mention_group: 11,
+          can_remove_members_group: 11,
+        },
+      ],
+    });
+    expect(useUserGroupsStore.getState().getUserGroup(7)?.name).toBe("ops");
+
+    emitEvent({
+      id: 20,
+      type: "user_group",
+      op: "add_members",
+      group_id: 7,
+      user_ids: [3],
+    });
+    expect(useUserGroupsStore.getState().getUserGroup(7)?.members).toEqual([
+      1, 2, 3,
+    ]);
   });
 
   it("ignores event types a store does not own", () => {

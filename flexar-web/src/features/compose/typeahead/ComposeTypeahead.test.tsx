@@ -184,6 +184,11 @@ const channelTopicNarrow: Narrow = [
   { operator: "channel", operand: 7 },
   { operator: "topic", operand: "deploys" },
 ];
+// Channel-only narrow: the recipient row stays visible because the
+// writer still has to pick a topic. The topic-typeahead tests below
+// rely on the topic input being mounted, which the channel+topic
+// narrow's new "hide when fully resolved" UI no longer satisfies.
+const channelOnlyNarrow: Narrow = [{ operator: "channel", operand: 7 }];
 
 // Drive a controlled textarea: set its value and selectionStart, then
 // fire `change` so React picks it up. We must set `selectionStart`
@@ -358,6 +363,10 @@ describe("ComposeBox typeahead — `:` emoji", () => {
 });
 
 describe("ComposeBox typeahead — topic input", () => {
+  // These exercise the topic input that lives in the recipient row.
+  // The row is only mounted when the narrow doesn't already pin the
+  // topic; use the channel-only narrow so the input is in the DOM.
+
   it("triggers a lazy fetch on focus and opens with topic suggestions", () => {
     // Pre-load the topics so we don't need to wait for the async fetch.
     useTopicsStore.setState({
@@ -370,7 +379,7 @@ describe("ComposeBox typeahead — topic input", () => {
       },
       loadStatus: { 7: "loaded" },
     });
-    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
+    render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
     const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
     typeIntoInput(topic, "des");
@@ -385,7 +394,7 @@ describe("ComposeBox typeahead — topic input", () => {
 
   it("calls loadTopics(streamId) on focus", () => {
     const spy = vi.spyOn(useTopicsStore.getState(), "loadTopics");
-    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
+    render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
     const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
     expect(spy).toHaveBeenCalledWith(7);
@@ -398,10 +407,9 @@ describe("ComposeBox typeahead — topic input", () => {
       },
       loadStatus: { 7: "loaded" },
     });
-    render(<MemoryRouter><ComposeBox narrow={channelTopicNarrow} /></MemoryRouter>);
+    render(<MemoryRouter><ComposeBox narrow={channelOnlyNarrow} /></MemoryRouter>);
     const topic = screen.getByLabelText("Тема") as HTMLInputElement;
     fireEvent.focus(topic);
-    // Clear the prefilled value so an empty query lists all topics.
     typeIntoInput(topic, "");
     fireEvent.keyDown(topic, { key: "Enter" });
     expect(topic.value).toBe("deploys");

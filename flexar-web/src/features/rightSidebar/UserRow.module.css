@@ -12,10 +12,33 @@
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  width: 100%;
   min-width: 0;
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-md);
   color: var(--color-text);
+}
+
+/* When the row is a button (active human — DM target), pick up the
+   surrounding interactive vocabulary so it doesn't carry default
+   <button> chrome. Plus hover/focus rings for "you can click me". */
+.clickable {
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast);
+}
+
+.clickable:hover {
+  background-color: var(--color-hover);
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 /* The avatar plus its overlaid presence dot. */
@@ -59,11 +82,21 @@
 
 .statusEmoji {
   flex-shrink: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--emoji-size-compact);
   line-height: 1;
 }
 
 .statusText {
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Email — third line, muted, ellipsis. Same xs/muted rhythm as
+   the status text; the two lines stack cleanly under the name. */
+.email {
   overflow: hidden;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);

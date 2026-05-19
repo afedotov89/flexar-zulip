@@ -2,14 +2,22 @@
  * Compose emoji picker (Phase 3.6). Mirrors `ReactionPicker.module.css`
  * — same popover panel layout, same grid rhythm — but adds an `<img>`
  * affordance for realm emoji.
+ *
+ * Grid sizing: cells are *not* given an explicit width/height. They
+ * size to `1fr` of an 8-column track and stay square via
+ * `aspect-ratio: 1`. The previous design pinned cells to
+ * `--control-height-md` (36px) which, combined with 8 cols + gaps +
+ * padding, produced ~324px of content inside the 240px picker — i.e. a
+ * horizontal scrollbar on top of the vertical one. `minmax(0, 1fr)`
+ * lets the tracks shrink below the cell's intrinsic min content; the
+ * picker now has only the vertical scrollbar a grid that long needs.
  */
 
 .picker {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  width: var(--container-width-xs);
-  max-width: var(--container-width-sm);
+  width: var(--container-width-sm);
 }
 
 .searchRow {
@@ -19,19 +27,19 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: var(--space-1);
-  max-height: calc(var(--space-12) * 4);
-  padding: var(--space-1);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-0);
+  max-height: calc(var(--space-12) * 5);
+  padding: var(--space-2);
   overflow-y: auto;
 }
 
 .cell {
   display: flex;
+  aspect-ratio: 1;
   align-items: center;
   justify-content: center;
-  width: var(--control-height-md);
-  height: var(--control-height-md);
+  min-width: 0;
   padding: var(--space-0);
   font-family: var(--font-family-base);
   color: var(--color-text);
@@ -52,14 +60,15 @@
 }
 
 .glyph {
-  font-size: var(--font-size-lg);
+  font-size: var(--emoji-size-picker);
   line-height: var(--line-height-tight);
 }
 
-/* Realm emoji are images — pin to the cell's height with a small inset. */
+/* Realm emoji are images — match the unicode glyph size so the two
+ * kinds of cells read at the same visual weight in the same grid. */
 .realmGlyph {
-  width: var(--font-size-xl);
-  height: var(--font-size-xl);
+  width: var(--emoji-size-picker);
+  height: var(--emoji-size-picker);
   object-fit: contain;
 }
 

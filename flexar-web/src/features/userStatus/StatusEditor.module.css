@@ -1,5 +1,13 @@
 /*
  * Status editor popover (Phase 4.4). Token-only design values.
+ *
+ * Layout: a single emoji slot + a text input on one row, char count
+ * below, then Save/Clear actions. The slot shows a smile-icon
+ * placeholder when no emoji is set and the chosen glyph when one is;
+ * clicking it opens the picker for either initial pick or replace.
+ * A separate emoji-only "clear" affordance proved confusing — the
+ * single bottom "Очистить" wipes the whole status; to remove just
+ * the emoji the user re-opens the picker.
  */
 
 .editor {
@@ -23,14 +31,53 @@
   align-items: center;
 }
 
-.emojiPreview {
-  display: flex;
-  gap: var(--space-1);
+/*
+ * Emoji slot — `--control-height-md` square so it lines up vertically
+ * with the same-size text input. Borrowed visual vocabulary from
+ * IconButton's `secondary` variant so the slot reads as one of our
+ * input controls, not a free-floating chip.
+ */
+.slot {
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  padding: 0 var(--space-2);
-  font-size: var(--font-size-md);
-  background-color: var(--color-hover);
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast);
+}
+
+.slot:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.slot:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.slot:hover:not(:disabled) {
+  background-color: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.slot:active:not(:disabled) {
+  background-color: var(--color-active);
+}
+
+.slotGlyph {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
 }
 
 .textInput {

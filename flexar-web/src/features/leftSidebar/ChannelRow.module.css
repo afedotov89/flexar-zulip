@@ -10,8 +10,48 @@
 }
 
 .channelHeader {
+  position: relative;
   display: flex;
   align-items: center;
+}
+
+/*
+ * Per-row "open channel settings" affordance. Overlays the right edge
+ * of the NavRow only on hover/focus so it can't push the unread badge
+ * or cause layout shift when admins move the mouse over rows. Hidden
+ * for non-admins entirely (component guard), so non-admins never see
+ * an empty slot reserved either.
+ */
+.settings {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  color: var(--color-text-muted);
+  visibility: hidden;
+  background-color: transparent;
+  border-radius: var(--radius-sm);
+  transform: translateY(-50%);
+  transition: background-color var(--duration-fast);
+}
+
+.settings:hover {
+  color: var(--color-text);
+  background-color: var(--color-hover);
+}
+
+.settings:focus-visible {
+  visibility: visible;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.channelHeader:hover .settings {
+  visibility: visible;
 }
 
 /* The topic-list collapse toggle, left of the channel NavRow. */

@@ -25,17 +25,20 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, RefObject } from "react";
 import {
+  OverlayLayerContext,
   Portal,
   getTabbableElements,
   useDismiss,
   useOverlayPosition,
+  useRegisterAsDescendant,
 } from "../_overlay";
-import type { OverlayPlacement } from "../_overlay";
+import type { OverlayLayer, OverlayPlacement } from "../_overlay";
 import styles from "./Popover.module.css";
 
 export interface PopoverProps {
@@ -90,6 +93,29 @@ export function Popover({
   const [panel, setPanel] = useState<HTMLDivElement | null>(null);
   const panelId = useId();
 
+  // Track open child overlays so this popover's outside-press
+  // dismissal treats clicks inside their portaled panels as
+  // non-dismissing. See `OverlayLayerContext` for the rationale —
+  // without this every nested popover (e.g. emoji picker inside the
+  // status editor) closes its parent as soon as you click anything
+  // inside it.
+  const childPanelsRef = useRef<Set<RefObject<HTMLElement | null>>>(new Set());
+  const layerValue = useMemo<OverlayLayer>(
+    () => ({
+      register: (ref) => {
+        childPanelsRef.current.add(ref);
+        return () => {
+          childPanelsRef.current.delete(ref);
+        };
+      },
+    }),
+    [],
+  );
+
+  // Register *this* popover's panel with its nearest ancestor
+  // popover, so the ancestor treats clicks here as inside its layer.
+  useRegisterAsDescendant(panelRef, open);
+
   const setOpen = useCallback(
     (next: boolean) => {
       if (!isControlled) {
@@ -111,6 +137,7 @@ export function Popover({
     enabled: open,
     overlayRef: panelRef,
     anchorRef,
+    descendantPanels: childPanelsRef,
     onDismiss: () => setOpen(false),
   });
 
@@ -168,7 +195,9 @@ export function Popover({
             tabIndex={-1}
             className={[styles.panel, className].filter(Boolean).join(" ")}
           >
-            {children}
+            <OverlayLayerContext.Provider value={layerValue}>
+              {children}
+            </OverlayLayerContext.Provider>
           </div>
         </Portal>
       )}

@@ -72,9 +72,12 @@ export function orderUsers(
 }
 
 /**
- * Filter ordered entries by a name query. An empty (or whitespace-only)
- * query matches everything; otherwise the match is a case-insensitive
- * substring of `full_name`. Order is preserved.
+ * Filter ordered entries by a name OR email query. An empty
+ * (or whitespace-only) query matches everything; otherwise the
+ * match is a case-insensitive substring of `full_name`, `email`,
+ * or `delivery_email`. Email matching helps when names are
+ * ambiguous (two "Александр Федотов" accounts) and when the user
+ * remembers an address but not the display name. Order is preserved.
  */
 export function filterUsers(
   entries: readonly UserListEntry[],
@@ -84,7 +87,14 @@ export function filterUsers(
   if (normalized === "") {
     return [...entries];
   }
-  return entries.filter((entry) =>
-    entry.user.full_name.toLowerCase().includes(normalized),
-  );
+  return entries.filter((entry) => {
+    if (entry.user.full_name.toLowerCase().includes(normalized)) {
+      return true;
+    }
+    if (entry.user.email.toLowerCase().includes(normalized)) {
+      return true;
+    }
+    const delivery = entry.user.delivery_email?.toLowerCase();
+    return delivery !== undefined && delivery.includes(normalized);
+  });
 }

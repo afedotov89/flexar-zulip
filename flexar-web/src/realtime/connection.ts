@@ -97,13 +97,20 @@ export type Unsubscribe = () => void;
  * Event types the queue subscribes to: the set a chat client acts on.
  *
  * This mirrors the precisely-modelled members of the domain
- * `ServerEvent` union — the long tail (`user_group`, `linkifiers`, …)
- * is deliberately omitted to keep register/`/events` bandwidth down, as
+ * `ServerEvent` union — the long tail (`linkifiers`, `custom_profile_
+ * fields`, …) is omitted to keep register/`/events` bandwidth down, as
  * the Zulip API docs recommend for production clients. `heartbeat` is
  * always delivered by the server regardless of this list; it is named
  * here only for documentation. `realm` + `default_streams` (Phase 5.2
  * admin settings) keep the realm-store and default-streams list fresh
- * when an admin edits org settings.
+ * when an admin edits org settings. `user_group` (Phase A2) keeps the
+ * realm's user-group directory live — needed for group mentions,
+ * channel-permission group rendering, and the user-groups admin page;
+ * the snapshot for that directory ships under the `realm_user_groups`
+ * fetch key, which is the rare Zulip asymmetry where the
+ * event-stream name and the snapshot fetch name differ — we include
+ * both. (`realm_user` / `realm_emoji` carry their own snapshot under
+ * the same string; only this one is split.)
  */
 export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "message",
@@ -116,6 +123,8 @@ export const DEFAULT_EVENT_TYPES: readonly string[] = [
   "realm_user",
   "realm_emoji",
   "default_streams",
+  "user_group",
+  "realm_user_groups",
   "presence",
   "typing",
   "update_message_flags",
@@ -157,6 +166,16 @@ export class RealtimeConnection {
   readonly #eventListeners = new Set<EventListener>();
   /** Initial-state subscribers, notified on every (re-)register. */
   readonly #initialStateListeners = new Set<InitialStateListener>();
+  /**
+   * The most recent register-time snapshot, kept so a store that
+   * subscribes *after* register completes still gets hydrated. Without
+   * this, code-split / lazy-mounted stores (e.g. `defaultStreamsStore`
+   * behind the admin route's `React.lazy`) would silently miss the
+   * snapshot and stay empty until the next BAD_EVENT_QUEUE_ID recovery.
+   * Cleared on `stop()` so a fresh session never sees a previous user's
+   * snapshot.
+   */
+  #lastInitialState: InitialState | undefined;
   /** Status subscribers, notified on every status transition. */
   readonly #statusListeners = new Set<StatusListener>();
 
@@ -238,6 +257,9 @@ export class RealtimeConnection {
       this.#pollAbort.abort();
       this.#pollAbort = null;
     }
+    // Drop the cached snapshot so a re-login doesn't replay the
+    // previous session's data to a newly-subscribed store.
+    this.#lastInitialState = undefined;
     this.#setStatus("idle");
   }
 
@@ -262,12 +284,16 @@ export class RealtimeConnection {
    * new queue are dispatched. Returns an unsubscribe function; calling
    * it more than once is harmless.
    *
-   * The listener is not replayed with the most recent snapshot on
-   * subscribe: like `subscribe()`, consumers are expected to register
-   * at module load, before `start()` runs.
+   * If a snapshot has already been received before this subscription,
+   * the listener is replayed with it synchronously. That is what lets
+   * a lazy-loaded store (e.g. one behind a `React.lazy` route) hydrate
+   * even when its module first runs minutes after register completed.
    */
   onInitialState(listener: InitialStateListener): Unsubscribe {
     this.#initialStateListeners.add(listener);
+    if (this.#lastInitialState !== undefined) {
+      listener(this.#lastInitialState);
+    }
     return () => {
       this.#initialStateListeners.delete(listener);
     };
@@ -319,9 +345,13 @@ export class RealtimeConnection {
    * Deliver the register-time snapshot to every initial-state
    * subscriber, in subscription order. Called after each successful
    * (re-)register, before the loop polls the new queue — so stores
-   * hydrate from the snapshot before any event is applied on top.
+   * hydrate from the snapshot before any event is applied on top. The
+   * snapshot is cached as `#lastInitialState` so a subscriber that
+   * arrives after this broadcast (e.g. a code-split store mounted only
+   * when its admin route is visited) is replayed in `onInitialState`.
    */
   #broadcastInitialState(state: InitialState): void {
+    this.#lastInitialState = state;
     for (const listener of this.#initialStateListeners) {
       listener(state);
     }

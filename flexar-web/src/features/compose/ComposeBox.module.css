@@ -1,35 +1,56 @@
 /*
- * Compose box layout (redesigned). All design values are tokens; only
- * pure-layout literals (flex, 100%, 0) appear bare.
+ * Compose box layout (Telegram-style redesign).
+ *
+ * The textarea and the formatting toolbar live inside ONE bordered
+ * frame so the user perceives a single input control instead of two
+ * stacked rectangles. SendMenu, LimitIndicator and the preview /
+ * maximize toggles sit inside the toolbar at the right edge — the
+ * old "bottom row" that floated below is gone.
  *
  * Vertical stack (top → bottom):
- *   - banners (errors)
- *   - recipient row (pill + topic / DM pills) — `low-attention` dim
- *     while compose is not in focus
+ *   - banners (errors, rare)
+ *   - recipient row — only when the URL narrow doesn't already
+ *     specify the destination (channel-only narrow, no-recipient DM
+ *     compose), otherwise hidden
  *   - "Restored from draft" hint (rare)
- *   - editor wrap (textarea or preview)
- *   - upload chips
- *   - formatting toolbar
- *   - bottom row (drafts | spacer | limit | send-menu)
+ *   - editor frame:
+ *       textarea OR preview
+ *       upload chips (above the toolbar separator)
+ *       toolbar (emoji, attach, B/I/link, more, preview, maximize, send)
+ *   - footer hint: keyboard tip · drafts shortcut
+ *
+ * All design values are tokens; only pure-layout literals (flex, 0,
+ * 100%) appear bare.
  */
 
+/*
+ * `margin-top: auto` pins the form to the bottom of the feed
+ * column. In the loading / error / empty branches the message
+ * list is replaced by a natural-height placeholder; without this
+ * auto-margin, the compose form would hover right under the
+ * placeholder with empty space below it.
+ */
 .compose {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  margin-top: auto;
+  padding: var(--space-3) var(--space-4) var(--space-3);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
 }
 
 /*
- * Stand-in for the full compose surface when the current narrow
- * has no addressable recipient (search / is:starred / is:mentioned /
- * is:resolved …). Sits on the same surface as `.compose` so the
- * bottom of the screen looks coherent, but takes only the one row
- * needed for the hint — the rest of the height returns to the feed.
+ * Stand-in for the full compose surface when the current narrow has
+ * no addressable recipient (search / is:starred / is:mentioned …).
+ * Sits on the same surface as `.compose` so the bottom of the
+ * screen looks coherent, but takes only the one row needed for
+ * the hint. Same bottom-pin contract as `.compose`: the feed
+ * column is `flex: 1` and other branches (empty / error) don't
+ * fill it, so we push ourselves to the bottom via `margin-top: auto`.
  */
 .composeUnavailable {
+  margin-top: auto;
   padding: var(--space-3) var(--space-4);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -48,65 +69,84 @@
   color: var(--color-text-muted);
 }
 
-/* Editor wrap holds either the textarea (write mode) or the inline
-   preview pane. The textarea inherits its full set of states from
-   AutoGrowTextarea; we add a focus ring at this level so the
-   surrounding border doesn't flicker. */
-.editorWrap {
-  position: relative;
+/*
+ * "Editing message" caption shown above the frame while the compose
+ * box is in edit mode. Subtle (xs, muted) — the mode change is
+ * already reinforced by Save/Cancel replacing Send below.
+ */
+.editingCaption {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.editingError {
+  color: var(--color-danger);
+}
+
+/*
+ * The single bordered control. Textarea and toolbar both live inside
+ * this — the toolbar gets a `border-top` separator instead of its
+ * own outline so the two read as one frame. Focus moves the frame's
+ * border colour as `:focus-within` rather than the textarea's own
+ * border, which we suppress from the primitive.
+ *
+ * Background — `--color-surface`, the same value the compose
+ * container already uses. The frame is delineated only by its
+ * border, not by an inset fill: a gray `--color-bg` here read as
+ * "disabled" in light mode (white compose container, gray input
+ * inside) which is the opposite of what we want for the primary
+ * input on the screen.
+ */
+.editorFrame {
   display: flex;
   flex-direction: column;
-  min-height: var(--control-height-lg);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   transition: border-color var(--duration-fast);
 }
 
-.editorWrap:focus-within {
+.editorFrame:focus-within {
   border-color: var(--color-accent);
 }
 
-.textarea {
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-normal);
-  color: var(--color-text);
+/*
+ * Suppress the primitive Textarea's own border + focus ring inside
+ * the frame — the frame is the visible boundary now. Generous
+ * vertical padding (--space-3 ≈ 12px) replaces the primitive's
+ * tighter --space-2 to give the writer breathing room.
+ */
+.editorFrame textarea {
+  padding: var(--space-3);
   background-color: transparent;
   border: none;
+  border-radius: 0;
 }
 
-.textarea:focus {
+.editorFrame textarea:focus {
+  border-color: transparent;
   outline: none;
 }
 
 .previewBox {
-  padding: var(--space-2) var(--space-3);
   min-height: var(--control-height-lg);
+  padding: var(--space-3);
   font-size: var(--font-size-md);
   color: var(--color-text);
-}
-
-.bottomRow {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.spacer {
-  flex: 1;
 }
 
 /*
  * Maximize mode: the writer wants a roomy canvas (long-form message,
  * paste of formatted text, multi-paragraph thinking). Push the
- * editor wrap up to a comfortable 60vh minimum and let the textarea
- * grow inside it; the feed area above naturally shrinks because the
- * compose grew within the flex column. The toggle is in the
- * formatting toolbar's right-aligned cluster.
+ * frame up to a comfortable 60vh minimum and let the textarea grow
+ * inside it.
  */
-.compose.maximized .editorWrap {
+.compose.maximized .editorFrame {
   min-height: 60vh;
 }
 
+.compose.maximized .editorFrame textarea {
+  flex: 1;
+}

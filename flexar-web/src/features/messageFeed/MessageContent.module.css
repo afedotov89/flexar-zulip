@@ -162,6 +162,92 @@
     margin-bottom: 0;
   }
 
+  /*
+   * Pygments token classes inside `.codehilite`. The server renders
+   * fenced code blocks through Pygments and ships them as
+   * `<span class="…">` per-token; we only need to colour those
+   * classes. Pygments emits a wide vocabulary; we map it onto six
+   * semantic syntax roles in the design system (see
+   * `theme.ts`/`syntax*`), keeping the CSS small and theme-aware.
+   *
+   * The class compactions below group Pygments tokens that share a
+   * semantic role (e.g. all string-flavoured tokens — `s`, `s1`,
+   * `s2`, `sa`, `sb`, `sc`, `sd`, `se`, `sh`, `si`, `sx`, `sr`,
+   * `ss`, `dl` — into one rule). This is enough fidelity for code
+   * to be readable; we don't try to match Pygments' full ~50-class
+   * detail.
+   */
+  & :global(.codehilite .k),
+  & :global(.codehilite .kc),
+  & :global(.codehilite .kd),
+  & :global(.codehilite .kn),
+  & :global(.codehilite .kp),
+  & :global(.codehilite .kr),
+  & :global(.codehilite .kt),
+  & :global(.codehilite .ow) {
+    color: var(--color-syntax-keyword);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  & :global(.codehilite .nb),
+  & :global(.codehilite .bp),
+  & :global(.codehilite .ni) {
+    color: var(--color-syntax-builtin);
+  }
+
+  & :global(.codehilite .s),
+  & :global(.codehilite .s1),
+  & :global(.codehilite .s2),
+  & :global(.codehilite .sa),
+  & :global(.codehilite .sb),
+  & :global(.codehilite .sc),
+  & :global(.codehilite .sd),
+  & :global(.codehilite .se),
+  & :global(.codehilite .sh),
+  & :global(.codehilite .si),
+  & :global(.codehilite .sx),
+  & :global(.codehilite .sr),
+  & :global(.codehilite .ss),
+  & :global(.codehilite .dl) {
+    color: var(--color-syntax-string);
+  }
+
+  & :global(.codehilite .m),
+  & :global(.codehilite .mb),
+  & :global(.codehilite .mf),
+  & :global(.codehilite .mh),
+  & :global(.codehilite .mi),
+  & :global(.codehilite .mo),
+  & :global(.codehilite .il) {
+    color: var(--color-syntax-number);
+  }
+
+  & :global(.codehilite .c),
+  & :global(.codehilite .ch),
+  & :global(.codehilite .cm),
+  & :global(.codehilite .cp),
+  & :global(.codehilite .cpf),
+  & :global(.codehilite .c1),
+  & :global(.codehilite .cs) {
+    color: var(--color-syntax-comment);
+    font-style: italic;
+  }
+
+  & :global(.codehilite .nf),
+  & :global(.codehilite .nc),
+  & :global(.codehilite .nd),
+  & :global(.codehilite .ne),
+  & :global(.codehilite .nt),
+  & :global(.codehilite .na) {
+    color: var(--color-syntax-function);
+  }
+
+  /* Errors — Pygments uses `.err` for unparsed/illegal tokens. Mark
+     them with the danger colour so they read as wrong-on-purpose. */
+  & :global(.codehilite .err) {
+    color: var(--color-danger);
+  }
+
   /* ---- Tables ------------------------------------------------------ */
 
   & :global(table) {
@@ -191,11 +277,20 @@
   /* ---- Emoji ------------------------------------------------------- */
 
   /* Realm emoji are `<img class="emoji">`; unicode emoji are a
-     `<span class="emoji">` with the glyph as text. Size both to sit on
-     the text baseline without disturbing line height. */
+     `<span class="emoji">` with the glyph as text. Both sit on the
+     text baseline with the design-token emoji size (`md` = applied/
+     used context). Unicode `<span>` inherits text font-size from
+     the surrounding paragraph, so we boost it to match the realm
+     image dimension and the two read at the same visual weight. */
   & :global(img.emoji) {
-    width: 1.25em;
-    height: 1.25em;
+    width: var(--emoji-size-inline);
+    height: var(--emoji-size-inline);
+    vertical-align: text-bottom;
+  }
+
+  & :global(span.emoji) {
+    font-size: var(--emoji-size-inline);
+    line-height: 1;
     vertical-align: text-bottom;
   }
 

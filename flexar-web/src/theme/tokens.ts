@@ -169,6 +169,34 @@ export const scales = {
     '2xl': '24px',
   },
 
+  // Emoji glyph sizes. Emoji are intentionally NOT tied to the text
+  // `fontSize` scale — they live in their own visual register, and
+  // their natural sort order is by CONTEXT, not by size (the picker
+  // wants the largest glyphs so the user can recognise + tap them,
+  // while reaction chips want the smallest to fit the pill). So
+  // tokens are named after their use site, not `sm`/`md`/`lg`.
+  //
+  //   `picker` — selection grids. Big enough to pick by sight on a
+  //              touch / quick scan; users compare many at once.
+  //   `inline` — applied/used emoji: inline in message content,
+  //              status rows, navbar identity. Slightly larger than
+  //              text so a single glyph in a paragraph reads.
+  //   `chip`   — reaction chips. The chip is a small pill (height
+  //              ~28px) and the emoji's NATIVE render is taller
+  //              than the CSS `font-size` (~+25%), so 16px CSS
+  //              still visually reads at ~20px — anything larger
+  //              packs the chip with no breathing room.
+  emojiSize: {
+    picker: '24px',
+    inline: '20px',
+    //   `compact` — dense list rows (right-sidebar user list) where
+    //              `inline` reads as oversized against the xs status
+    //              line. Two pixels shy of `inline`; still bigger
+    //              than text so a single glyph reads clearly.
+    compact: '18px',
+    chip: '16px',
+  },
+
   fontWeight: {
     regular: 400,
     medium: 500,
