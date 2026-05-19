@@ -28,7 +28,7 @@ import { useMemo } from "react";
 import { Banner } from "../../components/Banner";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
-import { Skeleton } from "../../components/Skeleton";
+import { MessageRowsSkeleton } from "../../components/MessageRowsSkeleton";
 import type { Message, Narrow } from "../../domain";
 import { narrowToPath } from "../../lib/narrow";
 import { useMessagesStore } from "../../stores/messagesStore";
@@ -44,25 +44,6 @@ import styles from "./MessageFeed.module.css";
 export interface MessageFeedProps {
   /** The narrow whose messages the feed renders. */
   narrow: Narrow;
-}
-
-// Skeleton placeholder shown during the initial fetch — a handful of
-// rows in the message-row rhythm so the column does not jump when the
-// real list arrives.
-function LoadingState(): React.JSX.Element {
-  return (
-    <div className={styles.loading} aria-hidden="true">
-      {[0, 1, 2, 3, 4, 5].map((index) => (
-        <div key={index} className={styles.loadingRow}>
-          <Skeleton variant="circle" height="md" />
-          <div className={styles.loadingLines}>
-            <Skeleton variant="text" width="sm" height="sm" />
-            <Skeleton variant="text" width="full" height="md" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
@@ -99,7 +80,7 @@ export function MessageFeed({ narrow }: MessageFeedProps): React.JSX.Element {
     return (
       <div className={styles.feed}>
         <NarrowHeader narrow={narrow} />
-        <LoadingState />
+        <MessageRowsSkeleton />
         <TypingIndicator narrow={narrow} />
         <ComposeBox narrow={narrow} />
       </div>

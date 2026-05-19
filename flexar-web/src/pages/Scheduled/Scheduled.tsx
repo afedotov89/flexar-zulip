@@ -19,7 +19,7 @@
 import { useEffect } from "react";
 import { Banner } from "../../components/Banner";
 import { IconButton } from "../../components/IconButton";
-import { Spinner } from "../../components/Spinner";
+import { MessageRowsSkeleton } from "../../components/MessageRowsSkeleton";
 import { apiClient } from "../../api";
 import type { ScheduledMessage, UserId } from "../../domain";
 import { useRealmStore } from "../../stores/realmStore";
@@ -66,11 +66,7 @@ export function Scheduled(): React.JSX.Element {
   void messagesMap;
 
   if (loadStatus === "loading" && messages.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <Spinner />
-      </div>
-    );
+    return <MessageRowsSkeleton />;
   }
 
   if (loadStatus === "error" && messages.length === 0) {
