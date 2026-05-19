@@ -42,13 +42,15 @@
   justify-content: center;
 }
 
-/* Same SVG and size relation the navbar uses (~1.6em tracks the wide
- * brand font so the mark reads at roughly cap-height regardless of
- * zoom). flex-shrink keeps the mark intact when the row gets narrow. */
+/* Bigger than the navbar's 1.6em equivalent: on the login screen the
+ * brand is the focal point, and the F-mark sits inside a chat-bubble
+ * bounding box whose cap-height is only ~65% of the SVG height — so
+ * 2.4em tracks the wide brand font roughly cap-to-cap. flex-shrink
+ * keeps the mark intact when the row gets narrow. */
 .brandLogo {
   flex-shrink: 0;
-  width: 1.6em;
-  height: 1.6em;
+  width: 2.4em;
+  height: 2.4em;
 }
 
 .brandText {
