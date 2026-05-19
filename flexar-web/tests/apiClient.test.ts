@@ -871,6 +871,31 @@ describe("response handling", () => {
     expect(error.message).toBe("Something failed");
   });
 
+  it("throws ApiError EMPTY_RESPONSE on a 2xx with empty body (deploy window)", async () => {
+    // Seen in the wild: during a container restart nginx briefly
+    // served an HTML 200 for an API path, which our parser couldn't
+    // decode into JSON. Without the defensive throw, callers crashed
+    // with `Cannot read properties of undefined (reading 'messages')`
+    // (or whatever field they read off the body next).
+    responseQueue.push(() =>
+      Promise.resolve(
+        new Response("", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    const error = (await client()
+      .getMessages({ numBefore: 1, numAfter: 0 })
+      .catch((e: unknown) => e)) as ApiError;
+
+    expect(isApiError(error)).toBe(true);
+    expect(error.code).toBe("EMPTY_RESPONSE");
+    expect(error.httpStatus).toBe(200);
+    expect(error.message).toContain("empty");
+  });
+
   it("throws ApiError with HTTP_ERROR on a non-2xx non-JSON response", async () => {
     responseQueue.push(() =>
       Promise.resolve(

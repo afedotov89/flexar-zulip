@@ -264,5 +264,20 @@ export async function sendRequest<T>(
     );
   }
 
+  // Defensive: a 2xx response with an empty / non-JSON body would let
+  // callers crash with `Cannot read properties of undefined (reading
+  // 'X')` when they read fields off `body`. Seen in the wild during
+  // deploy windows when nginx briefly served the SPA index.html for a
+  // request that should have been API JSON. Surface as a readable
+  // error so the UI's error-state copy ("Не удалось загрузить
+  // сообщения" + the error.message) reads like a real diagnostic.
+  if (body === undefined) {
+    throw new ApiError(
+      `Request to ${spec.path} returned an empty or non-JSON body (HTTP ${response.status}). The server may be restarting; try again in a moment.`,
+      "EMPTY_RESPONSE",
+      response.status,
+    );
+  }
+
   return body as T;
 }
