@@ -36,6 +36,23 @@
 }
 
 .brand {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Same SVG and size relation the navbar uses (~1.6em tracks the wide
+ * brand font so the mark reads at roughly cap-height regardless of
+ * zoom). flex-shrink keeps the mark intact when the row gets narrow. */
+.brandLogo {
+  flex-shrink: 0;
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.brandText {
+  margin: 0;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wide);

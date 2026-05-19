@@ -63,7 +63,15 @@ export function LoginPage(): React.JSX.Element {
     <div className={styles.page}>
       <main className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.brand}>Flexar Messenger</h1>
+          <div className={styles.brand}>
+            <img
+              src="/favicon.svg"
+              className={styles.brandLogo}
+              alt=""
+              aria-hidden
+            />
+            <h1 className={styles.brandText}>Flexar Messenger</h1>
+          </div>
           <p className={styles.subtitle}>Войдите в своё рабочее пространство</p>
         </div>
 

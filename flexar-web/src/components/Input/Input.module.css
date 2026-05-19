@@ -98,3 +98,24 @@
 .sizeLg .input {
   font-size: var(--font-size-md);
 }
+
+/* Chrome's autofill applies a bluish background-color directly to the
+ * <input> element. Because the wrapper has padding (not the input
+ * itself), the autofill tint stops short of the wrapper's edges —
+ * users see a "crooked" mismatched right band where the wrapper's
+ * --color-surface peeks through. The 1000px-inset-box-shadow trick is
+ * the standard override: it paints OVER Chrome's autofill bg with our
+ * token surface while preserving the autofilled value. Mirrored for
+ * the hover / focus / active pseudo-states so the surface stays
+ * consistent across all transitions. Placed at the end so the
+ * size-overrides above it stay lower-specificity-first. */
+.input:autofill,
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  -webkit-text-fill-color: var(--color-text);
+  caret-color: var(--color-text);
+  transition: background-color 9999s ease-in-out 0s;
+}
